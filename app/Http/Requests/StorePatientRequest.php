@@ -31,7 +31,6 @@ class StorePatientRequest extends FormRequest
             'weight' => ['nullable', 'integer', 'min:1'],
             'height' => ['nullable', 'integer', 'min:1'],
             'mobility' => ['required', 'string', Rule::in(['walking', 'sitting', 'bedridden'])],
-            'address' => ['required', 'string'],
             'diagnoses' => ['nullable', 'array'],
             'diagnoses.*' => ['string', 'max:255'],
             'needed_services' => ['nullable', 'array'],

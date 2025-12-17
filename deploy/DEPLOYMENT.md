@@ -20,7 +20,7 @@ ssh root@155.212.223.159
 ```bash
 # Запустите скрипт установки
 cd ~
-wget https://raw.githubusercontent.com/YOUR_REPO/healapp-api/main/deploy/setup-server.sh
+wget https://raw.githubusercontent.com/zaasglg/healapp_api/main/deploy/setup-server.sh
 chmod +x setup-server.sh
 sudo bash setup-server.sh
 ```
@@ -51,7 +51,7 @@ sudo mkdir -p /var/www/healapp-api
 
 # Клонируйте репозиторий
 cd /var/www
-sudo git clone https://github.com/YOUR_USERNAME/healapp-api.git
+sudo git clone https://github.com/zaasglg/healapp_api.git healapp-api
 
 # Или скопируйте файлы с локальной машины через scp
 # scp -r ./healapp-api root@155.212.223.159:/var/www/

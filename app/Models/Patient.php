@@ -28,7 +28,6 @@ class Patient extends Model
         'weight',
         'height',
         'mobility',
-        'address',
         'diagnoses',
         'needed_services',
     ];

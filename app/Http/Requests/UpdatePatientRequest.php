@@ -31,7 +31,6 @@ class UpdatePatientRequest extends FormRequest
             'weight' => ['nullable', 'integer', 'min:1'],
             'height' => ['nullable', 'integer', 'min:1'],
             'mobility' => ['sometimes', 'required', 'string', Rule::in(['walking', 'sitting', 'bedridden'])],
-            'address' => ['sometimes', 'required', 'string'],
             'diagnoses' => ['nullable', 'array'],
             'diagnoses.*' => ['string', 'max:255'],
             'needed_services' => ['nullable', 'array'],

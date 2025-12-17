@@ -41,7 +41,6 @@ class PatientController extends Controller
      *                 @OA\Property(property="weight", type="integer", nullable=true, example=75),
      *                 @OA\Property(property="height", type="integer", nullable=true, example=175),
      *                 @OA\Property(property="mobility", type="string", example="walking", enum={"walking", "sitting", "bedridden"}),
-     *                 @OA\Property(property="address", type="string", example="123 Main St, Moscow"),
      *                 @OA\Property(property="diagnoses", type="array", nullable=true, @OA\Items(type="string"), example={"Stroke", "Dementia"}),
      *                 @OA\Property(property="needed_services", type="array", nullable=true, @OA\Items(type="string"), example={"Nursing care", "Physical therapy"}),
      *                 @OA\Property(property="created_at", type="string", format="date-time"),
@@ -85,7 +84,7 @@ class PatientController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"first_name", "last_name", "gender", "mobility", "address"},
+     *             required={"first_name", "last_name", "gender", "mobility"},
      *             @OA\Property(property="first_name", type="string", example="Ivan", description="Patient's first name"),
      *             @OA\Property(property="last_name", type="string", example="Petrov", description="Patient's last name"),
      *             @OA\Property(property="middle_name", type="string", nullable=true, example="Sergeevich", description="Patient's middle name"),
@@ -94,7 +93,7 @@ class PatientController extends Controller
      *             @OA\Property(property="weight", type="integer", nullable=true, example=75, description="Weight in kg"),
      *             @OA\Property(property="height", type="integer", nullable=true, example=175, description="Height in cm"),
      *             @OA\Property(property="mobility", type="string", example="walking", description="Mobility status", enum={"walking", "sitting", "bedridden"}),
-     *             @OA\Property(property="address", type="string", example="123 Main St, Moscow", description="Patient's address"),
+
      *             @OA\Property(property="diagnoses", type="array", nullable=true, @OA\Items(type="string"), example={"Stroke", "Dementia"}, description="Array of diagnoses"),
      *             @OA\Property(property="needed_services", type="array", nullable=true, @OA\Items(type="string"), example={"Nursing care", "Physical therapy"}, description="Array of needed services")
      *         )
@@ -114,7 +113,6 @@ class PatientController extends Controller
      *             @OA\Property(property="weight", type="integer", nullable=true, example=75),
      *             @OA\Property(property="height", type="integer", nullable=true, example=175),
      *             @OA\Property(property="mobility", type="string", example="walking"),
-     *             @OA\Property(property="address", type="string", example="123 Main St, Moscow"),
      *             @OA\Property(property="diagnoses", type="array", nullable=true, @OA\Items(type="string"), example={"Stroke", "Dementia"}),
      *             @OA\Property(property="needed_services", type="array", nullable=true, @OA\Items(type="string"), example={"Nursing care", "Physical therapy"}),
      *             @OA\Property(property="created_at", type="string", format="date-time"),
@@ -188,7 +186,6 @@ class PatientController extends Controller
      *             @OA\Property(property="weight", type="integer", nullable=true, example=75),
      *             @OA\Property(property="height", type="integer", nullable=true, example=175),
      *             @OA\Property(property="mobility", type="string", example="walking"),
-     *             @OA\Property(property="address", type="string", example="123 Main St, Moscow"),
      *             @OA\Property(property="diagnoses", type="array", nullable=true, @OA\Items(type="string"), example={"Stroke", "Dementia"}),
      *             @OA\Property(property="needed_services", type="array", nullable=true, @OA\Items(type="string"), example={"Nursing care", "Physical therapy"}),
      *             @OA\Property(property="created_at", type="string", format="date-time"),
@@ -257,7 +254,7 @@ class PatientController extends Controller
      *             @OA\Property(property="weight", type="integer", nullable=true, example=75),
      *             @OA\Property(property="height", type="integer", nullable=true, example=175),
      *             @OA\Property(property="mobility", type="string", example="walking", enum={"walking", "sitting", "bedridden"}),
-     *             @OA\Property(property="address", type="string", example="123 Main St, Moscow"),
+
      *             @OA\Property(property="diagnoses", type="array", nullable=true, @OA\Items(type="string"), example={"Stroke", "Dementia"}),
      *             @OA\Property(property="needed_services", type="array", nullable=true, @OA\Items(type="string"), example={"Nursing care", "Physical therapy"})
      *         )
@@ -277,7 +274,6 @@ class PatientController extends Controller
      *             @OA\Property(property="weight", type="integer", nullable=true, example=75),
      *             @OA\Property(property="height", type="integer", nullable=true, example=175),
      *             @OA\Property(property="mobility", type="string", example="walking"),
-     *             @OA\Property(property="address", type="string", example="123 Main St, Moscow"),
      *             @OA\Property(property="diagnoses", type="array", nullable=true, @OA\Items(type="string"), example={"Stroke", "Dementia"}),
      *             @OA\Property(property="needed_services", type="array", nullable=true, @OA\Items(type="string"), example={"Nursing care", "Physical therapy"}),
      *             @OA\Property(property="created_at", type="string", format="date-time"),
