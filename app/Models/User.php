@@ -59,6 +59,44 @@ class User extends Authenticatable
     }
 
     /**
+     * Append account_type attribute to model's JSON representation.
+     *
+     * @var array
+     */
+    protected $appends = ['account_type'];
+
+    /**
+     * Get the account type based on user's role.
+     *
+     * @return string|null
+     */
+    public function getAccountTypeAttribute(): ?string
+    {
+        $roleToAccountType = [
+            'client' => 'client',
+            'specialist' => 'specialist',
+            'manager' => $this->organization ? ($this->organization->name ? 'pansionat' : 'agency') : 'pansionat',
+            'admin' => 'admin',
+            'caregiver' => 'caregiver',
+            'doctor' => 'doctor',
+        ];
+
+        $role = $this->roles->first();
+        
+        if (!$role) {
+            return null;
+        }
+
+        // For manager role, check if user owns organization to determine type
+        if ($role->name === 'manager' && $this->organization) {
+            // You can add additional logic here to differentiate between pansionat and agency
+            return 'pansionat'; // Default to pansionat, adjust logic as needed
+        }
+
+        return $roleToAccountType[$role->name] ?? null;
+    }
+
+    /**
      * Get the organization owned by the user (if user is a manager/owner).
      */
     public function organization(): HasOne
