@@ -2,6 +2,7 @@
     "openapi": "3.0.0",
     "info": {
         "title": "HealApp API",
+        "description": "API для мобильной экосистемы HealApp - организации ухода за пожилыми людьми и людьми с ограниченными возможностями",
         "version": "1.0.0"
     },
     "paths": {
@@ -864,8 +865,8 @@
                 "tags": [
                     "Diary"
                 ],
-                "summary": "Get diary entries for a patient",
-                "description": "Retrieve diary entries for a specific patient. Access is restricted to users who have access to the patient.",
+                "summary": "Get diary with entries for a patient",
+                "description": "Retrieve diary and its entries for a specific patient. Access is restricted to users who have access to the patient.",
                 "operationId": "a68fef556ed9ed7777a5add9f10289f9",
                 "parameters": [
                     {
@@ -900,64 +901,95 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Diary entries retrieved successfully",
+                        "description": "Diary retrieved successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "properties": {
-                                            "id": {
-                                                "type": "integer",
-                                                "example": 1
-                                            },
-                                            "patient_id": {
-                                                "type": "integer",
-                                                "example": 1
-                                            },
-                                            "author_id": {
-                                                "type": "integer",
-                                                "example": 1
-                                            },
-                                            "type": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "care",
-                                                    "physical",
-                                                    "excretion",
-                                                    "symptom"
-                                                ],
-                                                "example": "physical"
-                                            },
-                                            "key": {
-                                                "type": "string",
-                                                "example": "temperature"
-                                            },
-                                            "value": {
-                                                "description": "Entry value as JSON object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "patient_id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "pinned_parameters": {
+                                            "type": "array",
+                                            "items": {
                                                 "type": "object"
-                                            },
-                                            "notes": {
-                                                "type": "string",
-                                                "example": "Normal temperature",
-                                                "nullable": true
-                                            },
-                                            "recorded_at": {
-                                                "type": "string",
-                                                "format": "date-time",
-                                                "example": "2024-01-01T10:00:00.000000Z"
-                                            },
-                                            "created_at": {
-                                                "type": "string",
-                                                "format": "date-time"
-                                            },
-                                            "updated_at": {
-                                                "type": "string",
-                                                "format": "date-time"
                                             }
                                         },
-                                        "type": "object"
-                                    }
+                                        "settings": {
+                                            "type": "object",
+                                            "nullable": true
+                                        },
+                                        "entries": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "diary_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "author_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "care",
+                                                            "physical",
+                                                            "excretion",
+                                                            "symptom"
+                                                        ],
+                                                        "example": "physical"
+                                                    },
+                                                    "key": {
+                                                        "type": "string",
+                                                        "example": "temperature"
+                                                    },
+                                                    "value": {
+                                                        "description": "Entry value as JSON object",
+                                                        "type": "object"
+                                                    },
+                                                    "notes": {
+                                                        "type": "string",
+                                                        "example": "Normal temperature",
+                                                        "nullable": true
+                                                    },
+                                                    "recorded_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2024-01-01T10:00:00.000000Z"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "created_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "type": "object"
                                 }
                             }
                         }
@@ -1011,14 +1043,14 @@
                         }
                     },
                     "404": {
-                        "description": "Patient not found",
+                        "description": "Patient not found or diary not created",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "example": "No query results for model [App\\\\Models\\\\Patient] {id}"
+                                            "example": "No diary found for this patient"
                                         }
                                     },
                                     "type": "object"
@@ -1037,8 +1069,8 @@
                 "tags": [
                     "Diary"
                 ],
-                "summary": "Create a new diary entry",
-                "description": "Create a new diary entry for a patient. Access is restricted to users who have access to the patient.",
+                "summary": "Create diary entry or create diary for patient",
+                "description": "Create a new diary entry for a patient. If diary doesn't exist, it will be created. Access is restricted to users who have access to the patient.",
                 "operationId": "a7019a4acde87c987a65c3b56b4bffcd",
                 "requestBody": {
                     "required": true,
@@ -1107,7 +1139,7 @@
                                             "type": "integer",
                                             "example": 1
                                         },
-                                        "patient_id": {
+                                        "diary_id": {
                                             "type": "integer",
                                             "example": 1
                                         },
@@ -1217,6 +1249,244 @@
                                 }
                             }
                         }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/diary/create": {
+            "post": {
+                "tags": [
+                    "Diary"
+                ],
+                "summary": "Create a new diary for a patient",
+                "description": "Explicitly create a new diary for a patient with optional pinned parameters. Returns error if diary already exists.",
+                "operationId": "4b5c7fa818f8343f44d2e186d174c2e1",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "patient_id"
+                                ],
+                                "properties": {
+                                    "patient_id": {
+                                        "description": "Patient ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "pinned_parameters": {
+                                        "description": "Optional pinned parameters with timers",
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "key": {
+                                                    "type": "string",
+                                                    "example": "blood_pressure"
+                                                },
+                                                "interval_minutes": {
+                                                    "type": "integer",
+                                                    "example": 60
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "settings": {
+                                        "description": "Optional diary settings",
+                                        "type": "object",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Diary created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "patient_id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "pinned_parameters": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "settings": {
+                                            "type": "object",
+                                            "nullable": true
+                                        },
+                                        "entries": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "created_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - patient_id is required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "patient_id is required"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You do not have access to this patient."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict - Diary already exists",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Diary already exists for this patient"
+                                        },
+                                        "diary_id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/diary/pinned": {
+            "patch": {
+                "tags": [
+                    "Diary"
+                ],
+                "summary": "Update pinned parameters for diary",
+                "description": "Update the pinned parameters with timers for a patient's diary.",
+                "operationId": "53d7dbd99f2c064932e125d623ddfac8",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "patient_id",
+                                    "pinned_parameters"
+                                ],
+                                "properties": {
+                                    "patient_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "pinned_parameters": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "key": {
+                                                    "type": "string",
+                                                    "example": "blood_pressure"
+                                                },
+                                                "interval_minutes": {
+                                                    "type": "integer",
+                                                    "example": 60
+                                                },
+                                                "last_recorded_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Pinned parameters updated successfully"
+                    },
+                    "403": {
+                        "description": "Access denied"
                     }
                 },
                 "security": [
@@ -2173,10 +2443,6 @@
                                                 ],
                                                 "example": "walking"
                                             },
-                                            "address": {
-                                                "type": "string",
-                                                "example": "123 Main St, Moscow"
-                                            },
                                             "diagnoses": {
                                                 "type": "array",
                                                 "items": {
@@ -2253,8 +2519,7 @@
                                     "first_name",
                                     "last_name",
                                     "gender",
-                                    "mobility",
-                                    "address"
+                                    "mobility"
                                 ],
                                 "properties": {
                                     "first_name": {
@@ -2310,11 +2575,6 @@
                                             "bedridden"
                                         ],
                                         "example": "walking"
-                                    },
-                                    "address": {
-                                        "description": "Patient's address",
-                                        "type": "string",
-                                        "example": "123 Main St, Moscow"
                                     },
                                     "diagnoses": {
                                         "description": "Array of diagnoses",
@@ -2402,10 +2662,6 @@
                                         "mobility": {
                                             "type": "string",
                                             "example": "walking"
-                                        },
-                                        "address": {
-                                            "type": "string",
-                                            "example": "123 Main St, Moscow"
                                         },
                                         "diagnoses": {
                                             "type": "array",
@@ -2561,10 +2817,6 @@
                                         "mobility": {
                                             "type": "string",
                                             "example": "walking"
-                                        },
-                                        "address": {
-                                            "type": "string",
-                                            "example": "123 Main St, Moscow"
                                         },
                                         "diagnoses": {
                                             "type": "array",
@@ -2727,10 +2979,6 @@
                                         ],
                                         "example": "walking"
                                     },
-                                    "address": {
-                                        "type": "string",
-                                        "example": "123 Main St, Moscow"
-                                    },
                                     "diagnoses": {
                                         "type": "array",
                                         "items": {
@@ -2815,10 +3063,6 @@
                                         "mobility": {
                                             "type": "string",
                                             "example": "walking"
-                                        },
-                                        "address": {
-                                            "type": "string",
-                                            "example": "123 Main St, Moscow"
                                         },
                                         "diagnoses": {
                                             "type": "array",
@@ -4198,6 +4442,162 @@
         }
     },
     "components": {
+        "schemas": {
+            "Diary": {
+                "description": "Дневник подопечного",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "patient_id": {
+                        "description": "ID пациента",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "pinned_parameters": {
+                        "description": "Закреплённые показатели с таймерами",
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "key": {
+                                    "type": "string",
+                                    "example": "blood_pressure"
+                                },
+                                "interval_minutes": {
+                                    "type": "integer",
+                                    "example": 60
+                                },
+                                "last_recorded_at": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "nullable": true
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "settings": {
+                        "description": "Настройки дневника",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "DiaryEntry": {
+                "description": "Запись в дневнике",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "diary_id": {
+                        "description": "ID дневника",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "author_id": {
+                        "description": "ID автора записи",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "type": {
+                        "description": "Тип записи",
+                        "type": "string",
+                        "enum": [
+                            "care",
+                            "physical",
+                            "excretion",
+                            "symptom"
+                        ],
+                        "example": "physical"
+                    },
+                    "key": {
+                        "description": "Ключ показателя",
+                        "type": "string",
+                        "example": "blood_pressure"
+                    },
+                    "value": {
+                        "description": "Значение показателя в JSON формате",
+                        "type": "object"
+                    },
+                    "notes": {
+                        "description": "Заметки",
+                        "type": "string",
+                        "example": "Normal reading",
+                        "nullable": true
+                    },
+                    "recorded_at": {
+                        "description": "Время записи события",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "DiaryAccess": {
+                "description": "Доступ к дневнику",
+                "properties": {
+                    "diary_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "permission": {
+                        "type": "string",
+                        "enum": [
+                            "view",
+                            "edit",
+                            "full"
+                        ],
+                        "example": "edit"
+                    }
+                },
+                "type": "object"
+            },
+            "PinnedParameter": {
+                "description": "Закреплённый показатель с таймером",
+                "properties": {
+                    "key": {
+                        "description": "Ключ показателя",
+                        "type": "string",
+                        "example": "blood_pressure"
+                    },
+                    "interval_minutes": {
+                        "description": "Интервал замера в минутах",
+                        "type": "integer",
+                        "example": 60
+                    },
+                    "last_recorded_at": {
+                        "description": "Время последней записи",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            }
+        },
         "securitySchemes": {
             "sanctum": {
                 "type": "http",
@@ -4213,7 +4613,7 @@
         },
         {
             "name": "Diary",
-            "description": "API endpoints for patient diary entries"
+            "description": "API endpoints for patient diary management"
         },
         {
             "name": "Notifications",

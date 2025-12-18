@@ -157,6 +157,118 @@ class DiaryController extends Controller
 
     /**
      * @OA\Post(
+     *     path="/api/v1/diary/create",
+     *     tags={"Diary"},
+     *     summary="Create a new diary for a patient",
+     *     description="Explicitly create a new diary for a patient with optional pinned parameters. Returns error if diary already exists.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"patient_id"},
+     *             @OA\Property(property="patient_id", type="integer", example=1, description="Patient ID"),
+     *             @OA\Property(property="pinned_parameters", type="array", description="Optional pinned parameters with timers",
+     *                 @OA\Items(
+     *                     @OA\Property(property="key", type="string", example="blood_pressure"),
+     *                     @OA\Property(property="interval_minutes", type="integer", example=60)
+     *                 )
+     *             ),
+     *             @OA\Property(property="settings", type="object", nullable=true, description="Optional diary settings")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Diary created successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="id", type="integer", example=1),
+     *             @OA\Property(property="patient_id", type="integer", example=1),
+     *             @OA\Property(property="pinned_parameters", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="settings", type="object", nullable=true),
+     *             @OA\Property(property="entries", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="created_at", type="string", format="date-time"),
+     *             @OA\Property(property="updated_at", type="string", format="date-time")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Bad request - patient_id is required",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="patient_id is required")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Access denied",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="You do not have access to this patient.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=409,
+     *         description="Conflict - Diary already exists",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Diary already exists for this patient"),
+     *             @OA\Property(property="diary_id", type="integer", example=1)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
+    public function create(Request $request): JsonResponse
+    {
+        $request->validate([
+            'patient_id' => 'required|exists:patients,id',
+            'pinned_parameters' => 'nullable|array',
+            'pinned_parameters.*.key' => 'required_with:pinned_parameters|string',
+            'pinned_parameters.*.interval_minutes' => 'required_with:pinned_parameters|integer|min:1',
+            'settings' => 'nullable|array',
+        ]);
+
+        $patient = Patient::findOrFail($request->patient_id);
+        $user = $request->user();
+
+        // Check access
+        if (!$this->canAccessPatient($user, $patient)) {
+            return response()->json([
+                'message' => 'You do not have access to this patient.',
+            ], 403);
+        }
+
+        // Check if diary already exists
+        if ($patient->diary) {
+            return response()->json([
+                'message' => 'Diary already exists for this patient',
+                'diary_id' => $patient->diary->id,
+            ], 409);
+        }
+
+        // Create diary
+        $diary = Diary::create([
+            'patient_id' => $patient->id,
+            'pinned_parameters' => $request->pinned_parameters,
+            'settings' => $request->settings,
+        ]);
+
+        return response()->json([
+            'id' => $diary->id,
+            'patient_id' => $diary->patient_id,
+            'pinned_parameters' => $diary->pinned_parameters ?? [],
+            'settings' => $diary->settings,
+            'entries' => [],
+            'created_at' => $diary->created_at,
+            'updated_at' => $diary->updated_at,
+        ], 201);
+    }
+
+    /**
+     * @OA\Post(
      *     path="/api/v1/diary",
      *     tags={"Diary"},
      *     summary="Create diary entry or create diary for patient",
