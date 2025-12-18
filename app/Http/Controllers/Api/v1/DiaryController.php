@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDiaryEntryRequest;
+use App\Models\Diary;
 use App\Models\DiaryEntry;
 use App\Models\Patient;
 use Illuminate\Http\JsonResponse;
@@ -12,7 +13,7 @@ use Illuminate\Http\Request;
 /**
  * @OA\Tag(
  *     name="Diary",
- *     description="API endpoints for patient diary entries"
+ *     description="API endpoints for patient diary management"
  * )
  */
 class DiaryController extends Controller
@@ -21,8 +22,8 @@ class DiaryController extends Controller
      * @OA\Get(
      *     path="/api/v1/diary",
      *     tags={"Diary"},
-     *     summary="Get diary entries for a patient",
-     *     description="Retrieve diary entries for a specific patient. Access is restricted to users who have access to the patient.",
+     *     summary="Get diary with entries for a patient",
+     *     description="Retrieve diary and its entries for a specific patient. Access is restricted to users who have access to the patient.",
      *     security={{"sanctum": {}}},
      *     @OA\Parameter(
      *         name="patient_id",
@@ -47,21 +48,28 @@ class DiaryController extends Controller
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Diary entries retrieved successfully",
+     *         description="Diary retrieved successfully",
      *         @OA\JsonContent(
-     *             type="array",
-     *             @OA\Items(
-     *                 @OA\Property(property="id", type="integer", example=1),
-     *                 @OA\Property(property="patient_id", type="integer", example=1),
-     *                 @OA\Property(property="author_id", type="integer", example=1),
-     *                 @OA\Property(property="type", type="string", example="physical", enum={"care", "physical", "excretion", "symptom"}),
-     *                 @OA\Property(property="key", type="string", example="temperature"),
-     *                 @OA\Property(property="value", type="object", description="Entry value as JSON object"),
-     *                 @OA\Property(property="notes", type="string", nullable=true, example="Normal temperature"),
-     *                 @OA\Property(property="recorded_at", type="string", format="date-time", example="2024-01-01T10:00:00.000000Z"),
-     *                 @OA\Property(property="created_at", type="string", format="date-time"),
-     *                 @OA\Property(property="updated_at", type="string", format="date-time")
-     *             )
+     *             @OA\Property(property="id", type="integer", example=1),
+     *             @OA\Property(property="patient_id", type="integer", example=1),
+     *             @OA\Property(property="pinned_parameters", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="settings", type="object", nullable=true),
+     *             @OA\Property(property="entries", type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="diary_id", type="integer", example=1),
+     *                     @OA\Property(property="author_id", type="integer", example=1),
+     *                     @OA\Property(property="type", type="string", example="physical", enum={"care", "physical", "excretion", "symptom"}),
+     *                     @OA\Property(property="key", type="string", example="temperature"),
+     *                     @OA\Property(property="value", type="object", description="Entry value as JSON object"),
+     *                     @OA\Property(property="notes", type="string", nullable=true, example="Normal temperature"),
+     *                     @OA\Property(property="recorded_at", type="string", format="date-time", example="2024-01-01T10:00:00.000000Z"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time")
+     *                 )
+     *             ),
+     *             @OA\Property(property="created_at", type="string", format="date-time"),
+     *             @OA\Property(property="updated_at", type="string", format="date-time")
      *         )
      *     ),
      *     @OA\Response(
@@ -87,9 +95,9 @@ class DiaryController extends Controller
      *     ),
      *     @OA\Response(
      *         response=404,
-     *         description="Patient not found",
+     *         description="Patient not found or diary not created",
      *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\Patient] {id}")
+     *             @OA\Property(property="message", type="string", example="No diary found for this patient")
      *         )
      *     )
      * )
@@ -114,29 +122,45 @@ class DiaryController extends Controller
             ], 403);
         }
 
-        $query = DiaryEntry::where('patient_id', $patientId)
-            ->orderBy('recorded_at', 'desc');
+        $diary = $patient->diary;
+
+        if (!$diary) {
+            return response()->json([
+                'message' => 'No diary found for this patient. Create one first.',
+            ], 404);
+        }
+
+        // Build query for entries
+        $entriesQuery = $diary->entries()->orderBy('recorded_at', 'desc');
 
         // Filter by date range if provided
         if ($request->has('from_date')) {
-            $query->whereDate('recorded_at', '>=', $request->query('from_date'));
+            $entriesQuery->whereDate('recorded_at', '>=', $request->query('from_date'));
         }
 
         if ($request->has('to_date')) {
-            $query->whereDate('recorded_at', '<=', $request->query('to_date'));
+            $entriesQuery->whereDate('recorded_at', '<=', $request->query('to_date'));
         }
 
-        $entries = $query->get();
+        $entries = $entriesQuery->get();
 
-        return response()->json($entries, 200);
+        return response()->json([
+            'id' => $diary->id,
+            'patient_id' => $diary->patient_id,
+            'pinned_parameters' => $diary->pinned_parameters ?? [],
+            'settings' => $diary->settings,
+            'entries' => $entries,
+            'created_at' => $diary->created_at,
+            'updated_at' => $diary->updated_at,
+        ], 200);
     }
 
     /**
      * @OA\Post(
      *     path="/api/v1/diary",
      *     tags={"Diary"},
-     *     summary="Create a new diary entry",
-     *     description="Create a new diary entry for a patient. Access is restricted to users who have access to the patient.",
+     *     summary="Create diary entry or create diary for patient",
+     *     description="Create a new diary entry for a patient. If diary doesn't exist, it will be created. Access is restricted to users who have access to the patient.",
      *     security={{"sanctum": {}}},
      *     @OA\RequestBody(
      *         required=true,
@@ -155,7 +179,7 @@ class DiaryController extends Controller
      *         description="Diary entry created successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="id", type="integer", example=1),
-     *             @OA\Property(property="patient_id", type="integer", example=1),
+     *             @OA\Property(property="diary_id", type="integer", example=1),
      *             @OA\Property(property="author_id", type="integer", example=1),
      *             @OA\Property(property="type", type="string", example="physical"),
      *             @OA\Property(property="key", type="string", example="temperature"),
@@ -209,7 +233,19 @@ class DiaryController extends Controller
             ], 403);
         }
 
+        // Get or create diary for patient
+        $diary = $patient->diary;
+        if (!$diary) {
+            $diary = Diary::create([
+                'patient_id' => $patient->id,
+            ]);
+        }
+
         $data = $request->validated();
+        
+        // Remove patient_id from data, we'll use diary_id instead
+        unset($data['patient_id']);
+        $data['diary_id'] = $diary->id;
         
         // Ensure value is properly formatted as array/JSON
         if (!is_array($data['value'])) {
@@ -229,6 +265,70 @@ class DiaryController extends Controller
         $entry = DiaryEntry::create($data);
 
         return response()->json($entry, 201);
+    }
+
+    /**
+     * @OA\Patch(
+     *     path="/api/v1/diary/pinned",
+     *     tags={"Diary"},
+     *     summary="Update pinned parameters for diary",
+     *     description="Update the pinned parameters with timers for a patient's diary.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"patient_id", "pinned_parameters"},
+     *             @OA\Property(property="patient_id", type="integer", example=1),
+     *             @OA\Property(property="pinned_parameters", type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="key", type="string", example="blood_pressure"),
+     *                     @OA\Property(property="interval_minutes", type="integer", example=60),
+     *                     @OA\Property(property="last_recorded_at", type="string", format="date-time", nullable=true)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Pinned parameters updated successfully"
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Access denied"
+     *     )
+     * )
+     */
+    public function updatePinned(Request $request): JsonResponse
+    {
+        $request->validate([
+            'patient_id' => 'required|exists:patients,id',
+            'pinned_parameters' => 'required|array',
+            'pinned_parameters.*.key' => 'required|string',
+            'pinned_parameters.*.interval_minutes' => 'required|integer|min:1',
+        ]);
+
+        $patient = Patient::findOrFail($request->patient_id);
+        $user = $request->user();
+
+        if (!$this->canAccessPatient($user, $patient)) {
+            return response()->json([
+                'message' => 'You do not have access to this patient.',
+            ], 403);
+        }
+
+        $diary = $patient->diary;
+        if (!$diary) {
+            $diary = Diary::create(['patient_id' => $patient->id]);
+        }
+
+        $diary->update([
+            'pinned_parameters' => $request->pinned_parameters,
+        ]);
+
+        return response()->json([
+            'message' => 'Pinned parameters updated successfully',
+            'diary' => $diary,
+        ], 200);
     }
 
     /**
@@ -260,6 +360,12 @@ class DiaryController extends Controller
             if ($patient->assignedUsers()->where('user_id', $user->id)->exists()) {
                 return true;
             }
+        }
+
+        // Check diary access
+        $diary = $patient->diary;
+        if ($diary && $diary->hasAccess($user)) {
+            return true;
         }
 
         return false;

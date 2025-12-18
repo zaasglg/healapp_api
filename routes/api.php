@@ -22,6 +22,7 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('patients', \App\Http\Controllers\Api\v1\PatientController::class);
         Route::get('/diary', [\App\Http\Controllers\Api\v1\DiaryController::class, 'index']);
         Route::post('/diary', [\App\Http\Controllers\Api\v1\DiaryController::class, 'store']);
+        Route::patch('/diary/pinned', [\App\Http\Controllers\Api\v1\DiaryController::class, 'updatePinned']);
         
         Route::get('/task-templates', [\App\Http\Controllers\Api\v1\TaskTemplateController::class, 'index']);
         Route::post('/task-templates', [\App\Http\Controllers\Api\v1\TaskTemplateController::class, 'store']);

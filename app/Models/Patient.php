@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Patient extends Model
 {
@@ -63,11 +64,11 @@ class Patient extends Model
     }
 
     /**
-     * Get the diary entries for the patient.
+     * Get the diary for the patient.
      */
-    public function diaryEntries(): HasMany
+    public function diary(): HasOne
     {
-        return $this->hasMany(DiaryEntry::class, 'patient_id');
+        return $this->hasOne(Diary::class, 'patient_id');
     }
 
     /**

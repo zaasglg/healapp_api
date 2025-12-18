@@ -254,12 +254,22 @@ class TaskController extends Controller
      */
     private function createDiaryEntryFromTask(Task $task, $user, array $value): void
     {
+        $patient = $task->patient;
+        
+        // Get or create diary for patient
+        $diary = $patient->diary;
+        if (!$diary) {
+            $diary = \App\Models\Diary::create([
+                'patient_id' => $patient->id,
+            ]);
+        }
+        
         // Determine diary type based on key
         $physicalKeys = ['temperature', 'blood_pressure', 'pulse', 'weight', 'height', 'blood_sugar'];
         $diaryType = in_array($task->related_diary_key, $physicalKeys) ? 'physical' : 'care';
 
         DiaryEntry::create([
-            'patient_id' => $task->patient_id,
+            'diary_id' => $diary->id,
             'author_id' => $user->id,
             'type' => $diaryType,
             'key' => $task->related_diary_key,

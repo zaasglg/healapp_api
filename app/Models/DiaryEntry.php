@@ -16,7 +16,7 @@ class DiaryEntry extends Model
      * @var list<string>
      */
     protected $fillable = [
-        'patient_id',
+        'diary_id',
         'author_id',
         'type',
         'key',
@@ -39,11 +39,19 @@ class DiaryEntry extends Model
     }
 
     /**
-     * Get the patient that owns this diary entry.
+     * Get the diary that owns this entry.
+     */
+    public function diary(): BelongsTo
+    {
+        return $this->belongsTo(Diary::class, 'diary_id');
+    }
+
+    /**
+     * Get the patient through the diary relationship.
      */
     public function patient(): BelongsTo
     {
-        return $this->belongsTo(Patient::class, 'patient_id');
+        return $this->diary->patient();
     }
 
     /**

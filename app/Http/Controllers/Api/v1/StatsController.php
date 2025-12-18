@@ -120,8 +120,19 @@ class StatsController extends Controller
         $startDate = Carbon::now()->subDays($days)->startOfDay();
         $endDate = Carbon::now()->endOfDay();
 
-        // Fetch diary entries
-        $entries = DiaryEntry::where('patient_id', $patientId)
+        // Fetch diary entries through diary relationship
+        $diary = $patient->diary;
+        
+        if (!$diary) {
+            return response()->json([
+                'patient_id' => $patientId,
+                'key' => $key,
+                'period' => $period,
+                'data' => [],
+            ], 200);
+        }
+        
+        $entries = $diary->entries()
             ->where('key', $key)
             ->whereBetween('recorded_at', [$startDate, $endDate])
             ->orderBy('recorded_at', 'asc')
