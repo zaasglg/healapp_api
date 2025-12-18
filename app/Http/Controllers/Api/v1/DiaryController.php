@@ -142,6 +142,153 @@ class DiaryController extends Controller
     }
 
     /**
+     * @OA\Get(
+     *     path="/api/v1/diary/{id}",
+     *     tags={"Diary"},
+     *     summary="Get a single diary by ID",
+     *     description="Retrieve a specific diary with patient info and entries. Access is restricted based on user permissions.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Diary ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="from_date",
+     *         in="query",
+     *         required=false,
+     *         description="Filter entries from this date (YYYY-MM-DD)",
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="to_date",
+     *         in="query",
+     *         required=false,
+     *         description="Filter entries to this date (YYYY-MM-DD)",
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Diary retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="id", type="integer", example=1),
+     *             @OA\Property(property="patient_id", type="integer", example=1),
+     *             @OA\Property(property="patient", type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="first_name", type="string", example="Иван"),
+     *                 @OA\Property(property="last_name", type="string", example="Иванов"),
+     *                 @OA\Property(property="middle_name", type="string", example="Иванович"),
+     *                 @OA\Property(property="full_name", type="string", example="Иванов Иван Иванович"),
+     *                 @OA\Property(property="birth_date", type="string", format="date", example="1980-01-01"),
+     *                 @OA\Property(property="gender", type="string", example="male"),
+     *                 @OA\Property(property="weight", type="number", example=75.5),
+     *                 @OA\Property(property="height", type="number", example=175.0),
+     *                 @OA\Property(property="mobility", type="string", example="independent"),
+     *                 @OA\Property(property="diagnoses", type="array", @OA\Items(type="string")),
+     *                 @OA\Property(property="needed_services", type="array", @OA\Items(type="string"))
+     *             ),
+     *             @OA\Property(property="pinned_parameters", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="settings", type="object", nullable=true),
+     *             @OA\Property(property="entries", type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="diary_id", type="integer", example=1),
+     *                     @OA\Property(property="author_id", type="integer", example=1),
+     *                     @OA\Property(property="type", type="string", example="physical"),
+     *                     @OA\Property(property="key", type="string", example="temperature"),
+     *                     @OA\Property(property="value", type="object"),
+     *                     @OA\Property(property="notes", type="string", nullable=true),
+     *                     @OA\Property(property="recorded_at", type="string", format="date-time"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time")
+     *                 )
+     *             ),
+     *             @OA\Property(property="created_at", type="string", format="date-time"),
+     *             @OA\Property(property="updated_at", type="string", format="date-time")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Access denied",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="You do not have access to this diary.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Diary not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Diary not found.")
+     *         )
+     *     )
+     * )
+     */
+    public function show(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        
+        $diary = Diary::with(['patient'])->find($id);
+        
+        if (!$diary) {
+            return response()->json([
+                'message' => 'Diary not found.',
+            ], 404);
+        }
+
+        // Check access
+        if (!$this->canAccessPatient($user, $diary->patient)) {
+            return response()->json([
+                'message' => 'You do not have access to this diary.',
+            ], 403);
+        }
+
+        // Load entries with optional date filtering
+        $entriesQuery = $diary->entries();
+        
+        if ($request->has('from_date')) {
+            $entriesQuery->whereDate('recorded_at', '>=', $request->query('from_date'));
+        }
+        if ($request->has('to_date')) {
+            $entriesQuery->whereDate('recorded_at', '<=', $request->query('to_date'));
+        }
+        
+        $entries = $entriesQuery->orderBy('recorded_at', 'desc')->get();
+
+        return response()->json([
+            'id' => $diary->id,
+            'patient_id' => $diary->patient_id,
+            'patient' => [
+                'id' => $diary->patient->id,
+                'first_name' => $diary->patient->first_name,
+                'last_name' => $diary->patient->last_name,
+                'middle_name' => $diary->patient->middle_name,
+                'full_name' => trim($diary->patient->first_name . ' ' . ($diary->patient->middle_name ?? '') . ' ' . $diary->patient->last_name),
+                'birth_date' => $diary->patient->birth_date,
+                'gender' => $diary->patient->gender,
+                'weight' => $diary->patient->weight,
+                'height' => $diary->patient->height,
+                'mobility' => $diary->patient->mobility,
+                'diagnoses' => $diary->patient->diagnoses ?? [],
+                'needed_services' => $diary->patient->needed_services ?? [],
+            ],
+            'pinned_parameters' => $diary->pinned_parameters ?? [],
+            'settings' => $diary->settings,
+            'entries' => $entries,
+            'created_at' => $diary->created_at,
+            'updated_at' => $diary->updated_at,
+        ], 200);
+    }
+
+    /**
      * @OA\Post(
      *     path="/api/v1/diary/create",
      *     tags={"Diary"},

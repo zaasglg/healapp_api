@@ -21,6 +21,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('patients', \App\Http\Controllers\Api\v1\PatientController::class);
         Route::get('/diary', [\App\Http\Controllers\Api\v1\DiaryController::class, 'index']);
+        Route::get('/diary/{id}', [\App\Http\Controllers\Api\v1\DiaryController::class, 'show']);
         Route::post('/diary', [\App\Http\Controllers\Api\v1\DiaryController::class, 'store']);
         Route::post('/diary/create', [\App\Http\Controllers\Api\v1\DiaryController::class, 'create']);
         Route::patch('/diary/pinned', [\App\Http\Controllers\Api\v1\DiaryController::class, 'updatePinned']);
