@@ -86,7 +86,7 @@ class DiaryController extends Controller
         $diaries = Diary::whereHas('patient', function ($query) use ($user) {
             $query->where('creator_id', $user->id);
         })
-        ->with(['patient:id,first_name,last_name,middle_name', 'entries' => function ($query) {
+        ->with(['patient:id,first_name,last_name,middle_name', 'entries' => function ($query) use ($request) {
             // Filter entries by date range if provided
             if ($request->has('from_date')) {
                 $query->whereDate('recorded_at', '>=', $request->query('from_date'));
