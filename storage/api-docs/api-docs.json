@@ -6,6 +6,670 @@
         "version": "1.0.0"
     },
     "paths": {
+        "/api/v1/alarms": {
+            "get": {
+                "tags": [
+                    "Alarms"
+                ],
+                "summary": "Get all alarms for a diary",
+                "description": "Retrieve all alarms for a specific diary. Access is restricted based on user permissions.",
+                "operationId": "c277934c6a83412002fb201e4436c37a",
+                "parameters": [
+                    {
+                        "name": "diary_id",
+                        "in": "query",
+                        "description": "Diary ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Alarms retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 1
+                                            },
+                                            "diary_id": {
+                                                "type": "integer",
+                                                "example": 1
+                                            },
+                                            "creator_id": {
+                                                "type": "integer",
+                                                "example": 1
+                                            },
+                                            "name": {
+                                                "type": "string",
+                                                "example": "Парацетамол"
+                                            },
+                                            "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "medicine",
+                                                    "vitamin"
+                                                ],
+                                                "example": "medicine"
+                                            },
+                                            "days_of_week": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "integer"
+                                                },
+                                                "example": [
+                                                    1,
+                                                    2,
+                                                    3,
+                                                    4,
+                                                    5
+                                                ]
+                                            },
+                                            "times": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                },
+                                                "example": [
+                                                    "09:00",
+                                                    "21:00"
+                                                ]
+                                            },
+                                            "dosage": {
+                                                "type": "string",
+                                                "example": "1 таблетка",
+                                                "nullable": true
+                                            },
+                                            "notes": {
+                                                "type": "string",
+                                                "example": "После еды",
+                                                "nullable": true
+                                            },
+                                            "is_active": {
+                                                "type": "boolean",
+                                                "example": true
+                                            },
+                                            "created_at": {
+                                                "type": "string",
+                                                "format": "date-time"
+                                            },
+                                            "updated_at": {
+                                                "type": "string",
+                                                "format": "date-time"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You do not have access to this diary."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Diary not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Diary not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Alarms"
+                ],
+                "summary": "Create a new alarm",
+                "description": "Create a new medication or vitamin alarm for a diary.",
+                "operationId": "acff5f65a7373f0be609afbd16f04674",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "diary_id",
+                                    "name",
+                                    "type",
+                                    "days_of_week",
+                                    "times"
+                                ],
+                                "properties": {
+                                    "diary_id": {
+                                        "description": "Diary ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "name": {
+                                        "description": "Alarm name (medicine/vitamin name)",
+                                        "type": "string",
+                                        "example": "Парацетамол"
+                                    },
+                                    "type": {
+                                        "description": "Alarm type",
+                                        "type": "string",
+                                        "enum": [
+                                            "medicine",
+                                            "vitamin"
+                                        ],
+                                        "example": "medicine"
+                                    },
+                                    "days_of_week": {
+                                        "description": "Days of week (1=Monday, 7=Sunday)",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            2,
+                                            3,
+                                            4,
+                                            5,
+                                            6,
+                                            7
+                                        ]
+                                    },
+                                    "times": {
+                                        "description": "Times for the alarm (HH:MM format, max 4)",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "09:00",
+                                            "14:00",
+                                            "21:00"
+                                        ]
+                                    },
+                                    "dosage": {
+                                        "description": "Dosage information",
+                                        "type": "string",
+                                        "example": "1 таблетка",
+                                        "nullable": true
+                                    },
+                                    "notes": {
+                                        "description": "Additional notes",
+                                        "type": "string",
+                                        "example": "После еды",
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "description": "Whether the alarm is active",
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Alarm created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "diary_id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "creator_id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "example": "Парацетамол"
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "example": "medicine"
+                                        },
+                                        "days_of_week": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "times": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "dosage": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "notes": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "is_active": {
+                                            "type": "boolean"
+                                        },
+                                        "created_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/alarms/{id}": {
+            "get": {
+                "tags": [
+                    "Alarms"
+                ],
+                "summary": "Get a single alarm by ID",
+                "description": "Retrieve a specific alarm. Access is restricted based on user permissions.",
+                "operationId": "aff3586529626fc7894ce973478e9dcf",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Alarm ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Alarm retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "diary_id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "creator_id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "example": "Парацетамол"
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "enum": [
+                                                "medicine",
+                                                "vitamin"
+                                            ],
+                                            "example": "medicine"
+                                        },
+                                        "days_of_week": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "integer"
+                                            },
+                                            "example": [
+                                                1,
+                                                2,
+                                                3,
+                                                4,
+                                                5
+                                            ]
+                                        },
+                                        "times": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "example": [
+                                                "09:00",
+                                                "21:00"
+                                            ]
+                                        },
+                                        "dosage": {
+                                            "type": "string",
+                                            "example": "1 таблетка",
+                                            "nullable": true
+                                        },
+                                        "notes": {
+                                            "type": "string",
+                                            "example": "После еды",
+                                            "nullable": true
+                                        },
+                                        "is_active": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "created_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    },
+                    "404": {
+                        "description": "Alarm not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Alarms"
+                ],
+                "summary": "Update an alarm",
+                "description": "Update an existing alarm.",
+                "operationId": "5bf4f9e84f0a9372475e0a1dc1eea878",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Alarm ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Парацетамол"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "medicine",
+                                            "vitamin"
+                                        ],
+                                        "example": "medicine"
+                                    },
+                                    "days_of_week": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            2,
+                                            3,
+                                            4,
+                                            5,
+                                            6,
+                                            7
+                                        ]
+                                    },
+                                    "times": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "09:00",
+                                            "21:00"
+                                        ]
+                                    },
+                                    "dosage": {
+                                        "type": "string",
+                                        "example": "1 таблетка",
+                                        "nullable": true
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "После еды",
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Alarm updated successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    },
+                    "404": {
+                        "description": "Alarm not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Alarms"
+                ],
+                "summary": "Delete an alarm",
+                "description": "Delete an existing alarm.",
+                "operationId": "b4ecb956fc789991784763d997bb2a07",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Alarm ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Alarm deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Alarm deleted successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    },
+                    "404": {
+                        "description": "Alarm not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/alarms/{id}/toggle": {
+            "patch": {
+                "tags": [
+                    "Alarms"
+                ],
+                "summary": "Toggle alarm active status",
+                "description": "Toggle the active status of an alarm.",
+                "operationId": "5dba3ca14bc1850d47a50d01b2fbc3e0",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Alarm ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Alarm status toggled successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "is_active": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Alarm deactivated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    },
+                    "404": {
+                        "description": "Alarm not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/api/v1/auth/register": {
             "post": {
                 "tags": [
@@ -865,19 +1529,10 @@
                 "tags": [
                     "Diary"
                 ],
-                "summary": "Get diary with entries for a patient",
-                "description": "Retrieve diary and its entries for a specific patient. Access is restricted to users who have access to the patient.",
+                "summary": "Get all diaries created by the authenticated user",
+                "description": "Retrieve all diaries for patients created by the authenticated user. Access is restricted to user's own patients.",
                 "operationId": "a68fef556ed9ed7777a5add9f10289f9",
                 "parameters": [
-                    {
-                        "name": "patient_id",
-                        "in": "query",
-                        "description": "Patient ID",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
                     {
                         "name": "from_date",
                         "in": "query",
@@ -901,111 +1556,156 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Diary retrieved successfully",
+                        "description": "Diaries retrieved successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "properties": {
-                                        "id": {
-                                            "type": "integer",
-                                            "example": 1
-                                        },
-                                        "patient_id": {
-                                            "type": "integer",
-                                            "example": 1
-                                        },
-                                        "pinned_parameters": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
-                                        },
-                                        "settings": {
-                                            "type": "object",
-                                            "nullable": true
-                                        },
-                                        "entries": {
-                                            "type": "array",
-                                            "items": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 1
+                                            },
+                                            "patient_id": {
+                                                "type": "integer",
+                                                "example": 1
+                                            },
+                                            "patient": {
                                                 "properties": {
                                                     "id": {
                                                         "type": "integer",
                                                         "example": 1
                                                     },
-                                                    "diary_id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "author_id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "type": {
+                                                    "first_name": {
                                                         "type": "string",
-                                                        "enum": [
-                                                            "care",
-                                                            "physical",
-                                                            "excretion",
-                                                            "symptom"
-                                                        ],
-                                                        "example": "physical"
+                                                        "example": "Иван"
                                                     },
-                                                    "key": {
+                                                    "last_name": {
                                                         "type": "string",
-                                                        "example": "temperature"
+                                                        "example": "Иванов"
                                                     },
-                                                    "value": {
-                                                        "description": "Entry value as JSON object",
-                                                        "type": "object"
-                                                    },
-                                                    "notes": {
+                                                    "middle_name": {
                                                         "type": "string",
-                                                        "example": "Normal temperature",
-                                                        "nullable": true
+                                                        "example": "Иванович"
                                                     },
-                                                    "recorded_at": {
+                                                    "full_name": {
                                                         "type": "string",
-                                                        "format": "date-time",
-                                                        "example": "2024-01-01T10:00:00.000000Z"
+                                                        "example": "Иванов Иван Иванович"
                                                     },
-                                                    "created_at": {
+                                                    "birth_date": {
                                                         "type": "string",
-                                                        "format": "date-time"
+                                                        "format": "date",
+                                                        "example": "1980-01-01"
                                                     },
-                                                    "updated_at": {
+                                                    "gender": {
                                                         "type": "string",
-                                                        "format": "date-time"
+                                                        "example": "male"
+                                                    },
+                                                    "weight": {
+                                                        "type": "number",
+                                                        "example": 75.5
+                                                    },
+                                                    "height": {
+                                                        "type": "number",
+                                                        "example": 175
+                                                    },
+                                                    "mobility": {
+                                                        "type": "string",
+                                                        "example": "independent"
+                                                    },
+                                                    "diagnoses": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "needed_services": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
                                                     }
                                                 },
                                                 "type": "object"
+                                            },
+                                            "pinned_parameters": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "settings": {
+                                                "type": "object",
+                                                "nullable": true
+                                            },
+                                            "entries": {
+                                                "type": "array",
+                                                "items": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "diary_id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "author_id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "care",
+                                                                "physical",
+                                                                "excretion",
+                                                                "symptom"
+                                                            ],
+                                                            "example": "physical"
+                                                        },
+                                                        "key": {
+                                                            "type": "string",
+                                                            "example": "temperature"
+                                                        },
+                                                        "value": {
+                                                            "description": "Entry value as JSON object",
+                                                            "type": "object"
+                                                        },
+                                                        "notes": {
+                                                            "type": "string",
+                                                            "example": "Normal temperature",
+                                                            "nullable": true
+                                                        },
+                                                        "recorded_at": {
+                                                            "type": "string",
+                                                            "format": "date-time",
+                                                            "example": "2024-01-01T10:00:00.000000Z"
+                                                        },
+                                                        "created_at": {
+                                                            "type": "string",
+                                                            "format": "date-time"
+                                                        },
+                                                        "updated_at": {
+                                                            "type": "string",
+                                                            "format": "date-time"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "created_at": {
+                                                "type": "string",
+                                                "format": "date-time"
+                                            },
+                                            "updated_at": {
+                                                "type": "string",
+                                                "format": "date-time"
                                             }
                                         },
-                                        "created_at": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                        },
-                                        "updated_at": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request - patient_id is required",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "patient_id parameter is required"
-                                        }
-                                    },
-                                    "type": "object"
+                                        "type": "object"
+                                    }
                                 }
                             }
                         }
@@ -1019,38 +1719,6 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Unauthenticated."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Access denied",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "You do not have access to this patient."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Patient not found or diary not created",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "No diary found for this patient"
                                         }
                                     },
                                     "type": "object"
@@ -1243,6 +1911,245 @@
                                         },
                                         "errors": {
                                             "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/diary/{id}": {
+            "get": {
+                "tags": [
+                    "Diary"
+                ],
+                "summary": "Get a single diary by ID",
+                "description": "Retrieve a specific diary with patient info and entries. Access is restricted based on user permissions.",
+                "operationId": "535c8492f4c69536235087b7424dec6f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Diary ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "from_date",
+                        "in": "query",
+                        "description": "Filter entries from this date (YYYY-MM-DD)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to_date",
+                        "in": "query",
+                        "description": "Filter entries to this date (YYYY-MM-DD)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Diary retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "patient_id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "patient": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "first_name": {
+                                                    "type": "string",
+                                                    "example": "Иван"
+                                                },
+                                                "last_name": {
+                                                    "type": "string",
+                                                    "example": "Иванов"
+                                                },
+                                                "middle_name": {
+                                                    "type": "string",
+                                                    "example": "Иванович"
+                                                },
+                                                "full_name": {
+                                                    "type": "string",
+                                                    "example": "Иванов Иван Иванович"
+                                                },
+                                                "birth_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "1980-01-01"
+                                                },
+                                                "gender": {
+                                                    "type": "string",
+                                                    "example": "male"
+                                                },
+                                                "weight": {
+                                                    "type": "number",
+                                                    "example": 75.5
+                                                },
+                                                "height": {
+                                                    "type": "number",
+                                                    "example": 175
+                                                },
+                                                "mobility": {
+                                                    "type": "string",
+                                                    "example": "independent"
+                                                },
+                                                "diagnoses": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "needed_services": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "pinned_parameters": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "settings": {
+                                            "type": "object",
+                                            "nullable": true
+                                        },
+                                        "entries": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "diary_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "author_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "type": {
+                                                        "type": "string",
+                                                        "example": "physical"
+                                                    },
+                                                    "key": {
+                                                        "type": "string",
+                                                        "example": "temperature"
+                                                    },
+                                                    "value": {
+                                                        "type": "object"
+                                                    },
+                                                    "notes": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "recorded_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "created_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You do not have access to this diary."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Diary not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Diary not found."
                                         }
                                     },
                                     "type": "object"
@@ -4607,6 +5514,10 @@
         }
     },
     "tags": [
+        {
+            "name": "Alarms",
+            "description": "API endpoints for medication and vitamin alarms"
+        },
         {
             "name": "Authentication",
             "description": "API endpoints for user authentication"

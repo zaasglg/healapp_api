@@ -53,6 +53,14 @@ class Diary extends Model
     }
 
     /**
+     * Get the alarms for this diary.
+     */
+    public function alarms(): HasMany
+    {
+        return $this->hasMany(Alarm::class, 'diary_id');
+    }
+
+    /**
      * Get the users who have access to this diary.
      */
     public function accessUsers(): BelongsToMany

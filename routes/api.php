@@ -26,6 +26,14 @@ Route::prefix('v1')->group(function () {
         Route::post('/diary/create', [\App\Http\Controllers\Api\v1\DiaryController::class, 'create']);
         Route::patch('/diary/pinned', [\App\Http\Controllers\Api\v1\DiaryController::class, 'updatePinned']);
         
+        // Alarms (medication/vitamin reminders)
+        Route::get('/alarms', [\App\Http\Controllers\Api\v1\AlarmController::class, 'index']);
+        Route::get('/alarms/{id}', [\App\Http\Controllers\Api\v1\AlarmController::class, 'show']);
+        Route::post('/alarms', [\App\Http\Controllers\Api\v1\AlarmController::class, 'store']);
+        Route::put('/alarms/{id}', [\App\Http\Controllers\Api\v1\AlarmController::class, 'update']);
+        Route::delete('/alarms/{id}', [\App\Http\Controllers\Api\v1\AlarmController::class, 'destroy']);
+        Route::patch('/alarms/{id}/toggle', [\App\Http\Controllers\Api\v1\AlarmController::class, 'toggle']);
+        
         Route::get('/task-templates', [\App\Http\Controllers\Api\v1\TaskTemplateController::class, 'index']);
         Route::post('/task-templates', [\App\Http\Controllers\Api\v1\TaskTemplateController::class, 'store']);
         Route::delete('/task-templates/{taskTemplate}', [\App\Http\Controllers\Api\v1\TaskTemplateController::class, 'destroy']);
