@@ -205,47 +205,15 @@ class TaskTemplateController extends Controller
     }
 
     /**
-     * @OA\Delete(
+     * @OA\Get(
      *     path="/api/v1/task-templates/{id}",
      *     tags={"Task Templates"},
-     *     summary="Delete a task template",
-     *     description="Delete a task template and all future pending tasks linked to it. Only clients and managers can delete templates.",
+     *     summary="Get a specific task template",
      *     security={{"sanctum": {}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         description="Task Template ID",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Task template deleted successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Task template deleted successfully")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthenticated",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Access denied",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="You do not have permission to delete this template.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Template not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\TaskTemplate] {id}")
-     *         )
-     *     )
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Template retrieved successfully"),
+     *     @OA\Response(response=403, description="Access denied"),
+     *     @OA\Response(response=404, description="Template not found")
      * )
      */
     public function show(Request $request, TaskTemplate $taskTemplate): JsonResponse

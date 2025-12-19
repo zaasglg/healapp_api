@@ -4172,6 +4172,601 @@
                 ]
             }
         },
+        "/api/v1/route-sheet": {
+            "get": {
+                "tags": [
+                    "Route Sheet"
+                ],
+                "summary": "Get route sheet (tasks) for a patient or current user",
+                "description": "Get all tasks for a specific date. For caregivers in nursing homes, returns only tasks assigned to them.",
+                "operationId": "6121a4a82fcb9a6765652ff2e03556db",
+                "parameters": [
+                    {
+                        "name": "patient_id",
+                        "in": "query",
+                        "description": "Patient ID (optional for caregivers who see only their assigned tasks)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "date",
+                        "in": "query",
+                        "description": "Date to get tasks for (YYYY-MM-DD). Defaults to today.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "from_date",
+                        "in": "query",
+                        "description": "Start date for range (YYYY-MM-DD)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to_date",
+                        "in": "query",
+                        "description": "End date for range (YYYY-MM-DD)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter by status",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "pending",
+                                "completed",
+                                "missed",
+                                "cancelled"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Route sheet retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "date": {
+                                            "type": "string",
+                                            "format": "date"
+                                        },
+                                        "tasks": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "title": {
+                                                        "type": "string"
+                                                    },
+                                                    "start_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "end_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "status": {
+                                                        "type": "string"
+                                                    },
+                                                    "priority": {
+                                                        "type": "integer"
+                                                    },
+                                                    "is_rescheduled": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "is_overdue": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "patient": {
+                                                        "type": "object"
+                                                    },
+                                                    "assigned_to": {
+                                                        "type": "object",
+                                                        "nullable": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "summary": {
+                                            "properties": {
+                                                "total": {
+                                                    "type": "integer"
+                                                },
+                                                "pending": {
+                                                    "type": "integer"
+                                                },
+                                                "completed": {
+                                                    "type": "integer"
+                                                },
+                                                "missed": {
+                                                    "type": "integer"
+                                                },
+                                                "overdue": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Route Sheet"
+                ],
+                "summary": "Create a single task (without template)",
+                "description": "Create a one-time task directly to the route sheet",
+                "operationId": "30ec236ed3ffa41797d284392cccf5ea",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "patient_id",
+                                    "title",
+                                    "start_at",
+                                    "end_at"
+                                ],
+                                "properties": {
+                                    "patient_id": {
+                                        "type": "integer"
+                                    },
+                                    "title": {
+                                        "type": "string"
+                                    },
+                                    "start_at": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2024-01-01 09:00:00"
+                                    },
+                                    "end_at": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2024-01-01 09:30:00"
+                                    },
+                                    "assigned_to": {
+                                        "description": "User ID of assigned caregiver",
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "priority": {
+                                        "type": "integer",
+                                        "example": 0
+                                    },
+                                    "related_diary_key": {
+                                        "type": "string",
+                                        "example": "blood_pressure",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Task created successfully"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/route-sheet/{id}": {
+            "get": {
+                "tags": [
+                    "Route Sheet"
+                ],
+                "summary": "Get a specific task",
+                "operationId": "c7f38444d91d0f5f96ef8db49a33da55",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Task retrieved successfully"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    },
+                    "404": {
+                        "description": "Task not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Route Sheet"
+                ],
+                "summary": "Update a task",
+                "operationId": "8f476ce24df2a929fc77384ebb361fe2",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "title": {
+                                        "type": "string"
+                                    },
+                                    "start_at": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "end_at": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "assigned_to": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "priority": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Task updated successfully"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Route Sheet"
+                ],
+                "summary": "Delete a task",
+                "operationId": "4f4a8f3595d43849677b1254b1a97824",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Task deleted successfully"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/route-sheet/{id}/reschedule": {
+            "post": {
+                "tags": [
+                    "Route Sheet"
+                ],
+                "summary": "Reschedule a task",
+                "description": "Move a task to a different time. Original time is preserved for history.",
+                "operationId": "b94a4fb83e9b2c4ea18b7ef7fe779459",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "start_at",
+                                    "end_at",
+                                    "reason"
+                                ],
+                                "properties": {
+                                    "start_at": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2024-01-01 14:00:00"
+                                    },
+                                    "end_at": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2024-01-01 14:30:00"
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Patient was sleeping"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Task rescheduled successfully"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/route-sheet/{id}/complete": {
+            "post": {
+                "tags": [
+                    "Route Sheet"
+                ],
+                "summary": "Mark task as completed",
+                "description": "Complete a task with optional comment, photos, and measurement value",
+                "operationId": "c5390b7d68b5a3f24dce1a334dd5256a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "comment": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "photos": {
+                                        "description": "Array of photo files",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "format": "binary"
+                                        }
+                                    },
+                                    "value": {
+                                        "description": "Measurement value for diary entry",
+                                        "type": "object",
+                                        "nullable": true
+                                    },
+                                    "completed_at": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Task completed successfully"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/route-sheet/{id}/miss": {
+            "post": {
+                "tags": [
+                    "Route Sheet"
+                ],
+                "summary": "Mark task as missed (not completed)",
+                "operationId": "5e4137f420752568cefb114597f1adf7",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "reason"
+                                ],
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Patient refused"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Task marked as missed"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/route-sheet/my-tasks": {
+            "get": {
+                "tags": [
+                    "Route Sheet"
+                ],
+                "summary": "Get current user's assigned tasks (for caregivers)",
+                "operationId": "ff9657a39cfc717ab52f599b0d9d2068",
+                "parameters": [
+                    {
+                        "name": "date",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tasks retrieved successfully"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/route-sheet/available-employees": {
+            "get": {
+                "tags": [
+                    "Route Sheet"
+                ],
+                "summary": "Get available employees for task assignment",
+                "description": "Returns employees with their availability status for a specific time slot",
+                "operationId": "ac795f71970b9346b6cb7baf9ef4d83e",
+                "parameters": [
+                    {
+                        "name": "patient_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "start_at",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "end_at",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Available employees retrieved"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/api/v1/stats/chart": {
             "get": {
                 "tags": [
@@ -5256,6 +5851,115 @@
             }
         },
         "/api/v1/task-templates/{id}": {
+            "get": {
+                "tags": [
+                    "Task Templates"
+                ],
+                "summary": "Get a specific task template",
+                "operationId": "cdf01136a1a396e227e38390f16349d4",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Template retrieved successfully"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    },
+                    "404": {
+                        "description": "Template not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Task Templates"
+                ],
+                "summary": "Update a task template",
+                "operationId": "57d2c46bbf0ee203f6c822f7cbc07e3f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "title": {
+                                        "type": "string"
+                                    },
+                                    "assigned_to": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "days_of_week": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "time_ranges": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "start_date": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "end_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "type": "boolean"
+                                    },
+                                    "related_diary_key": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Template updated successfully"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
             "delete": {
                 "tags": [
                     "Task Templates"
@@ -5338,6 +6042,35 @@
                                 }
                             }
                         }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/task-templates/{id}/toggle": {
+            "patch": {
+                "tags": [
+                    "Task Templates"
+                ],
+                "summary": "Toggle template active status",
+                "operationId": "be3f1cb4f862449338a4f61dae7b6d9e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Template status toggled"
                     }
                 },
                 "security": [
@@ -5537,6 +6270,10 @@
         {
             "name": "Patients",
             "description": "API endpoints for patient management"
+        },
+        {
+            "name": "Route Sheet",
+            "description": "API endpoints for managing route sheet (маршрутный лист)"
         },
         {
             "name": "Analytics",
