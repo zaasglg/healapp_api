@@ -15,7 +15,7 @@ Route::prefix('v1')->group(function () {
             Route::patch('/profile', [AuthController::class, 'updateProfile']);
             Route::post('/change-phone/request', [AuthController::class, 'changePhoneRequest']);
             Route::post('/change-phone/confirm', [AuthController::class, 'confirmChangePhone']);
-        });
+        }); 
     });
 
     Route::middleware('auth:sanctum')->group(function () {
@@ -35,7 +35,10 @@ Route::prefix('v1')->group(function () {
         Route::patch('/alarms/{id}/toggle', [\App\Http\Controllers\Api\v1\AlarmController::class, 'toggle']);
         
         Route::get('/task-templates', [\App\Http\Controllers\Api\v1\TaskTemplateController::class, 'index']);
+        Route::get('/task-templates/{taskTemplate}', [\App\Http\Controllers\Api\v1\TaskTemplateController::class, 'show']);
         Route::post('/task-templates', [\App\Http\Controllers\Api\v1\TaskTemplateController::class, 'store']);
+        Route::put('/task-templates/{taskTemplate}', [\App\Http\Controllers\Api\v1\TaskTemplateController::class, 'update']);
+        Route::patch('/task-templates/{taskTemplate}/toggle', [\App\Http\Controllers\Api\v1\TaskTemplateController::class, 'toggle']);
         Route::delete('/task-templates/{taskTemplate}', [\App\Http\Controllers\Api\v1\TaskTemplateController::class, 'destroy']);
         
         Route::get('/tasks', [\App\Http\Controllers\Api\v1\TaskController::class, 'index']);
@@ -55,6 +58,20 @@ Route::prefix('v1')->group(function () {
         
         Route::get('/stats/chart', [\App\Http\Controllers\Api\v1\StatsController::class, 'getDiaryChart']);
         Route::get('/stats/tasks', [\App\Http\Controllers\Api\v1\StatsController::class, 'getTaskSummary']);
+        
+        // Route Sheet (Маршрутный лист)
+        Route::prefix('route-sheet')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\v1\RouteSheetController::class, 'index']);
+            Route::get('/my-tasks', [\App\Http\Controllers\Api\v1\RouteSheetController::class, 'myTasks']);
+            Route::get('/available-employees', [\App\Http\Controllers\Api\v1\RouteSheetController::class, 'availableEmployees']);
+            Route::get('/{task}', [\App\Http\Controllers\Api\v1\RouteSheetController::class, 'show']);
+            Route::post('/', [\App\Http\Controllers\Api\v1\RouteSheetController::class, 'store']);
+            Route::put('/{task}', [\App\Http\Controllers\Api\v1\RouteSheetController::class, 'update']);
+            Route::delete('/{task}', [\App\Http\Controllers\Api\v1\RouteSheetController::class, 'destroy']);
+            Route::post('/{task}/reschedule', [\App\Http\Controllers\Api\v1\RouteSheetController::class, 'reschedule']);
+            Route::post('/{task}/complete', [\App\Http\Controllers\Api\v1\RouteSheetController::class, 'complete']);
+            Route::post('/{task}/miss', [\App\Http\Controllers\Api\v1\RouteSheetController::class, 'miss']);
+        });
     });
 });
 

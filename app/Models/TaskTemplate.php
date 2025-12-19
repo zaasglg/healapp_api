@@ -19,12 +19,14 @@ class TaskTemplate extends Model
     protected $fillable = [
         'patient_id',
         'creator_id',
+        'assigned_to',
         'title',
         'days_of_week',
         'time_ranges',
         'start_date',
         'end_date',
         'is_active',
+        'related_diary_key',
     ];
 
     /**
@@ -57,6 +59,14 @@ class TaskTemplate extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creator_id');
+    }
+
+    /**
+     * Get the default assigned user for this template.
+     */
+    public function assignedTo(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 
     /**

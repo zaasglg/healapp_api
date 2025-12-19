@@ -25,14 +25,18 @@ class StoreTaskTemplateRequest extends FormRequest
         return [
             'patient_id' => ['required', 'integer', 'exists:patients,id'],
             'title' => ['required', 'string', 'max:255'],
+            'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
             'days_of_week' => ['nullable', 'array'],
             'days_of_week.*' => ['integer', 'min:0', 'max:6'],
             'time_ranges' => ['required', 'array', 'min:1'],
             'time_ranges.*.start' => ['required', 'string', 'regex:/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/'],
             'time_ranges.*.end' => ['required', 'string', 'regex:/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/'],
+            'time_ranges.*.assigned_to' => ['nullable', 'integer', 'exists:users,id'],
+            'time_ranges.*.priority' => ['nullable', 'integer', 'min:0', 'max:10'],
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after:start_date'],
             'is_active' => ['sometimes', 'boolean'],
+            'related_diary_key' => ['nullable', 'string', 'max:50'],
         ];
     }
 }

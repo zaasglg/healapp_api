@@ -248,6 +248,199 @@ class TaskTemplateController extends Controller
      *     )
      * )
      */
+    public function show(Request $request, TaskTemplate $taskTemplate): JsonResponse
+    {
+        $user = $request->user();
+        $patient = $taskTemplate->patient;
+
+        if (!$this->canAccessPatient($user, $patient)) {
+            return response()->json([
+                'message' => 'You do not have permission to access this template.',
+            ], 403);
+        }
+
+        $taskTemplate->load(['patient', 'creator', 'assignedTo']);
+
+        return response()->json($taskTemplate);
+    }
+
+    /**
+     * @OA\Put(
+     *     path="/api/v1/task-templates/{id}",
+     *     tags={"Task Templates"},
+     *     summary="Update a task template",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\RequestBody(
+     *         @OA\JsonContent(
+     *             @OA\Property(property="title", type="string"),
+     *             @OA\Property(property="assigned_to", type="integer", nullable=true),
+     *             @OA\Property(property="days_of_week", type="array", @OA\Items(type="integer")),
+     *             @OA\Property(property="time_ranges", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="start_date", type="string", format="date"),
+     *             @OA\Property(property="end_date", type="string", format="date", nullable=true),
+     *             @OA\Property(property="is_active", type="boolean"),
+     *             @OA\Property(property="related_diary_key", type="string", nullable=true)
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Template updated successfully"),
+     *     @OA\Response(response=403, description="Access denied")
+     * )
+     */
+    public function update(Request $request, TaskTemplate $taskTemplate): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user->hasAnyRole(['client', 'manager', 'admin'])) {
+            return response()->json([
+                'message' => 'You do not have permission to update task templates.',
+            ], 403);
+        }
+
+        $patient = $taskTemplate->patient;
+
+        if (!$this->canAccessPatient($user, $patient)) {
+            return response()->json([
+                'message' => 'You do not have permission to access this patient.',
+            ], 403);
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'title' => ['sometimes', 'string', 'max:255'],
+            'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
+            'days_of_week' => ['sometimes', 'nullable', 'array'],
+            'days_of_week.*' => ['integer', 'min:0', 'max:6'],
+            'time_ranges' => ['sometimes', 'array', 'min:1'],
+            'time_ranges.*.start' => ['required_with:time_ranges', 'string', 'regex:/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/'],
+            'time_ranges.*.end' => ['required_with:time_ranges', 'string', 'regex:/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/'],
+            'time_ranges.*.assigned_to' => ['nullable', 'integer', 'exists:users,id'],
+            'time_ranges.*.priority' => ['nullable', 'integer', 'min:0', 'max:10'],
+            'start_date' => ['sometimes', 'date'],
+            'end_date' => ['nullable', 'date'],
+            'is_active' => ['sometimes', 'boolean'],
+            'related_diary_key' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $taskTemplate->update($validator->validated());
+
+        // Regenerate future tasks if time_ranges or days_of_week changed
+        if ($request->has('time_ranges') || $request->has('days_of_week')) {
+            // Delete future pending tasks
+            $taskTemplate->tasks()
+                ->where('status', 'pending')
+                ->where('start_at', '>', now())
+                ->delete();
+
+            // Regenerate tasks
+            $taskService = new TaskService();
+            $taskService->generateForPatient($patient, 7);
+        }
+
+        $taskTemplate->load(['patient', 'creator', 'assignedTo']);
+
+        return response()->json($taskTemplate);
+    }
+
+    /**
+     * @OA\Patch(
+     *     path="/api/v1/task-templates/{id}/toggle",
+     *     tags={"Task Templates"},
+     *     summary="Toggle template active status",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Template status toggled")
+     * )
+     */
+    public function toggle(Request $request, TaskTemplate $taskTemplate): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user->hasAnyRole(['client', 'manager', 'admin'])) {
+            return response()->json([
+                'message' => 'You do not have permission to update task templates.',
+            ], 403);
+        }
+
+        $patient = $taskTemplate->patient;
+
+        if (!$this->canAccessPatient($user, $patient)) {
+            return response()->json([
+                'message' => 'You do not have permission to access this patient.',
+            ], 403);
+        }
+
+        $taskTemplate->is_active = !$taskTemplate->is_active;
+        $taskTemplate->save();
+
+        // If deactivated, optionally delete future pending tasks
+        if (!$taskTemplate->is_active) {
+            $taskTemplate->tasks()
+                ->where('status', 'pending')
+                ->where('start_at', '>', now())
+                ->delete();
+        } else {
+            // If activated, generate new tasks
+            $taskService = new TaskService();
+            $taskService->generateForPatient($patient, 7);
+        }
+
+        return response()->json([
+            'message' => $taskTemplate->is_active ? 'Template activated' : 'Template deactivated',
+            'is_active' => $taskTemplate->is_active,
+        ]);
+    }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/v1/task-templates/{id}",
+     *     tags={"Task Templates"},
+     *     summary="Delete a task template",
+     *     description="Delete a task template and all future pending tasks linked to it. Only clients and managers can delete templates.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Task Template ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Task template deleted successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Task template deleted successfully")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Access denied",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="You do not have permission to delete this template.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Template not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\TaskTemplate] {id}")
+     *         )
+     *     )
+     * )
+     */
     public function destroy(Request $request, TaskTemplate $taskTemplate): JsonResponse
     {
         $user = $request->user();

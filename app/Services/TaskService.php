@@ -68,10 +68,13 @@ class TaskService
                             Task::create([
                                 'patient_id' => $patient->id,
                                 'template_id' => $template->id,
+                                'assigned_to' => $timeRange['assigned_to'] ?? $template->assigned_to,
                                 'title' => $template->title,
                                 'start_at' => $startTime,
                                 'end_at' => $endTime,
-                                'status' => 'pending',
+                                'status' => Task::STATUS_PENDING,
+                                'priority' => $timeRange['priority'] ?? 0,
+                                'related_diary_key' => $template->related_diary_key,
                             ]);
                             $generatedCount++;
                         }
@@ -84,5 +87,44 @@ class TaskService
 
         return $generatedCount;
     }
+
+    /**
+     * Generate tasks for all patients with active templates.
+     * This should be run daily via scheduler.
+     *
+     * @param int $days Number of days to generate tasks for
+     * @return int Total number of tasks generated
+     */
+    public function generateForAllPatients(int $days = 7): int
+    {
+        $patientsWithTemplates = Patient::whereHas('taskTemplates', function ($q) {
+            $q->where('is_active', true);
+        })->get();
+
+        $totalGenerated = 0;
+
+        foreach ($patientsWithTemplates as $patient) {
+            $totalGenerated += $this->generateForPatient($patient, $days);
+        }
+
+        return $totalGenerated;
+    }
+
+    /**
+     * Mark overdue pending tasks as missed.
+     * This should be run periodically via scheduler.
+     *
+     * @return int Number of tasks marked as missed
+     */
+    public function markOverdueTasks(): int
+    {
+        return Task::where('status', Task::STATUS_PENDING)
+            ->where('end_at', '<', now()->subHours(2)) // 2 hours grace period
+            ->update([
+                'status' => Task::STATUS_MISSED,
+                'comment' => 'Automatically marked as missed (overdue)',
+            ]);
+    }
 }
+
 
