@@ -2,7 +2,7 @@
     "openapi": "3.0.0",
     "info": {
         "title": "HealApp API",
-        "description": "API для мобильной экосистемы HealApp - организации ухода за пожилыми людьми и людьми с ограниченными возможностями",
+        "description": "API для мобильной экосистемы HealApp",
         "version": "1.0.0"
     },
     "paths": {
@@ -675,8 +675,7 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Register a new user",
-                "description": "Register a new user with phone number and password. A verification code will be sent via SMS.",
+                "summary": "Регистрация нового пользователя",
                 "operationId": "15ab81fc91b8e90f74ea030fc44604ca",
                 "requestBody": {
                     "required": true,
@@ -691,61 +690,36 @@
                                 ],
                                 "properties": {
                                     "first_name": {
-                                        "description": "User's first name (optional)",
                                         "type": "string",
-                                        "example": "John",
                                         "nullable": true
                                     },
                                     "last_name": {
-                                        "description": "User's last name (optional)",
                                         "type": "string",
-                                        "example": "Doe",
-                                        "nullable": true
-                                    },
-                                    "middle_name": {
-                                        "description": "User's middle name (optional)",
-                                        "type": "string",
-                                        "example": "Michael",
                                         "nullable": true
                                     },
                                     "phone": {
-                                        "description": "User's phone number (must be unique)",
                                         "type": "string",
-                                        "example": "1234567890"
+                                        "example": "79001234567"
                                     },
                                     "password": {
-                                        "description": "User's password (minimum 6 characters)",
                                         "type": "string",
-                                        "format": "password",
-                                        "example": "password123"
+                                        "format": "password"
                                     },
                                     "password_confirmation": {
-                                        "description": "Password confirmation",
                                         "type": "string",
-                                        "format": "password",
-                                        "example": "password123"
+                                        "format": "password"
                                     },
                                     "account_type": {
-                                        "description": "Account type: client, specialist, pansionat, or agency",
                                         "type": "string",
                                         "enum": [
                                             "client",
                                             "specialist",
                                             "pansionat",
                                             "agency"
-                                        ],
-                                        "example": "client"
+                                        ]
                                     },
                                     "organization_name": {
-                                        "description": "Organization name (optional, used for pansionat or agency)",
                                         "type": "string",
-                                        "example": "Health Care Center",
-                                        "nullable": true
-                                    },
-                                    "address": {
-                                        "description": "Address (optional, used for organizations)",
-                                        "type": "string",
-                                        "example": "123 Main St, City",
                                         "nullable": true
                                     }
                                 },
@@ -756,43 +730,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Registration successful. SMS sent.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "SMS sent"
-                                        },
-                                        "phone": {
-                                            "type": "string",
-                                            "example": "1234567890"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "The given data was invalid."
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "SMS отправлен"
                     }
                 }
             }
@@ -802,8 +740,7 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Verify phone number with code",
-                "description": "Verify the user's phone number using the verification code sent via SMS. Returns an access token upon successful verification.",
+                "summary": "Подтверждение телефона",
                 "operationId": "65746a248b455edf984b9889998ccd23",
                 "requestBody": {
                     "required": true,
@@ -816,14 +753,10 @@
                                 ],
                                 "properties": {
                                     "phone": {
-                                        "description": "User's phone number",
-                                        "type": "string",
-                                        "example": "1234567890"
+                                        "type": "string"
                                     },
                                     "code": {
-                                        "description": "4-digit verification code",
-                                        "type": "string",
-                                        "example": "1234"
+                                        "type": "string"
                                     }
                                 },
                                 "type": "object"
@@ -833,94 +766,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Phone verified successfully. Access token issued.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "access_token": {
-                                            "type": "string",
-                                            "example": "1|abcdef123456..."
-                                        },
-                                        "user": {
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "first_name": {
-                                                    "type": "string",
-                                                    "example": "John"
-                                                },
-                                                "last_name": {
-                                                    "type": "string",
-                                                    "example": "Doe"
-                                                },
-                                                "middle_name": {
-                                                    "type": "string",
-                                                    "example": "Michael",
-                                                    "nullable": true
-                                                },
-                                                "phone": {
-                                                    "type": "string",
-                                                    "example": "1234567890"
-                                                },
-                                                "phone_verified_at": {
-                                                    "type": "string",
-                                                    "format": "date-time",
-                                                    "example": "2024-01-01T00:00:00.000000Z"
-                                                },
-                                                "created_at": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                },
-                                                "updated_at": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Invalid verification code",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Invalid verification code"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "The given data was invalid."
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Телефон подтверждён"
                     }
                 }
             }
@@ -930,8 +776,7 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Login user",
-                "description": "Authenticate user with phone and password. Returns an access token if credentials are valid and phone is verified.",
+                "summary": "Вход в систему",
                 "operationId": "5f72bb27f75e659cb11d621b660feaf8",
                 "requestBody": {
                     "required": true,
@@ -944,15 +789,11 @@
                                 ],
                                 "properties": {
                                     "phone": {
-                                        "description": "User's phone number",
-                                        "type": "string",
-                                        "example": "1234567890"
+                                        "type": "string"
                                     },
                                     "password": {
-                                        "description": "User's password",
                                         "type": "string",
-                                        "format": "password",
-                                        "example": "password123"
+                                        "format": "password"
                                     }
                                 },
                                 "type": "object"
@@ -962,93 +803,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Login successful",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "access_token": {
-                                            "type": "string",
-                                            "example": "1|abcdef123456..."
-                                        },
-                                        "user": {
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "first_name": {
-                                                    "type": "string",
-                                                    "example": "John"
-                                                },
-                                                "last_name": {
-                                                    "type": "string",
-                                                    "example": "Doe"
-                                                },
-                                                "middle_name": {
-                                                    "type": "string",
-                                                    "example": "Michael",
-                                                    "nullable": true
-                                                },
-                                                "phone": {
-                                                    "type": "string",
-                                                    "example": "1234567890"
-                                                },
-                                                "phone_verified_at": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                },
-                                                "created_at": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                },
-                                                "updated_at": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Invalid credentials or phone not verified",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Invalid credentials or phone not verified"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "The given data was invalid."
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Успешный вход"
                     }
                 }
             }
@@ -1058,41 +813,11 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Logout user",
-                "description": "Revoke the current access token for the authenticated user.",
+                "summary": "Выход из системы",
                 "operationId": "95268babc80be6aea5dffe685834b88c",
                 "responses": {
                     "200": {
-                        "description": "Logout successful",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Logged out successfully"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthenticated."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Успешный выход"
                     }
                 },
                 "security": [
@@ -1107,71 +832,11 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Get current authenticated user",
-                "description": "Returns the currently authenticated user's information.",
+                "summary": "Получить текущего пользователя",
                 "operationId": "de25913d74f2944f46950a52ab0b23ec",
                 "responses": {
                     "200": {
-                        "description": "User information retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "id": {
-                                            "type": "integer",
-                                            "example": 1
-                                        },
-                                        "first_name": {
-                                            "type": "string",
-                                            "example": "John"
-                                        },
-                                        "last_name": {
-                                            "type": "string",
-                                            "example": "Doe"
-                                        },
-                                        "middle_name": {
-                                            "type": "string",
-                                            "example": "Michael",
-                                            "nullable": true
-                                        },
-                                        "phone": {
-                                            "type": "string",
-                                            "example": "1234567890"
-                                        },
-                                        "phone_verified_at": {
-                                            "type": "string",
-                                            "format": "date-time",
-                                            "example": "2024-01-01T00:00:00.000000Z"
-                                        },
-                                        "created_at": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                        },
-                                        "updated_at": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthenticated."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Данные пользователя"
                     }
                 },
                 "security": [
@@ -1186,32 +851,21 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Update user profile",
-                "description": "Update the authenticated user's profile information (first_name, last_name, middle_name). All fields are optional - only provided fields will be updated.",
+                "summary": "Обновить профиль",
                 "operationId": "e205796fb96e77acbdf10f972b0148db",
                 "requestBody": {
-                    "required": false,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "properties": {
                                     "first_name": {
-                                        "description": "User's first name",
-                                        "type": "string",
-                                        "example": "John",
-                                        "nullable": true
+                                        "type": "string"
                                     },
                                     "last_name": {
-                                        "description": "User's last name",
-                                        "type": "string",
-                                        "example": "Doe",
-                                        "nullable": true
+                                        "type": "string"
                                     },
                                     "middle_name": {
-                                        "description": "User's middle name",
-                                        "type": "string",
-                                        "example": "Michael",
-                                        "nullable": true
+                                        "type": "string"
                                     }
                                 },
                                 "type": "object"
@@ -1221,85 +875,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Profile updated successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "id": {
-                                            "type": "integer",
-                                            "example": 1
-                                        },
-                                        "first_name": {
-                                            "type": "string",
-                                            "example": "John"
-                                        },
-                                        "last_name": {
-                                            "type": "string",
-                                            "example": "Doe"
-                                        },
-                                        "middle_name": {
-                                            "type": "string",
-                                            "example": "Michael",
-                                            "nullable": true
-                                        },
-                                        "phone": {
-                                            "type": "string",
-                                            "example": "1234567890"
-                                        },
-                                        "phone_verified_at": {
-                                            "type": "string",
-                                            "format": "date-time",
-                                            "example": "2024-01-01T00:00:00.000000Z"
-                                        },
-                                        "created_at": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                        },
-                                        "updated_at": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthenticated."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "The given data was invalid."
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Профиль обновлён"
                     }
                 },
                 "security": [
@@ -1314,8 +890,7 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Request phone number change",
-                "description": "Initiate a phone number change by providing a new phone number. A verification code will be sent to the new phone number.",
+                "summary": "Запрос на смену телефона",
                 "operationId": "0e1735a30c4c54907b578d49b3639bf2",
                 "requestBody": {
                     "required": true,
@@ -1327,9 +902,7 @@
                                 ],
                                 "properties": {
                                     "phone": {
-                                        "description": "New phone number (must be unique and not already in use)",
-                                        "type": "string",
-                                        "example": "9876543210"
+                                        "type": "string"
                                     }
                                 },
                                 "type": "object"
@@ -1339,55 +912,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Confirmation code sent to new phone",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Confirmation code sent to new phone"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthenticated."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "The given data was invalid."
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Код отправлен"
                     }
                 },
                 "security": [
@@ -1402,8 +927,7 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Confirm phone number change",
-                "description": "Confirm the phone number change by providing the verification code sent to the new phone number.",
+                "summary": "Подтверждение смены телефона",
                 "operationId": "6e7ed92b9aa731696f23351c1d7d94d9",
                 "requestBody": {
                     "required": true,
@@ -1415,9 +939,7 @@
                                 ],
                                 "properties": {
                                     "code": {
-                                        "description": "4-digit verification code sent to the new phone number",
-                                        "type": "string",
-                                        "example": "1234"
+                                        "type": "string"
                                     }
                                 },
                                 "type": "object"
@@ -1427,94 +949,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Phone number updated successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Phone number updated successfully"
-                                        },
-                                        "user": {
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "first_name": {
-                                                    "type": "string",
-                                                    "example": "John"
-                                                },
-                                                "last_name": {
-                                                    "type": "string",
-                                                    "example": "Doe"
-                                                },
-                                                "middle_name": {
-                                                    "type": "string",
-                                                    "example": "Michael",
-                                                    "nullable": true
-                                                },
-                                                "phone": {
-                                                    "type": "string",
-                                                    "example": "9876543210"
-                                                },
-                                                "phone_verified_at": {
-                                                    "type": "string",
-                                                    "format": "date-time",
-                                                    "example": "2024-01-01T00:00:00.000000Z"
-                                                },
-                                                "created_at": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                },
-                                                "updated_at": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated or invalid verification code",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Invalid verification code or no pending phone change request"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "The given data was invalid."
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Телефон изменён"
                     }
                 },
                 "security": [
@@ -2403,6 +1838,288 @@
                 ]
             }
         },
+        "/api/v1/invitations": {
+            "get": {
+                "tags": [
+                    "Invitations"
+                ],
+                "summary": "Список приглашений организации",
+                "operationId": "2fa654c15bf687f43bc73c5c08798d9e",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "pending",
+                                "accepted",
+                                "expired",
+                                "revoked"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/invitations/employee": {
+            "post": {
+                "tags": [
+                    "Invitations"
+                ],
+                "summary": "Создать приглашение для сотрудника",
+                "operationId": "867d0e45b4881ab6319b53aebe01fe09",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "role"
+                                ],
+                                "properties": {
+                                    "role": {
+                                        "type": "string",
+                                        "enum": [
+                                            "admin",
+                                            "doctor",
+                                            "caregiver"
+                                        ],
+                                        "example": "caregiver"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Приглашение создано",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "invitation": {
+                                            "type": "object"
+                                        },
+                                        "invite_url": {
+                                            "type": "string",
+                                            "example": "https://app.com/invite/abc123..."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/invitations/client": {
+            "post": {
+                "tags": [
+                    "Invitations"
+                ],
+                "summary": "Создать приглашение для клиента",
+                "operationId": "820f164d256513757cdd4cc6187cd001",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "patient_id"
+                                ],
+                                "properties": {
+                                    "patient_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Приглашение создано"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/invitations/{token}": {
+            "get": {
+                "tags": [
+                    "Invitations"
+                ],
+                "summary": "Получить информацию о приглашении по токену",
+                "operationId": "e0726dc638b47956d308558db17f8529",
+                "parameters": [
+                    {
+                        "name": "token",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Информация о приглашении",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "organization_name": {
+                                            "type": "string"
+                                        },
+                                        "type": {
+                                            "type": "string"
+                                        },
+                                        "role": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "expires_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/invitations/{token}/accept": {
+            "post": {
+                "tags": [
+                    "Invitations"
+                ],
+                "summary": "Принять приглашение (регистрация или привязка)",
+                "operationId": "8c1425bcd2cb3b5db78d9e68a10ae5cb",
+                "parameters": [
+                    {
+                        "name": "token",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "phone",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "79001234567"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "first_name": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Приглашение принято",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "access_token": {
+                                            "type": "string"
+                                        },
+                                        "user": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/invitations/{id}": {
+            "delete": {
+                "tags": [
+                    "Invitations"
+                ],
+                "summary": "Отозвать приглашение",
+                "operationId": "07de8b8c6b74e5abbfecef6f5164b42c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Приглашение отозвано"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/api/v1/notifications": {
             "get": {
                 "tags": [
@@ -2711,91 +2428,20 @@
                 ]
             }
         },
-        "/api/v1/organization/employees": {
+        "/api/v1/organization": {
             "get": {
                 "tags": [
                     "Organization"
                 ],
-                "summary": "Get organization employees",
-                "description": "Retrieve all employees (users) belonging to the authenticated manager's organization.",
-                "operationId": "4aaf5752c7585604673eade6d596653a",
+                "summary": "Получить информацию об организации",
+                "operationId": "9875968a34ec0c4985ffb2e37500bf75",
                 "responses": {
                     "200": {
-                        "description": "Employees retrieved successfully",
+                        "description": "Success",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "properties": {
-                                            "id": {
-                                                "type": "integer",
-                                                "example": 2
-                                            },
-                                            "first_name": {
-                                                "type": "string",
-                                                "example": "Maria"
-                                            },
-                                            "last_name": {
-                                                "type": "string",
-                                                "example": "Ivanova"
-                                            },
-                                            "middle_name": {
-                                                "type": "string",
-                                                "example": "Petrovna",
-                                                "nullable": true
-                                            },
-                                            "phone": {
-                                                "type": "string",
-                                                "example": "9876543210"
-                                            },
-                                            "organization_id": {
-                                                "type": "integer",
-                                                "example": 1
-                                            },
-                                            "created_at": {
-                                                "type": "string",
-                                                "format": "date-time"
-                                            },
-                                            "updated_at": {
-                                                "type": "string",
-                                                "format": "date-time"
-                                            }
-                                        },
-                                        "type": "object"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthenticated."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Access denied - user is not a manager",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "You must be a manager to access this resource."
-                                        }
-                                    },
-                                    "type": "object"
+                                    "$ref": "#/components/schemas/Organization"
                                 }
                             }
                         }
@@ -2806,57 +2452,29 @@
                         "sanctum": []
                     }
                 ]
-            }
-        },
-        "/api/v1/organization/invite-employee": {
-            "post": {
+            },
+            "patch": {
                 "tags": [
                     "Organization"
                 ],
-                "summary": "Invite a new employee",
-                "description": "Create a new employee (doctor or caregiver) and assign them to the manager's organization. Returns a temporary password for testing.",
-                "operationId": "d82ef66bd6ef39f5db306fcc0130d904",
+                "summary": "Обновить информацию об организации",
+                "operationId": "e9103c6fa38ded7d20cad28193cf1e79",
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "required": [
-                                    "phone",
-                                    "role"
-                                ],
                                 "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "address": {
+                                        "type": "string"
+                                    },
                                     "phone": {
-                                        "description": "Employee's phone number (must be unique)",
-                                        "type": "string",
-                                        "example": "9876543210"
+                                        "type": "string"
                                     },
-                                    "first_name": {
-                                        "description": "Employee's first name (optional)",
-                                        "type": "string",
-                                        "example": "Maria",
-                                        "nullable": true
-                                    },
-                                    "last_name": {
-                                        "description": "Employee's last name (optional)",
-                                        "type": "string",
-                                        "example": "Ivanova",
-                                        "nullable": true
-                                    },
-                                    "middle_name": {
-                                        "description": "Employee's middle name",
-                                        "type": "string",
-                                        "example": "Petrovna",
-                                        "nullable": true
-                                    },
-                                    "role": {
-                                        "description": "Employee role",
-                                        "type": "string",
-                                        "enum": [
-                                            "doctor",
-                                            "caregiver"
-                                        ],
-                                        "example": "caregiver"
+                                    "description": {
+                                        "type": "string"
                                     }
                                 },
                                 "type": "object"
@@ -2865,102 +2483,8 @@
                     }
                 },
                 "responses": {
-                    "201": {
-                        "description": "Employee created successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "user": {
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer",
-                                                    "example": 2
-                                                },
-                                                "first_name": {
-                                                    "type": "string",
-                                                    "example": "Maria"
-                                                },
-                                                "last_name": {
-                                                    "type": "string",
-                                                    "example": "Ivanova"
-                                                },
-                                                "phone": {
-                                                    "type": "string",
-                                                    "example": "9876543210"
-                                                },
-                                                "organization_id": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "created_at": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                }
-                                            },
-                                            "type": "object"
-                                        },
-                                        "password": {
-                                            "description": "Temporary password for testing (will be sent via SMS in production)",
-                                            "type": "string",
-                                            "example": "temp123456"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthenticated."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Access denied - user is not a manager",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "You must be a manager to invite employees."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "The given data was invalid."
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                    "200": {
+                        "description": "Организация обновлена"
                     }
                 },
                 "security": [
@@ -2970,14 +2494,128 @@
                 ]
             }
         },
-        "/api/v1/organization/assign-patient": {
+        "/api/v1/organization/employees": {
+            "get": {
+                "tags": [
+                    "Organization"
+                ],
+                "summary": "Список сотрудников организации",
+                "operationId": "4aaf5752c7585604673eade6d596653a",
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "owner",
+                                "admin",
+                                "doctor",
+                                "caregiver"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/organization/employees/{id}/role": {
+            "patch": {
+                "tags": [
+                    "Organization"
+                ],
+                "summary": "Изменить роль сотрудника",
+                "operationId": "b7d04470086b11de62acafc3e835448a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "role"
+                                ],
+                                "properties": {
+                                    "role": {
+                                        "type": "string",
+                                        "enum": [
+                                            "admin",
+                                            "doctor",
+                                            "caregiver"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Роль изменена"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/organization/employees/{id}": {
+            "delete": {
+                "tags": [
+                    "Organization"
+                ],
+                "summary": "Удалить сотрудника из организации",
+                "operationId": "14c94a830739424a29b5c6de04bf6315",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Сотрудник удалён"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/organization/assign-diary-access": {
             "post": {
                 "tags": [
                     "Organization"
                 ],
-                "summary": "Assign a patient to an employee",
-                "description": "Assign a patient to a caregiver or doctor. Both must belong to the same organization.",
-                "operationId": "d45586e8ddf95dc20adc37b45feca04e",
+                "summary": "Назначить доступ к дневнику (для агентств)",
+                "operationId": "f81fd65ca8a58a1079965290009e5f71",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -2989,14 +2627,19 @@
                                 ],
                                 "properties": {
                                     "patient_id": {
-                                        "description": "Patient ID",
-                                        "type": "integer",
-                                        "example": 1
+                                        "type": "integer"
                                     },
                                     "user_id": {
-                                        "description": "Employee (caregiver/doctor) ID",
-                                        "type": "integer",
-                                        "example": 2
+                                        "type": "integer"
+                                    },
+                                    "permission": {
+                                        "type": "string",
+                                        "default": "edit",
+                                        "enum": [
+                                            "view",
+                                            "edit",
+                                            "full"
+                                        ]
                                     }
                                 },
                                 "type": "object"
@@ -3006,102 +2649,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Patient assigned successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Patient assigned to employee successfully"
-                                        },
-                                        "patient": {
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "first_name": {
-                                                    "type": "string",
-                                                    "example": "Ivan"
-                                                },
-                                                "last_name": {
-                                                    "type": "string",
-                                                    "example": "Petrov"
-                                                }
-                                            },
-                                            "type": "object"
-                                        },
-                                        "user": {
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer",
-                                                    "example": 2
-                                                },
-                                                "first_name": {
-                                                    "type": "string",
-                                                    "example": "Maria"
-                                                },
-                                                "last_name": {
-                                                    "type": "string",
-                                                    "example": "Ivanova"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthenticated."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Access denied",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "You do not have permission to assign patients."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error or business logic error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Patient and employee must belong to the same organization."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Доступ назначен"
                     }
                 },
                 "security": [
@@ -3111,37 +2659,28 @@
                 ]
             }
         },
-        "/api/v1/organization": {
-            "patch": {
+        "/api/v1/organization/revoke-diary-access": {
+            "delete": {
                 "tags": [
                     "Organization"
                 ],
-                "summary": "Update organization details",
-                "description": "Update the organization's name, address, and/or phone. Only the manager (owner) can update.",
-                "operationId": "e9103c6fa38ded7d20cad28193cf1e79",
+                "summary": "Отозвать доступ к дневнику",
+                "operationId": "0c9eb6e8c17226e28d56a6499c35cda6",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "patient_id",
+                                    "user_id"
+                                ],
                                 "properties": {
-                                    "name": {
-                                        "description": "Organization name",
-                                        "type": "string",
-                                        "example": "New Organization Name",
-                                        "nullable": true
+                                    "patient_id": {
+                                        "type": "integer"
                                     },
-                                    "address": {
-                                        "description": "Organization address",
-                                        "type": "string",
-                                        "example": "123 Main St, City",
-                                        "nullable": true
-                                    },
-                                    "phone": {
-                                        "description": "Organization phone number",
-                                        "type": "string",
-                                        "example": "1234567890",
-                                        "nullable": true
+                                    "user_id": {
+                                        "type": "integer"
                                     }
                                 },
                                 "type": "object"
@@ -3151,120 +2690,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Organization updated successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Organization updated successfully"
-                                        },
-                                        "organization": {
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "name": {
-                                                    "type": "string",
-                                                    "example": "New Organization Name"
-                                                },
-                                                "type": {
-                                                    "type": "string",
-                                                    "example": "pansionat"
-                                                },
-                                                "phone": {
-                                                    "type": "string",
-                                                    "example": "1234567890"
-                                                },
-                                                "address": {
-                                                    "type": "string",
-                                                    "example": "123 Main St, City"
-                                                },
-                                                "created_at": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                },
-                                                "updated_at": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthenticated."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Access denied - user is not a manager",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "You must be a manager to update the organization."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Organization not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "You do not have an organization."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "The given data was invalid."
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Доступ отозван"
                     }
                 },
                 "security": [
@@ -6083,43 +5509,97 @@
     },
     "components": {
         "schemas": {
-            "Diary": {
-                "description": "Дневник подопечного",
+            "UserType": {
+                "description": "Тип пользователя (НЕ роль!)",
+                "type": "string",
+                "enum": [
+                    "organization",
+                    "private_caregiver",
+                    "client"
+                ]
+            },
+            "OrganizationType": {
+                "description": "Тип организации",
+                "type": "string",
+                "enum": [
+                    "agency",
+                    "boarding_house"
+                ]
+            },
+            "OrganizationRole": {
+                "description": "Роль сотрудника в организации (Spatie)",
+                "type": "string",
+                "enum": [
+                    "owner",
+                    "admin",
+                    "doctor",
+                    "caregiver"
+                ]
+            },
+            "InvitationType": {
+                "description": "Тип приглашения",
+                "type": "string",
+                "enum": [
+                    "employee",
+                    "client"
+                ]
+            },
+            "InvitationStatus": {
+                "description": "Статус приглашения",
+                "type": "string",
+                "enum": [
+                    "pending",
+                    "accepted",
+                    "expired",
+                    "revoked"
+                ]
+            },
+            "User": {
                 "properties": {
                     "id": {
-                        "type": "integer",
-                        "example": 1
+                        "type": "integer"
                     },
-                    "patient_id": {
-                        "description": "ID пациента",
-                        "type": "integer",
-                        "example": 1
+                    "first_name": {
+                        "type": "string",
+                        "nullable": true
                     },
-                    "pinned_parameters": {
-                        "description": "Закреплённые показатели с таймерами",
-                        "type": "array",
-                        "items": {
-                            "properties": {
-                                "key": {
-                                    "type": "string",
-                                    "example": "blood_pressure"
-                                },
-                                "interval_minutes": {
-                                    "type": "integer",
-                                    "example": 60
-                                },
-                                "last_recorded_at": {
-                                    "type": "string",
-                                    "format": "date-time",
-                                    "nullable": true
-                                }
-                            },
-                            "type": "object"
-                        }
+                    "last_name": {
+                        "type": "string",
+                        "nullable": true
                     },
-                    "settings": {
-                        "description": "Настройки дневника",
-                        "type": "object",
+                    "middle_name": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "phone": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/UserType"
+                    },
+                    "account_type": {
+                        "description": "Вычисляемый тип аккаунта",
+                        "type": "string"
+                    },
+                    "role": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/OrganizationRole"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "organization": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/Organization"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "phone_verified_at": {
+                        "type": "string",
+                        "format": "date-time",
                         "nullable": true
                     },
                     "created_at": {
@@ -6127,6 +5607,216 @@
                         "format": "date-time"
                     },
                     "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Organization": {
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "owner_id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/OrganizationType"
+                    },
+                    "phone": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "address": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "employee_count": {
+                        "type": "integer"
+                    },
+                    "patient_count": {
+                        "type": "integer"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Employee": {
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "first_name": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "last_name": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "middle_name": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "phone": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "$ref": "#/components/schemas/OrganizationRole"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Invitation": {
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "organization_id": {
+                        "type": "integer"
+                    },
+                    "inviter_id": {
+                        "type": "integer"
+                    },
+                    "invitee_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "token": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/InvitationType"
+                    },
+                    "role": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/OrganizationRole"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "patient_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/InvitationStatus"
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "accepted_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Patient": {
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "owner_id": {
+                        "description": "ID клиента-владельца",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "creator_id": {
+                        "type": "integer"
+                    },
+                    "organization_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "first_name": {
+                        "type": "string"
+                    },
+                    "last_name": {
+                        "type": "string"
+                    },
+                    "middle_name": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "birth_date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "gender": {
+                        "type": "string",
+                        "enum": [
+                            "male",
+                            "female"
+                        ]
+                    },
+                    "weight": {
+                        "type": "number",
+                        "nullable": true
+                    },
+                    "height": {
+                        "type": "number",
+                        "nullable": true
+                    },
+                    "diagnoses": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Diary": {
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "patient_id": {
+                        "type": "integer"
+                    },
+                    "pinned_parameters": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PinnedParameter"
+                        }
+                    },
+                    "settings": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "created_at": {
                         "type": "string",
                         "format": "date-time"
                     }
@@ -6134,58 +5824,40 @@
                 "type": "object"
             },
             "DiaryEntry": {
-                "description": "Запись в дневнике",
                 "properties": {
                     "id": {
-                        "type": "integer",
-                        "example": 1
+                        "type": "integer"
                     },
                     "diary_id": {
-                        "description": "ID дневника",
-                        "type": "integer",
-                        "example": 1
+                        "type": "integer"
                     },
                     "author_id": {
-                        "description": "ID автора записи",
-                        "type": "integer",
-                        "example": 1
+                        "type": "integer"
                     },
                     "type": {
-                        "description": "Тип записи",
                         "type": "string",
                         "enum": [
                             "care",
                             "physical",
                             "excretion",
                             "symptom"
-                        ],
-                        "example": "physical"
+                        ]
                     },
                     "key": {
-                        "description": "Ключ показателя",
-                        "type": "string",
-                        "example": "blood_pressure"
+                        "type": "string"
                     },
                     "value": {
-                        "description": "Значение показателя в JSON формате",
                         "type": "object"
                     },
                     "notes": {
-                        "description": "Заметки",
                         "type": "string",
-                        "example": "Normal reading",
                         "nullable": true
                     },
                     "recorded_at": {
-                        "description": "Время записи события",
                         "type": "string",
                         "format": "date-time"
                     },
                     "created_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updated_at": {
                         "type": "string",
                         "format": "date-time"
                     }
@@ -6193,15 +5865,12 @@
                 "type": "object"
             },
             "DiaryAccess": {
-                "description": "Доступ к дневнику",
                 "properties": {
                     "diary_id": {
-                        "type": "integer",
-                        "example": 1
+                        "type": "integer"
                     },
                     "user_id": {
-                        "type": "integer",
-                        "example": 2
+                        "type": "integer"
                     },
                     "permission": {
                         "type": "string",
@@ -6209,27 +5878,27 @@
                             "view",
                             "edit",
                             "full"
-                        ],
-                        "example": "edit"
+                        ]
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "active",
+                            "revoked"
+                        ]
                     }
                 },
                 "type": "object"
             },
             "PinnedParameter": {
-                "description": "Закреплённый показатель с таймером",
                 "properties": {
                     "key": {
-                        "description": "Ключ показателя",
-                        "type": "string",
-                        "example": "blood_pressure"
+                        "type": "string"
                     },
                     "interval_minutes": {
-                        "description": "Интервал замера в минутах",
-                        "type": "integer",
-                        "example": 60
+                        "type": "integer"
                     },
                     "last_recorded_at": {
-                        "description": "Время последней записи",
                         "type": "string",
                         "format": "date-time",
                         "nullable": true
@@ -6253,11 +5922,15 @@
         },
         {
             "name": "Authentication",
-            "description": "API endpoints for user authentication"
+            "description": "API для аутентификации"
         },
         {
             "name": "Diary",
             "description": "API endpoints for patient diary management"
+        },
+        {
+            "name": "Invitations",
+            "description": "API для управления приглашениями"
         },
         {
             "name": "Notifications",
@@ -6265,7 +5938,7 @@
         },
         {
             "name": "Organization",
-            "description": "API endpoints for organization management"
+            "description": "API для управления организацией и сотрудниками"
         },
         {
             "name": "Patients",

@@ -3,8 +3,11 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 
+/**
+ * @deprecated Используйте PermissionsSeeder вместо этого.
+ * Роли организаций теперь хранятся в pivot-таблице organization_user.
+ */
 class RolesSeeder extends Seeder
 {
     /**
@@ -12,12 +15,13 @@ class RolesSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create roles using firstOrCreate to prevent errors on multiple runs
-        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'doctor', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'caregiver', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'specialist', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'client', 'guard_name' => 'web']);
+        // DEPRECATED: Роли организаций (owner, admin, doctor, caregiver)
+        // теперь хранятся в pivot-таблице organization_user, а не в Spatie roles.
+        //
+        // Используйте PermissionsSeeder для создания гранулярных permissions.
+        //
+        // См. App\Enums\OrganizationRole для списка ролей.
+
+        $this->call(PermissionsSeeder::class);
     }
 }

@@ -19,6 +19,7 @@ class Patient extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'owner_id',
         'creator_id',
         'organization_id',
         'first_name',
@@ -47,6 +48,16 @@ class Patient extends Model
         ];
     }
 
+    // ===== RELATIONS =====
+
+    /**
+     * Get the owner (client) of the patient card.
+     */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
     /**
      * Get the creator of the patient.
      */
@@ -72,6 +83,14 @@ class Patient extends Model
     }
 
     /**
+     * Get all diaries for the patient (if multiple diaries supported in future).
+     */
+    public function diaries(): HasMany
+    {
+        return $this->hasMany(Diary::class, 'patient_id');
+    }
+
+    /**
      * Get the task templates for the patient.
      */
     public function taskTemplates(): HasMany
@@ -94,5 +113,47 @@ class Patient extends Model
     {
         return $this->belongsToMany(User::class, 'patient_user', 'patient_id', 'user_id')
             ->withTimestamps();
+    }
+
+    // ===== HELPERS =====
+
+    /**
+     * Check if user is the owner of this patient card.
+     */
+    public function isOwnedBy(User $user): bool
+    {
+        return $this->owner_id === $user->id;
+    }
+
+    /**
+     * Check if user is the creator of this patient card.
+     */
+    public function isCreatedBy(User $user): bool
+    {
+        return $this->creator_id === $user->id;
+    }
+
+    /**
+     * Check if patient belongs to an organization.
+     */
+    public function belongsToOrganization(): bool
+    {
+        return $this->organization_id !== null;
+    }
+
+    /**
+     * Get full name of the patient.
+     */
+    public function getFullNameAttribute(): string
+    {
+        return trim("{$this->last_name} {$this->first_name} {$this->middle_name}");
+    }
+
+    /**
+     * Transfer ownership to a client.
+     */
+    public function transferOwnershipTo(User $user): void
+    {
+        $this->update(['owner_id' => $user->id]);
     }
 }

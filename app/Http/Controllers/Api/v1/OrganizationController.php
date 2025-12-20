@@ -3,384 +3,316 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\AssignPatientRequest;
-use App\Http\Requests\InviteEmployeeRequest;
-use App\Http\Requests\UpdateOrganizationRequest;
-use App\Models\Organization;
 use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 /**
  * @OA\Tag(
  *     name="Organization",
- *     description="API endpoints for organization management"
+ *     description="API для управления организацией и сотрудниками"
  * )
  */
 class OrganizationController extends Controller
 {
     /**
      * @OA\Get(
+     *     path="/api/v1/organization",
+     *     tags={"Organization"},
+     *     summary="Получить информацию об организации",
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(response=200, description="Success", @OA\JsonContent(ref="#/components/schemas/Organization"))
+     * )
+     */
+    public function show(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $organization = $user->organization;
+
+        if (!$organization) {
+            return response()->json(['message' => 'Вы не принадлежите к организации'], 404);
+        }
+
+        $organization->load('owner');
+        $organization->append(['employee_count', 'patient_count']);
+
+        return response()->json($organization);
+    }
+
+    /**
+     * @OA\Get(
      *     path="/api/v1/organization/employees",
      *     tags={"Organization"},
-     *     summary="Get organization employees",
-     *     description="Retrieve all employees (users) belonging to the authenticated manager's organization.",
+     *     summary="Список сотрудников организации",
      *     security={{"sanctum": {}}},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Employees retrieved successfully",
-     *         @OA\JsonContent(
-     *             type="array",
-     *             @OA\Items(
-     *                 @OA\Property(property="id", type="integer", example=2),
-     *                 @OA\Property(property="first_name", type="string", example="Maria"),
-     *                 @OA\Property(property="last_name", type="string", example="Ivanova"),
-     *                 @OA\Property(property="middle_name", type="string", nullable=true, example="Petrovna"),
-     *                 @OA\Property(property="phone", type="string", example="9876543210"),
-     *                 @OA\Property(property="organization_id", type="integer", example=1),
-     *                 @OA\Property(property="created_at", type="string", format="date-time"),
-     *                 @OA\Property(property="updated_at", type="string", format="date-time")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthenticated",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Access denied - user is not a manager",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="You must be a manager to access this resource.")
-     *         )
-     *     )
+     *     @OA\Parameter(name="role", in="query", @OA\Schema(type="string", enum={"owner", "admin", "doctor", "caregiver"})),
+     *     @OA\Response(response=200, description="Success")
      * )
      */
     public function getEmployees(Request $request): JsonResponse
     {
         $user = $request->user();
-
-        // Only managers can access employees
-        if (!$user->hasRole('manager')) {
-            return response()->json([
-                'message' => 'You must be a manager to access this resource.',
-            ], 403);
-        }
-
         $organization = $user->organization;
 
         if (!$organization) {
-            return response()->json([
-                'message' => 'You do not have an organization.',
-            ], 404);
+            return response()->json(['message' => 'Вы не принадлежите к организации'], 404);
         }
 
-        $employees = User::where('organization_id', $organization->id)->get();
+        $query = $organization->employees()->with('roles');
 
-        return response()->json($employees, 200);
+        if ($request->has('role')) {
+            $query->role($request->role);
+        }
+
+        $employees = $query->get()->map(function ($employee) {
+            return [
+                'id' => $employee->id,
+                'first_name' => $employee->first_name,
+                'last_name' => $employee->last_name,
+                'middle_name' => $employee->middle_name,
+                'phone' => $employee->phone,
+                'role' => $employee->roles->first()?->name,
+                'created_at' => $employee->created_at,
+            ];
+        });
+
+        return response()->json($employees);
     }
 
     /**
-     * @OA\Post(
-     *     path="/api/v1/organization/invite-employee",
+     * @OA\Patch(
+     *     path="/api/v1/organization/employees/{id}/role",
      *     tags={"Organization"},
-     *     summary="Invite a new employee",
-     *     description="Create a new employee (doctor or caregiver) and assign them to the manager's organization. Returns a temporary password for testing.",
+     *     summary="Изменить роль сотрудника",
      *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"phone", "role"},
-     *             @OA\Property(property="phone", type="string", example="9876543210", description="Employee's phone number (must be unique)"),
-     *             @OA\Property(property="first_name", type="string", nullable=true, example="Maria", description="Employee's first name (optional)"),
-     *             @OA\Property(property="last_name", type="string", nullable=true, example="Ivanova", description="Employee's last name (optional)"),
-     *             @OA\Property(property="middle_name", type="string", nullable=true, example="Petrovna", description="Employee's middle name"),
-     *             @OA\Property(property="role", type="string", example="caregiver", description="Employee role", enum={"doctor", "caregiver"})
+     *             required={"role"},
+     *             @OA\Property(property="role", type="string", enum={"admin", "doctor", "caregiver"})
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=201,
-     *         description="Employee created successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="user", type="object",
-     *                 @OA\Property(property="id", type="integer", example=2),
-     *                 @OA\Property(property="first_name", type="string", example="Maria"),
-     *                 @OA\Property(property="last_name", type="string", example="Ivanova"),
-     *                 @OA\Property(property="phone", type="string", example="9876543210"),
-     *                 @OA\Property(property="organization_id", type="integer", example=1),
-     *                 @OA\Property(property="created_at", type="string", format="date-time")
-     *             ),
-     *             @OA\Property(property="password", type="string", example="temp123456", description="Temporary password for testing (will be sent via SMS in production)")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthenticated",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Access denied - user is not a manager",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="You must be a manager to invite employees.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
-     *             @OA\Property(property="errors", type="object")
-     *         )
-     *     )
+     *     @OA\Response(response=200, description="Роль изменена")
      * )
      */
-    public function inviteEmployee(InviteEmployeeRequest $request): JsonResponse
+    public function changeEmployeeRole(Request $request, int $id): JsonResponse
     {
+        $request->validate([
+            'role' => 'required|string|in:admin,doctor,caregiver',
+        ]);
+
         $user = $request->user();
 
-        // Only managers can invite employees
-        if (!$user->hasRole('manager')) {
-            return response()->json([
-                'message' => 'You must be a manager to invite employees.',
-            ], 403);
+        // Только owner может менять роли
+        if (!$user->isOwner()) {
+            return response()->json(['message' => 'Только владелец может менять роли'], 403);
         }
 
         $organization = $user->organization;
+        $employee = User::where('id', $id)
+            ->where('organization_id', $organization->id)
+            ->first();
 
-        if (!$organization) {
-            return response()->json([
-                'message' => 'You do not have an organization.',
-            ], 404);
+        if (!$employee) {
+            return response()->json(['message' => 'Сотрудник не найден'], 404);
         }
 
-        // Generate a random password
-        $password = Str::random(12);
+        // Нельзя изменить роль владельца
+        if ($employee->isOwner()) {
+            return response()->json(['message' => 'Нельзя изменить роль владельца'], 422);
+        }
 
-        $employee = User::create([
-            'phone' => $request->phone,
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
-            'middle_name' => $request->middle_name,
-            'password' => Hash::make($password),
-            'organization_id' => $organization->id,
-            'phone_verified_at' => now(), // Auto-verify for employees
-        ]);
-
-        // Assign role
-        $employee->assignRole($request->role);
+        $organization->changeEmployeeRole($employee, $request->role);
 
         return response()->json([
-            'user' => $employee,
-            'password' => $password, // Return password for testing (will be sent via SMS in production)
-        ], 201);
+            'message' => 'Роль изменена',
+            'employee' => [
+                'id' => $employee->id,
+                'role' => $request->role,
+            ],
+        ]);
+    }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/v1/organization/employees/{id}",
+     *     tags={"Organization"},
+     *     summary="Удалить сотрудника из организации",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Сотрудник удалён")
+     * )
+     */
+    public function removeEmployee(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user->canManageEmployees()) {
+            return response()->json(['message' => 'Недостаточно прав'], 403);
+        }
+
+        $organization = $user->organization;
+        $employee = User::where('id', $id)
+            ->where('organization_id', $organization->id)
+            ->first();
+
+        if (!$employee) {
+            return response()->json(['message' => 'Сотрудник не найден'], 404);
+        }
+
+        // Нельзя удалить владельца
+        if ($employee->isOwner()) {
+            return response()->json(['message' => 'Нельзя удалить владельца'], 422);
+        }
+
+        // Admin не может удалить другого admin
+        if (!$user->isOwner() && $employee->hasRole('admin')) {
+            return response()->json(['message' => 'Только владелец может удалить администратора'], 403);
+        }
+
+        $organization->removeEmployee($employee);
+
+        return response()->json(['message' => 'Сотрудник удалён из организации']);
     }
 
     /**
      * @OA\Post(
-     *     path="/api/v1/organization/assign-patient",
+     *     path="/api/v1/organization/assign-diary-access",
      *     tags={"Organization"},
-     *     summary="Assign a patient to an employee",
-     *     description="Assign a patient to a caregiver or doctor. Both must belong to the same organization.",
+     *     summary="Назначить доступ к дневнику (для агентств)",
      *     security={{"sanctum": {}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
      *             required={"patient_id", "user_id"},
-     *             @OA\Property(property="patient_id", type="integer", example=1, description="Patient ID"),
-     *             @OA\Property(property="user_id", type="integer", example=2, description="Employee (caregiver/doctor) ID")
+     *             @OA\Property(property="patient_id", type="integer"),
+     *             @OA\Property(property="user_id", type="integer"),
+     *             @OA\Property(property="permission", type="string", enum={"view", "edit", "full"}, default="edit")
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Patient assigned successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Patient assigned to employee successfully"),
-     *             @OA\Property(property="patient", type="object",
-     *                 @OA\Property(property="id", type="integer", example=1),
-     *                 @OA\Property(property="first_name", type="string", example="Ivan"),
-     *                 @OA\Property(property="last_name", type="string", example="Petrov")
-     *             ),
-     *             @OA\Property(property="user", type="object",
-     *                 @OA\Property(property="id", type="integer", example=2),
-     *                 @OA\Property(property="first_name", type="string", example="Maria"),
-     *                 @OA\Property(property="last_name", type="string", example="Ivanova")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthenticated",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Access denied",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="You do not have permission to assign patients.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error or business logic error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Patient and employee must belong to the same organization.")
-     *         )
-     *     )
+     *     @OA\Response(response=200, description="Доступ назначен")
      * )
      */
-    public function assignPatient(AssignPatientRequest $request): JsonResponse
+    public function assignDiaryAccess(Request $request): JsonResponse
     {
+        $request->validate([
+            'patient_id' => 'required|exists:patients,id',
+            'user_id' => 'required|exists:users,id',
+            'permission' => 'nullable|string|in:view,edit,full',
+        ]);
+
         $user = $request->user();
 
-        // Only managers can assign patients
-        if (!$user->hasRole('manager')) {
-            return response()->json([
-                'message' => 'You do not have permission to assign patients.',
-            ], 403);
+        if (!$user->canManageAccess()) {
+            return response()->json(['message' => 'Недостаточно прав'], 403);
         }
 
         $organization = $user->organization;
+        $patient = Patient::findOrFail($request->patient_id);
+        $employee = User::findOrFail($request->user_id);
 
-        if (!$organization) {
-            return response()->json([
-                'message' => 'You do not have an organization.',
-            ], 404);
+        // Проверки
+        if ($patient->organization_id !== $organization->id) {
+            return response()->json(['message' => 'Подопечный не принадлежит вашей организации'], 422);
+        }
+
+        if ($employee->organization_id !== $organization->id) {
+            return response()->json(['message' => 'Сотрудник не принадлежит вашей организации'], 422);
+        }
+
+        if (!$patient->diary) {
+            return response()->json(['message' => 'У подопечного нет дневника'], 422);
+        }
+
+        $permission = $request->permission ?? 'edit';
+        $patient->diary->grantAccess($employee, $permission);
+
+        return response()->json([
+            'message' => 'Доступ к дневнику назначен',
+            'patient_id' => $patient->id,
+            'user_id' => $employee->id,
+            'permission' => $permission,
+        ]);
+    }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/v1/organization/revoke-diary-access",
+     *     tags={"Organization"},
+     *     summary="Отозвать доступ к дневнику",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"patient_id", "user_id"},
+     *             @OA\Property(property="patient_id", type="integer"),
+     *             @OA\Property(property="user_id", type="integer")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Доступ отозван")
+     * )
+     */
+    public function revokeDiaryAccess(Request $request): JsonResponse
+    {
+        $request->validate([
+            'patient_id' => 'required|exists:patients,id',
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $user = $request->user();
+
+        if (!$user->canManageAccess()) {
+            return response()->json(['message' => 'Недостаточно прав'], 403);
         }
 
         $patient = Patient::findOrFail($request->patient_id);
         $employee = User::findOrFail($request->user_id);
 
-        // Check that patient belongs to the organization
-        if ($patient->organization_id !== $organization->id) {
-            return response()->json([
-                'message' => 'Patient does not belong to your organization.',
-            ], 422);
+        if ($patient->diary) {
+            $patient->diary->revokeAccess($employee);
         }
 
-        // Check that employee belongs to the organization
-        if ($employee->organization_id !== $organization->id) {
-            return response()->json([
-                'message' => 'Employee does not belong to your organization.',
-            ], 422);
-        }
-
-        // Check that employee is a caregiver or doctor
-        if (!$employee->hasAnyRole(['caregiver', 'doctor'])) {
-            return response()->json([
-                'message' => 'User must be a caregiver or doctor to be assigned to patients.',
-            ], 422);
-        }
-
-        // Attach patient to employee (check if already attached)
-        if (!$patient->assignedUsers()->where('user_id', $employee->id)->exists()) {
-            $patient->assignedUsers()->attach($employee->id);
-        }
-
-        return response()->json([
-            'message' => 'Patient assigned to employee successfully',
-            'patient' => $patient->only(['id', 'first_name', 'last_name']),
-            'user' => $employee->only(['id', 'first_name', 'last_name']),
-        ], 200);
+        return response()->json(['message' => 'Доступ к дневнику отозван']);
     }
 
     /**
      * @OA\Patch(
      *     path="/api/v1/organization",
      *     tags={"Organization"},
-     *     summary="Update organization details",
-     *     description="Update the organization's name, address, and/or phone. Only the manager (owner) can update.",
+     *     summary="Обновить информацию об организации",
      *     security={{"sanctum": {}}},
      *     @OA\RequestBody(
-     *         required=true,
      *         @OA\JsonContent(
-     *             @OA\Property(property="name", type="string", nullable=true, example="New Organization Name", description="Organization name"),
-     *             @OA\Property(property="address", type="string", nullable=true, example="123 Main St, City", description="Organization address"),
-     *             @OA\Property(property="phone", type="string", nullable=true, example="1234567890", description="Organization phone number")
+     *             @OA\Property(property="name", type="string"),
+     *             @OA\Property(property="address", type="string"),
+     *             @OA\Property(property="phone", type="string"),
+     *             @OA\Property(property="description", type="string")
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Organization updated successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Organization updated successfully"),
-     *             @OA\Property(property="organization", type="object",
-     *                 @OA\Property(property="id", type="integer", example=1),
-     *                 @OA\Property(property="name", type="string", example="New Organization Name"),
-     *                 @OA\Property(property="type", type="string", example="pansionat"),
-     *                 @OA\Property(property="phone", type="string", example="1234567890"),
-     *                 @OA\Property(property="address", type="string", example="123 Main St, City"),
-     *                 @OA\Property(property="created_at", type="string", format="date-time"),
-     *                 @OA\Property(property="updated_at", type="string", format="date-time")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthenticated",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Access denied - user is not a manager",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="You must be a manager to update the organization.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Organization not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="You do not have an organization.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
-     *             @OA\Property(property="errors", type="object")
-     *         )
-     *     )
+     *     @OA\Response(response=200, description="Организация обновлена")
      * )
      */
-    public function update(UpdateOrganizationRequest $request): JsonResponse
+    public function update(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        // Only managers can update organization
-        if (!$user->hasRole('manager')) {
-            return response()->json([
-                'message' => 'You must be a manager to update the organization.',
-            ], 403);
+        if (!$user->isAdmin()) {
+            return response()->json(['message' => 'Недостаточно прав'], 403);
         }
 
         $organization = $user->organization;
 
         if (!$organization) {
-            return response()->json([
-                'message' => 'You do not have an organization.',
-            ], 404);
+            return response()->json(['message' => 'Организация не найдена'], 404);
         }
 
-        // Update only provided fields
-        $organization->update($request->only(['name', 'address', 'phone']));
+        $organization->update($request->only(['name', 'address', 'phone', 'description']));
 
         return response()->json([
-            'message' => 'Organization updated successfully',
+            'message' => 'Организация обновлена',
             'organization' => $organization,
-        ], 200);
+        ]);
     }
 }
