@@ -49,7 +49,10 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request): JsonResponse
     {
-        $verificationCode = str_pad((string) rand(0, 9999), 4, '0', STR_PAD_LEFT);
+        // В тестовом режиме используем фиксированный код '1234'
+        $verificationCode = app()->environment('production')
+            ? str_pad((string) rand(0, 9999), 4, '0', STR_PAD_LEFT)
+            : '1234';
 
         // Определяем user_type
         $userType = match ($request->account_type) {
@@ -250,7 +253,10 @@ class AuthController extends Controller
     public function changePhoneRequest(ChangePhoneRequest $request): JsonResponse
     {
         $user = $request->user();
-        $verificationCode = str_pad((string) rand(0, 9999), 4, '0', STR_PAD_LEFT);
+        // В тестовом режиме используем фиксированный код '1234'
+        $verificationCode = app()->environment('production')
+            ? str_pad((string) rand(0, 9999), 4, '0', STR_PAD_LEFT)
+            : '1234';
 
         $user->unverified_phone = $request->phone;
         $user->verification_code = $verificationCode;
