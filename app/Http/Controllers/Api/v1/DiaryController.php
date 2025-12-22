@@ -360,7 +360,8 @@ class DiaryController extends Controller
             'patient_id' => 'required|exists:patients,id',
             'pinned_parameters' => 'nullable|array',
             'pinned_parameters.*.key' => 'required_with:pinned_parameters|string',
-            'pinned_parameters.*.interval_minutes' => 'required_with:pinned_parameters|integer|min:1',
+            'pinned_parameters.*.interval_minutes' => 'nullable|integer|min:1',
+            'pinned_parameters.*.times' => 'nullable|array',
             'settings' => 'nullable|array',
         ]);
 
@@ -549,7 +550,9 @@ class DiaryController extends Controller
             'patient_id' => 'required|exists:patients,id',
             'pinned_parameters' => 'required|array',
             'pinned_parameters.*.key' => 'required|string',
-            'pinned_parameters.*.interval_minutes' => 'required|integer|min:1',
+            'pinned_parameters.*.interval_minutes' => 'nullable|integer|min:1',
+            'pinned_parameters.*.times' => 'nullable|array',
+            'pinned_parameters.*.settings' => 'nullable|array',
         ]);
 
         $patient = Patient::findOrFail($request->patient_id);
