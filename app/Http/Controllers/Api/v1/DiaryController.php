@@ -591,8 +591,8 @@ class DiaryController extends Controller
             return $patient->creator_id === $user->id;
         }
 
-        // Manager can access patients from their organization
-        if ($user->hasRole('manager')) {
+        // Organization Admin/Owner can access patients from their organization
+        if ($user->hasAnyRole(['owner', 'admin'])) {
             $organization = $user->organization;
             if ($organization && $patient->organization_id === $organization->id) {
                 return true;
