@@ -426,6 +426,13 @@ class PatientController extends Controller
 
         // Caregiver/Doctor can access patients they are assigned to
         if ($user->hasAnyRole(['caregiver', 'doctor'])) {
+            $organization = $user->organization;
+
+            // Boarding House employees can access all patients in their organization
+            if ($organization && $organization->isBoardingHouse() && $patient->organization_id === $organization->id) {
+                return true;
+            }
+
             // Check if user is assigned to this patient
             if ($patient->assignedUsers()->where('user_id', $user->id)->exists()) {
                 return true;

@@ -90,7 +90,7 @@ class AlarmController extends Controller
             ], 404);
         }
 
-        if (!$this->canAccessPatient($user, $diary->patient)) {
+        if (!$user->canAccessDiary($diary)) {
             return response()->json([
                 'message' => 'You do not have access to this diary.',
             ], 403);
@@ -160,7 +160,7 @@ class AlarmController extends Controller
             ], 404);
         }
 
-        if (!$this->canAccessPatient($user, $alarm->diary->patient)) {
+        if (!$user->canAccessDiary($alarm->diary)) {
             return response()->json([
                 'message' => 'You do not have access to this alarm.',
             ], 403);
@@ -240,7 +240,7 @@ class AlarmController extends Controller
         $user = $request->user();
         $diary = Diary::with('patient')->find($request->diary_id);
 
-        if (!$this->canAccessPatient($user, $diary->patient)) {
+        if (!$user->canAccessDiary($diary)) {
             return response()->json([
                 'message' => 'You do not have access to this diary.',
             ], 403);
@@ -320,7 +320,7 @@ class AlarmController extends Controller
             ], 404);
         }
 
-        if (!$this->canAccessPatient($user, $alarm->diary->patient)) {
+        if (!$user->canAccessDiary($alarm->diary)) {
             return response()->json([
                 'message' => 'You do not have access to this alarm.',
             ], 403);
@@ -397,7 +397,7 @@ class AlarmController extends Controller
             ], 404);
         }
 
-        if (!$this->canAccessPatient($user, $alarm->diary->patient)) {
+        if (!$user->canAccessDiary($alarm->diary)) {
             return response()->json([
                 'message' => 'You do not have access to this alarm.',
             ], 403);
@@ -458,7 +458,7 @@ class AlarmController extends Controller
             ], 404);
         }
 
-        if (!$this->canAccessPatient($user, $alarm->diary->patient)) {
+        if (!$user->canAccessDiary($alarm->diary)) {
             return response()->json([
                 'message' => 'You do not have access to this alarm.',
             ], 403);
@@ -475,42 +475,5 @@ class AlarmController extends Controller
         ], 200);
     }
 
-    /**
-     * Check if user can access the patient.
-     */
-    private function canAccessPatient($user, Patient $patient): bool
-    {
-        // Admin can access all patients
-        if ($user->hasRole('admin')) {
-            return true;
-        }
 
-        // Client can access their own patients
-        if ($user->hasRole('client')) {
-            return $patient->creator_id === $user->id;
-        }
-
-        // Manager can access patients from their organization
-        if ($user->hasRole('manager')) {
-            $organization = $user->organization;
-            if ($organization && $patient->organization_id === $organization->id) {
-                return true;
-            }
-        }
-
-        // Caregiver/Doctor can access patients they are assigned to
-        if ($user->hasAnyRole(['caregiver', 'doctor'])) {
-            if ($patient->assignedUsers()->where('user_id', $user->id)->exists()) {
-                return true;
-            }
-        }
-
-        // Check diary access
-        $diary = $patient->diary;
-        if ($diary && $diary->hasAccess($user)) {
-            return true;
-        }
-
-        return false;
-    }
 }

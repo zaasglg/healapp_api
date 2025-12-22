@@ -228,8 +228,12 @@ class User extends Authenticatable
             return $diary->hasAccess($this);
         }
 
-        // Сотрудник организации
         if ($this->organization_id && $patient->organization_id === $this->organization_id) {
+            // Владелец организации имеет полный доступ
+            if ($this->isOwner()) {
+                return true;
+            }
+
             $org = $this->organization;
             
             // Пансионат: все сотрудники видят все дневники
