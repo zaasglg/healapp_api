@@ -35,6 +35,7 @@ class StorePatientRequest extends FormRequest
             'diagnoses.*' => ['string', 'max:255'],
             'needed_services' => ['nullable', 'array'],
             'needed_services.*' => ['string', 'max:255'],
+            'organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
         ];
     }
 }

@@ -95,7 +95,8 @@ class PatientController extends Controller
      *             @OA\Property(property="mobility", type="string", example="walking", description="Mobility status", enum={"walking", "sitting", "bedridden"}),
 
      *             @OA\Property(property="diagnoses", type="array", nullable=true, @OA\Items(type="string"), example={"Stroke", "Dementia"}, description="Array of diagnoses"),
-     *             @OA\Property(property="needed_services", type="array", nullable=true, @OA\Items(type="string"), example={"Nursing care", "Physical therapy"}, description="Array of needed services")
+     *             @OA\Property(property="needed_services", type="array", nullable=true, @OA\Items(type="string"), example={"Nursing care", "Physical therapy"}, description="Array of needed services"),
+     *             @OA\Property(property="organization_id", type="integer", nullable=true, example=1, description="Organization ID (optional, defaults to user's organization)")
      *         )
      *     ),
      *     @OA\Response(
@@ -144,11 +145,22 @@ class PatientController extends Controller
         // Set creator_id to authenticated user
         $data['creator_id'] = $user->id;
 
-        // If user is a manager, set organization_id from their organization
-        if ($user->hasRole('manager')) {
-            $organization = $user->organization;
-            if ($organization) {
-                $data['organization_id'] = $organization->id;
+        // Determine organization_id
+        // 1. If explicitly provided in request, use it (with validation)
+        // 2. If user belongs to an organization, use their organization
+        // 3. Otherwise, leave as null (for private caregivers or clients)
+        if (!isset($data['organization_id']) || $data['organization_id'] === null) {
+            if ($user->organization_id) {
+                $data['organization_id'] = $user->organization_id;
+            }
+        } else {
+            // If organization_id is provided, validate user has access to it
+            // Only allow setting organization_id if user belongs to that organization
+            // or is the owner of that organization
+            if ($user->organization_id !== $data['organization_id']) {
+                return response()->json([
+                    'message' => 'Вы не можете создавать пациентов для другой организации',
+                ], 403);
             }
         }
 
