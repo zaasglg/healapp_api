@@ -86,13 +86,13 @@ class AlarmController extends Controller
 
         if (!$diary) {
             return response()->json([
-                'message' => 'Diary not found.',
+                'message' => 'Дневник не найден.',
             ], 404);
         }
 
         if (!$user->canAccessDiary($diary)) {
             return response()->json([
-                'message' => 'You do not have access to this diary.',
+                'message' => 'У вас нет доступа к этому дневнику.',
             ], 403);
         }
 
@@ -156,13 +156,13 @@ class AlarmController extends Controller
 
         if (!$alarm) {
             return response()->json([
-                'message' => 'Alarm not found.',
+                'message' => 'Напоминание не найдено.',
             ], 404);
         }
 
         if (!$user->canAccessDiary($alarm->diary)) {
             return response()->json([
-                'message' => 'You do not have access to this alarm.',
+                'message' => 'У вас нет доступа к этому напоминанию.',
             ], 403);
         }
 
@@ -242,7 +242,7 @@ class AlarmController extends Controller
 
         if (!$user->canAccessDiary($diary)) {
             return response()->json([
-                'message' => 'You do not have access to this diary.',
+                'message' => 'У вас нет доступа к этому дневнику.',
             ], 403);
         }
 
@@ -316,13 +316,13 @@ class AlarmController extends Controller
 
         if (!$alarm) {
             return response()->json([
-                'message' => 'Alarm not found.',
+                'message' => 'Напоминание не найдено.',
             ], 404);
         }
 
         if (!$user->canAccessDiary($alarm->diary)) {
             return response()->json([
-                'message' => 'You do not have access to this alarm.',
+                'message' => 'У вас нет доступа к этому напоминанию.',
             ], 403);
         }
 
@@ -393,20 +393,20 @@ class AlarmController extends Controller
 
         if (!$alarm) {
             return response()->json([
-                'message' => 'Alarm not found.',
+                'message' => 'Напоминание не найдено.',
             ], 404);
         }
 
         if (!$user->canAccessDiary($alarm->diary)) {
             return response()->json([
-                'message' => 'You do not have access to this alarm.',
+                'message' => 'У вас нет доступа к этому напоминанию.',
             ], 403);
         }
 
         $alarm->delete();
 
         return response()->json([
-            'message' => 'Alarm deleted successfully.',
+            'message' => 'Напоминание успешно удалено.',
         ], 200);
     }
 
@@ -454,13 +454,13 @@ class AlarmController extends Controller
 
         if (!$alarm) {
             return response()->json([
-                'message' => 'Alarm not found.',
+                'message' => 'Напоминание не найдено.',
             ], 404);
         }
 
         if (!$user->canAccessDiary($alarm->diary)) {
             return response()->json([
-                'message' => 'You do not have access to this alarm.',
+                'message' => 'У вас нет доступа к этому напоминанию.',
             ], 403);
         }
 
@@ -471,7 +471,7 @@ class AlarmController extends Controller
         return response()->json([
             'id' => $alarm->id,
             'is_active' => $alarm->is_active,
-            'message' => $alarm->is_active ? 'Alarm activated.' : 'Alarm deactivated.',
+            'message' => $alarm->is_active ? 'Напоминание активировано.' : 'Напоминание деактивировано.',
         ], 200);
     }
 

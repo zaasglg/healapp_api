@@ -241,14 +241,14 @@ class DiaryController extends Controller
         
         if (!$diary) {
             return response()->json([
-                'message' => 'Diary not found.',
+                'message' => 'Дневник не найден.',
             ], 404);
         }
 
         // Check access
         if (!$this->canAccessPatient($user, $diary->patient)) {
             return response()->json([
-                'message' => 'You do not have access to this diary.',
+                'message' => 'У вас нет доступа к этому дневнику.',
             ], 403);
         }
 
@@ -372,14 +372,14 @@ class DiaryController extends Controller
         // Check access
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have access to this patient.',
+                'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
 
         // Check if diary already exists
         if ($patient->diary) {
             return response()->json([
-                'message' => 'Diary already exists for this patient',
+                'message' => 'Дневник для этого пациента уже существует',
                 'diary_id' => $patient->diary->id,
             ], 409);
         }
@@ -476,7 +476,7 @@ class DiaryController extends Controller
         // Check access
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have access to this patient.',
+                'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
 
@@ -561,7 +561,7 @@ class DiaryController extends Controller
 
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have access to this patient.',
+                'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
 
@@ -575,7 +575,7 @@ class DiaryController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Pinned parameters updated successfully',
+            'message' => 'Закреплённые параметры успешно обновлены',
             'diary' => $diary,
         ], 200);
     }

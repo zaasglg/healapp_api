@@ -82,7 +82,7 @@ class TaskTemplateController extends Controller
         // Only clients and managers can access templates
         if (!$user->hasAnyRole(['client', 'manager', 'admin'])) {
             return response()->json([
-                'message' => 'You do not have permission to access task templates.',
+                'message' => 'У вас нет прав на доступ к шаблонам задач.',
             ], 403);
         }
 
@@ -90,7 +90,7 @@ class TaskTemplateController extends Controller
 
         if (!$patientId) {
             return response()->json([
-                'message' => 'patient_id parameter is required',
+                'message' => 'Параметр patient_id обязателен',
             ], 400);
         }
 
@@ -99,7 +99,7 @@ class TaskTemplateController extends Controller
         // Check access
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to access this patient.',
+                'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
 
@@ -179,7 +179,7 @@ class TaskTemplateController extends Controller
         // Only clients and managers can create templates
         if (!$user->hasAnyRole(['client', 'manager', 'admin'])) {
             return response()->json([
-                'message' => 'You do not have permission to create task templates.',
+                'message' => 'У вас нет прав на создание шаблонов задач.',
             ], 403);
         }
 
@@ -188,7 +188,7 @@ class TaskTemplateController extends Controller
         // Check access
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to access this patient.',
+                'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
 
@@ -223,7 +223,7 @@ class TaskTemplateController extends Controller
 
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to access this template.',
+                'message' => 'У вас нет доступа к этому шаблону.',
             ], 403);
         }
 
@@ -261,7 +261,7 @@ class TaskTemplateController extends Controller
 
         if (!$user->hasAnyRole(['client', 'manager', 'admin'])) {
             return response()->json([
-                'message' => 'You do not have permission to update task templates.',
+                'message' => 'У вас нет прав на обновление шаблонов задач.',
             ], 403);
         }
 
@@ -269,7 +269,7 @@ class TaskTemplateController extends Controller
 
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to access this patient.',
+                'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
 
@@ -291,7 +291,7 @@ class TaskTemplateController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'Validation failed',
+                'message' => 'Ошибка валидации',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -332,7 +332,7 @@ class TaskTemplateController extends Controller
 
         if (!$user->hasAnyRole(['client', 'manager', 'admin'])) {
             return response()->json([
-                'message' => 'You do not have permission to update task templates.',
+                'message' => 'У вас нет прав на обновление шаблонов задач.',
             ], 403);
         }
 
@@ -340,7 +340,7 @@ class TaskTemplateController extends Controller
 
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to access this patient.',
+                'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
 
@@ -360,7 +360,7 @@ class TaskTemplateController extends Controller
         }
 
         return response()->json([
-            'message' => $taskTemplate->is_active ? 'Template activated' : 'Template deactivated',
+            'message' => $taskTemplate->is_active ? 'Шаблон активирован' : 'Шаблон деактивирован',
             'is_active' => $taskTemplate->is_active,
         ]);
     }
@@ -416,7 +416,7 @@ class TaskTemplateController extends Controller
         // Only clients and managers can delete templates
         if (!$user->hasAnyRole(['client', 'manager', 'admin'])) {
             return response()->json([
-                'message' => 'You do not have permission to delete task templates.',
+                'message' => 'У вас нет прав на удаление шаблонов задач.',
             ], 403);
         }
 
@@ -425,7 +425,7 @@ class TaskTemplateController extends Controller
         // Check access
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to access this patient.',
+                'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
 
@@ -438,7 +438,7 @@ class TaskTemplateController extends Controller
         $taskTemplate->delete();
 
         return response()->json([
-            'message' => 'Task template deleted successfully',
+            'message' => 'Шаблон задачи успешно удалён',
         ], 200);
     }
 

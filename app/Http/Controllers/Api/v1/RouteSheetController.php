@@ -127,7 +127,7 @@ class RouteSheetController extends Controller
             
             if (!$this->canAccessPatient($user, $patient)) {
                 return response()->json([
-                    'message' => 'You do not have permission to access this patient.',
+                    'message' => 'У вас нет доступа к этому пациенту.',
                 ], 403);
             }
             
@@ -242,7 +242,7 @@ class RouteSheetController extends Controller
         
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to access this task.',
+                'message' => 'У вас нет доступа к этой задаче.',
             ], 403);
         }
         
@@ -286,7 +286,7 @@ class RouteSheetController extends Controller
         // Only clients, managers, doctors can create tasks
         if (!$user->hasAnyRole(['client', 'manager', 'doctor', 'admin'])) {
             return response()->json([
-                'message' => 'You do not have permission to create tasks.',
+                'message' => 'У вас нет прав на создание задач.',
             ], 403);
         }
         
@@ -302,7 +302,7 @@ class RouteSheetController extends Controller
         
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'Validation failed',
+                'message' => 'Ошибка валидации',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -311,7 +311,7 @@ class RouteSheetController extends Controller
         
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to access this patient.',
+                'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
         
@@ -319,7 +319,7 @@ class RouteSheetController extends Controller
         if ($request->assigned_to) {
             if (!$this->canAssignUser($user, $patient, $request->assigned_to)) {
                 return response()->json([
-                    'message' => 'Cannot assign task to this user.',
+                    'message' => 'Невозможно назначить задачу этому пользователю.',
                 ], 422);
             }
         }
@@ -368,20 +368,20 @@ class RouteSheetController extends Controller
         // Only clients, managers, doctors can update tasks
         if (!$user->hasAnyRole(['client', 'manager', 'doctor', 'admin'])) {
             return response()->json([
-                'message' => 'You do not have permission to update tasks.',
+                'message' => 'У вас нет прав на обновление задач.',
             ], 403);
         }
         
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to access this task.',
+                'message' => 'У вас нет доступа к этой задаче.',
             ], 403);
         }
         
         // Only pending tasks can be updated
         if ($task->status !== Task::STATUS_PENDING) {
             return response()->json([
-                'message' => 'Only pending tasks can be updated.',
+                'message' => 'Обновлять можно только задачи со статусом "ожидает".',
             ], 422);
         }
         
@@ -395,7 +395,7 @@ class RouteSheetController extends Controller
         
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'Validation failed',
+                'message' => 'Ошибка валидации',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -442,14 +442,14 @@ class RouteSheetController extends Controller
         
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to reschedule this task.',
+                'message' => 'У вас нет прав на перенос этой задачи.',
             ], 403);
         }
         
         // Only pending tasks can be rescheduled
         if ($task->status !== Task::STATUS_PENDING) {
             return response()->json([
-                'message' => 'Only pending tasks can be rescheduled.',
+                'message' => 'Переносить можно только задачи со статусом "ожидает".',
             ], 422);
         }
         
@@ -461,7 +461,7 @@ class RouteSheetController extends Controller
         
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'Validation failed',
+                'message' => 'Ошибка валидации',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -483,7 +483,7 @@ class RouteSheetController extends Controller
         
         return response()->json(array_merge($task->toArray(), [
             'is_rescheduled' => true,
-            'message' => 'Task rescheduled successfully',
+            'message' => 'Задача успешно перенесена',
         ]));
     }
 
@@ -513,13 +513,13 @@ class RouteSheetController extends Controller
         
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to complete this task.',
+                'message' => 'У вас нет прав на выполнение этой задачи.',
             ], 403);
         }
         
         if ($task->status !== Task::STATUS_PENDING) {
             return response()->json([
-                'message' => 'Only pending tasks can be completed.',
+                'message' => 'Выполнять можно только задачи со статусом "ожидает".',
             ], 422);
         }
         
@@ -533,7 +533,7 @@ class RouteSheetController extends Controller
         
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'Validation failed',
+                'message' => 'Ошибка валидации',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -570,7 +570,7 @@ class RouteSheetController extends Controller
         $task->load(['patient', 'assignedTo', 'completedBy']);
         
         return response()->json(array_merge($task->toArray(), [
-            'message' => 'Task completed successfully',
+            'message' => 'Задача успешно выполнена',
         ]));
     }
 
@@ -598,13 +598,13 @@ class RouteSheetController extends Controller
         
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to update this task.',
+                'message' => 'У вас нет прав на обновление этой задачи.',
             ], 403);
         }
         
         if ($task->status !== Task::STATUS_PENDING) {
             return response()->json([
-                'message' => 'Only pending tasks can be marked as missed.',
+                'message' => 'Отмечать как пропущенные можно только задачи со статусом "ожидает".',
             ], 422);
         }
         
@@ -614,7 +614,7 @@ class RouteSheetController extends Controller
         
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'Validation failed',
+                'message' => 'Ошибка валидации',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -632,7 +632,7 @@ class RouteSheetController extends Controller
         $task->load(['patient', 'assignedTo', 'completedBy']);
         
         return response()->json(array_merge($task->toArray(), [
-            'message' => 'Task marked as missed',
+            'message' => 'Задача отмечена как пропущенная',
         ]));
     }
 
@@ -655,27 +655,27 @@ class RouteSheetController extends Controller
         // Only clients, managers can delete tasks
         if (!$user->hasAnyRole(['client', 'manager', 'admin'])) {
             return response()->json([
-                'message' => 'You do not have permission to delete tasks.',
+                'message' => 'У вас нет прав на удаление задач.',
             ], 403);
         }
         
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to delete this task.',
+                'message' => 'У вас нет прав на удаление этой задачи.',
             ], 403);
         }
         
         // Only pending or cancelled tasks can be deleted
         if (!in_array($task->status, [Task::STATUS_PENDING, Task::STATUS_CANCELLED])) {
             return response()->json([
-                'message' => 'Only pending or cancelled tasks can be deleted.',
+                'message' => 'Удалять можно только задачи со статусом "ожидает" или "отменена".',
             ], 422);
         }
         
         $task->delete();
         
         return response()->json([
-            'message' => 'Task deleted successfully',
+            'message' => 'Задача успешно удалена',
         ]);
     }
 
@@ -786,7 +786,7 @@ class RouteSheetController extends Controller
         
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'Validation failed',
+                'message' => 'Ошибка валидации',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -795,7 +795,7 @@ class RouteSheetController extends Controller
         
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to access this patient.',
+                'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
         

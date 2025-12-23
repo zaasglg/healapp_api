@@ -100,7 +100,7 @@ class TaskController extends Controller
 
         if (!$patientId) {
             return response()->json([
-                'message' => 'patient_id parameter is required',
+                'message' => 'Параметр patient_id обязателен',
             ], 400);
         }
 
@@ -109,7 +109,7 @@ class TaskController extends Controller
         // Check access
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to access this patient.',
+                'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
 
@@ -209,14 +209,14 @@ class TaskController extends Controller
         // Check access - caregivers, managers, clients, and admins can update
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have permission to update this task.',
+                'message' => 'У вас нет прав на обновление этой задачи.',
             ], 403);
         }
 
         // Only allow updating pending tasks
         if ($task->status !== 'pending') {
             return response()->json([
-                'message' => 'Only pending tasks can be updated.',
+                'message' => 'Обновлять можно только задачи со статусом "ожидает".',
             ], 422);
         }
 

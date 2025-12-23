@@ -124,14 +124,14 @@ class NotificationController extends Controller
 
         if (!$notification) {
             return response()->json([
-                'message' => 'Notification not found',
+                'message' => 'Уведомление не найдено',
             ], 404);
         }
 
         $notification->markAsRead();
 
         return response()->json([
-            'message' => 'Notification marked as read',
+            'message' => 'Уведомление отмечено как прочитанное',
         ], 200);
     }
 
@@ -166,7 +166,7 @@ class NotificationController extends Controller
         $count = $user->unreadNotifications()->update(['read_at' => now()]);
 
         return response()->json([
-            'message' => 'All notifications marked as read',
+            'message' => 'Все уведомления отмечены как прочитанные',
             'count' => $count,
         ], 200);
     }

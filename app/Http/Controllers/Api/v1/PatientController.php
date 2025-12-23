@@ -269,7 +269,7 @@ class PatientController extends Controller
         // Check access
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have access to this patient.',
+                'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
 
@@ -365,7 +365,7 @@ class PatientController extends Controller
         // Check access
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have access to this patient.',
+                'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
 
@@ -425,14 +425,14 @@ class PatientController extends Controller
         // Check access
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
-                'message' => 'You do not have access to this patient.',
+                'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
 
         $patient->delete();
 
         return response()->json([
-            'message' => 'Patient deleted successfully',
+            'message' => 'Пациент успешно удалён',
         ], 200);
     }
 
