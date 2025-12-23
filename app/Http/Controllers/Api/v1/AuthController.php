@@ -16,6 +16,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -236,6 +237,56 @@ class AuthController extends Controller
 
     /**
      * @OA\Post(
+     *     path="/api/v1/auth/avatar",
+     *     tags={"Authentication"},
+     *     summary="Загрузить аватар",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 @OA\Property(
+     *                     property="avatar",
+     *                     type="string",
+     *                     format="binary",
+     *                     description="Файл изображения аватара"
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Аватар загружен")
+     * )
+     */
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
+        ]);
+
+        $user = $request->user();
+
+        // Удаляем старый аватар, если он существует
+        if ($user->avatar) {
+            $oldPath = str_replace('/storage/', '', parse_url($user->avatar, PHP_URL_PATH));
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        // Сохраняем новый аватар
+        $path = $request->file('avatar')->store('avatars/' . $user->id, 'public');
+        $avatarUrl = Storage::url($path);
+
+        $user->avatar = $avatarUrl;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Аватар загружен',
+            'user' => $this->formatUser($user),
+        ]);
+    }
+
+    /**
+     * @OA\Post(
      *     path="/api/v1/auth/change-phone/request",
      *     tags={"Authentication"},
      *     summary="Запрос на смену телефона",
@@ -317,6 +368,7 @@ class AuthController extends Controller
             'first_name' => $user->first_name,
             'last_name' => $user->last_name,
             'middle_name' => $user->middle_name,
+            'avatar' => $user->avatar,
             'phone' => $user->phone,
             'type' => $user->type?->value,
             'account_type' => $user->account_type,

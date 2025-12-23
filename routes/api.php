@@ -19,6 +19,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
             Route::get('/me', [AuthController::class, 'me']);
             Route::patch('/profile', [AuthController::class, 'updateProfile']);
+            Route::post('/avatar', [AuthController::class, 'uploadAvatar']);
             Route::post('/change-phone/request', [AuthController::class, 'changePhoneRequest']);
             Route::post('/change-phone/confirm', [AuthController::class, 'confirmChangePhone']);
         }); 
