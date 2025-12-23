@@ -35,6 +35,8 @@ class UpdatePatientRequest extends FormRequest
             'diagnoses.*' => ['string', 'max:255'],
             'needed_services' => ['nullable', 'array'],
             'needed_services.*' => ['string', 'max:255'],
+            'wishes' => ['nullable', 'array'],
+            'wishes.*' => ['string', 'max:500'],
         ];
     }
 }

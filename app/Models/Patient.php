@@ -32,6 +32,7 @@ class Patient extends Model
         'mobility',
         'diagnoses',
         'needed_services',
+        'wishes',
     ];
 
     /**
@@ -44,6 +45,7 @@ class Patient extends Model
         return [
             'diagnoses' => 'array',
             'needed_services' => 'array',
+            'wishes' => 'array',
             'birth_date' => 'date',
         ];
     }
