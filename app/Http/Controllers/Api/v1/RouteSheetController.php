@@ -148,20 +148,45 @@ class RouteSheetController extends Controller
             }
         }
         
-        // For clients: only their own patients
-        if ($user->hasRole('client') && !$request->has('patient_id')) {
-            $query->whereHas('patient', function ($q) use ($user) {
-                $q->where('creator_id', $user->id);
-            });
-        }
-        
-        // For managers: only organization patients
-        if ($user->hasRole('manager') && !$request->has('patient_id')) {
-            $organization = $user->organization;
-            if ($organization) {
-                $query->whereHas('patient', function ($q) use ($organization) {
-                    $q->where('organization_id', $organization->id);
+        // Если patient_id не указан, фильтруем по доступу пользователя
+        if (!$request->has('patient_id')) {
+            // Клиент: только свои пациенты
+            if ($user->isClient()) {
+                $query->whereHas('patient', function ($q) use ($user) {
+                    $q->where('owner_id', $user->id);
                 });
+            }
+            // Частная сиделка: только назначенные пациенты
+            elseif ($user->isPrivateCaregiver()) {
+                $assignedPatientIds = $user->assignedPatients()->pluck('patients.id');
+                $query->whereIn('patient_id', $assignedPatientIds);
+            }
+            // Сотрудник организации
+            elseif ($user->organization_id) {
+                $organization = $user->organization;
+                if ($organization) {
+                    // Пансионат: все пациенты организации
+                    if ($organization->isBoardingHouse()) {
+                        $query->whereHas('patient', function ($q) use ($organization) {
+                            $q->where('organization_id', $organization->id);
+                        });
+                    }
+                    // Агентство: только назначенные пациенты (для сиделок/врачей)
+                    elseif ($organization->isAgency()) {
+                        if ($user->hasAnyRole(['owner', 'admin'])) {
+                            // Владельцы и админы видят всех пациентов организации
+                            $query->whereHas('patient', function ($q) use ($organization) {
+                                $q->where('organization_id', $organization->id);
+                            });
+                        } else {
+                            // Остальные сотрудники видят только назначенных пациентов
+                            $assignedPatientIds = $user->assignedPatients()
+                                ->where('organization_id', $organization->id)
+                                ->pluck('patients.id');
+                            $query->whereIn('patient_id', $assignedPatientIds);
+                        }
+                    }
+                }
             }
         }
         
@@ -903,28 +928,42 @@ class RouteSheetController extends Controller
      */
     private function canAccessPatient($user, Patient $patient): bool
     {
-        // Admin can access all patients
-        if ($user->hasRole('admin')) {
-            return true;
+        // Клиент может видеть только своих пациентов (где owner_id = user.id)
+        if ($user->isClient()) {
+            return $patient->owner_id === $user->id;
         }
 
-        // Client can access their own patients
-        if ($user->hasRole('client')) {
-            return $patient->creator_id === $user->id;
+        // Частная сиделка может видеть только назначенных пациентов
+        if ($user->isPrivateCaregiver()) {
+            return $patient->assignedUsers()->where('user_id', $user->id)->exists();
         }
 
-        // Manager can access patients from their organization
-        if ($user->hasRole('manager')) {
+        // Сотрудник организации
+        if ($user->organization_id) {
             $organization = $user->organization;
-            if ($organization && $patient->organization_id === $organization->id) {
+            
+            if (!$organization) {
+                return false;
+            }
+
+            // Пациент должен принадлежать той же организации
+            if ($patient->organization_id !== $organization->id) {
+                return false;
+            }
+
+            // Владельцы и админы организации имеют доступ ко всем пациентам организации
+            if ($user->hasAnyRole(['owner', 'admin'])) {
                 return true;
             }
-        }
 
-        // Caregiver/Doctor can access patients they are assigned to
-        if ($user->hasAnyRole(['caregiver', 'doctor'])) {
-            if ($patient->assignedUsers()->where('user_id', $user->id)->exists()) {
+            // Пансионат: все сотрудники видят всех пациентов организации
+            if ($organization->isBoardingHouse()) {
                 return true;
+            }
+
+            // Агентство: только назначенные пациенты
+            if ($organization->isAgency()) {
+                return $patient->assignedUsers()->where('user_id', $user->id)->exists();
             }
         }
 

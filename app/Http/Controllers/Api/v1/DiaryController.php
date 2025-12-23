@@ -95,21 +95,22 @@ class DiaryController extends Controller
     {
         $user = $request->user();
 
-        // Get all diaries for patients created by the current user
-        $diaries = Diary::whereHas('patient', function ($query) use ($user) {
-            $query->where('creator_id', $user->id);
-        })
-        ->with(['patient:id,first_name,last_name,middle_name', 'entries' => function ($query) use ($request) {
-            // Filter entries by date range if provided
-            if ($request->has('from_date')) {
-                $query->whereDate('recorded_at', '>=', $request->query('from_date'));
-            }
-            if ($request->has('to_date')) {
-                $query->whereDate('recorded_at', '<=', $request->query('to_date'));
-            }
-            $query->orderBy('recorded_at', 'desc');
-        }])
-        ->get();
+        // Используем метод accessibleDiaries из модели User для правильной фильтрации
+        $diariesQuery = $user->accessibleDiaries();
+
+        // Загружаем связанные данные с фильтрацией записей по дате
+        $diaries = $diariesQuery
+            ->with(['patient:id,first_name,last_name,middle_name,birth_date,gender,weight,height,mobility,diagnoses,needed_services,organization_id', 'entries' => function ($query) use ($request) {
+                // Filter entries by date range if provided
+                if ($request->has('from_date')) {
+                    $query->whereDate('recorded_at', '>=', $request->query('from_date'));
+                }
+                if ($request->has('to_date')) {
+                    $query->whereDate('recorded_at', '<=', $request->query('to_date'));
+                }
+                $query->orderBy('recorded_at', 'desc');
+            }])
+            ->get();
 
         // Format the response
         $formattedDiaries = $diaries->map(function ($diary) {
@@ -584,43 +585,55 @@ class DiaryController extends Controller
      */
     private function canAccessPatient($user, Patient $patient): bool
     {
-        // Admin can access all patients
-        if ($user->hasRole('admin')) {
-            return true;
+        // Клиент может видеть только своих пациентов (где owner_id = user.id)
+        if ($user->isClient()) {
+            return $patient->owner_id === $user->id;
         }
 
-        // Client can access their own patients
-        if ($user->hasRole('client')) {
-            return $patient->creator_id === $user->id;
+        // Частная сиделка может видеть только назначенных пациентов
+        if ($user->isPrivateCaregiver()) {
+            // Проверяем доступ через дневник
+            $diary = $patient->diary;
+            if ($diary && $diary->hasAccess($user)) {
+                return true;
+            }
+            // Или через назначение
+            return $patient->assignedUsers()->where('user_id', $user->id)->exists();
         }
 
-        // Organization Admin/Owner can access patients from their organization
-        if ($user->hasAnyRole(['owner', 'admin'])) {
+        // Сотрудник организации
+        if ($user->organization_id) {
             $organization = $user->organization;
-            if ($organization && $patient->organization_id === $organization->id) {
-                return true;
-            }
-        }
-
-        // Caregiver/Doctor can access patients they are assigned to
-        if ($user->hasAnyRole(['caregiver', 'doctor'])) {
-            $organization = $user->organization;
-
-            // Boarding House employees can access all patients in their organization
-            if ($organization && $organization->isBoardingHouse() && $patient->organization_id === $organization->id) {
-                return true;
+            
+            if (!$organization) {
+                return false;
             }
 
-            // Check if user is assigned to this patient
-            if ($patient->assignedUsers()->where('user_id', $user->id)->exists()) {
+            // Пациент должен принадлежать той же организации
+            if ($patient->organization_id !== $organization->id) {
+                return false;
+            }
+
+            // Владельцы и админы организации имеют доступ ко всем пациентам организации
+            if ($user->hasAnyRole(['owner', 'admin'])) {
                 return true;
             }
-        }
 
-        // Check diary access
-        $diary = $patient->diary;
-        if ($diary && $diary->hasAccess($user)) {
-            return true;
+            // Пансионат: все сотрудники видят всех пациентов организации
+            if ($organization->isBoardingHouse()) {
+                return true;
+            }
+
+            // Агентство: проверяем доступ через дневник или назначение
+            if ($organization->isAgency()) {
+                // Проверяем доступ через дневник
+                $diary = $patient->diary;
+                if ($diary && $diary->hasAccess($user)) {
+                    return true;
+                }
+                // Или через назначение
+                return $patient->assignedUsers()->where('user_id', $user->id)->exists();
+            }
         }
 
         return false;
