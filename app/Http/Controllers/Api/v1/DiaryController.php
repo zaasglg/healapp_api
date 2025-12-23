@@ -391,6 +391,9 @@ class DiaryController extends Controller
             'settings' => $request->settings,
         ]);
 
+        // Grant full access to the creator (important for private caregivers and agency employees)
+        $diary->grantAccess($user, 'full');
+
         return response()->json([
             'id' => $diary->id,
             'patient_id' => $diary->patient_id,
@@ -486,6 +489,8 @@ class DiaryController extends Controller
             $diary = Diary::create([
                 'patient_id' => $patient->id,
             ]);
+            // Grant full access to the creator
+            $diary->grantAccess($user, 'full');
         }
 
         $data = $request->validated();
@@ -568,6 +573,8 @@ class DiaryController extends Controller
         $diary = $patient->diary;
         if (!$diary) {
             $diary = Diary::create(['patient_id' => $patient->id]);
+            // Grant full access to the creator
+            $diary->grantAccess($user, 'full');
         }
 
         $diary->update([
