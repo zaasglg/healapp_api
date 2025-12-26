@@ -79,8 +79,8 @@ class TaskTemplateController extends Controller
     {
         $user = $request->user();
 
-        // Only clients and managers can access templates
-        if (!$user->hasAnyRole(['client', 'manager', 'admin'])) {
+        // Only clients, managers, admins, owners can access templates
+        if (!$user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на доступ к шаблонам задач.',
             ], 403);
@@ -176,8 +176,8 @@ class TaskTemplateController extends Controller
     {
         $user = $request->user();
 
-        // Only clients and managers can create templates
-        if (!$user->hasAnyRole(['client', 'manager', 'admin'])) {
+        // Only clients, managers, admins, owners can create templates
+        if (!$user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на создание шаблонов задач.',
             ], 403);
@@ -259,7 +259,7 @@ class TaskTemplateController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->hasAnyRole(['client', 'manager', 'admin'])) {
+        if (!$user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на обновление шаблонов задач.',
             ], 403);
@@ -330,7 +330,7 @@ class TaskTemplateController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->hasAnyRole(['client', 'manager', 'admin'])) {
+        if (!$user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на обновление шаблонов задач.',
             ], 403);
@@ -413,8 +413,8 @@ class TaskTemplateController extends Controller
     {
         $user = $request->user();
 
-        // Only clients and managers can delete templates
-        if (!$user->hasAnyRole(['client', 'manager', 'admin'])) {
+        // Only clients, managers, admins, owners can delete templates
+        if (!$user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на удаление шаблонов задач.',
             ], 403);
@@ -447,9 +447,16 @@ class TaskTemplateController extends Controller
      */
     private function canAccessPatient($user, Patient $patient): bool
     {
-        // Admin can access all patients
-        if ($user->hasRole('admin')) {
-            return true;
+        // Admin or Owner can access all patients in their organization
+        if ($user->hasAnyRole(['admin', 'owner'])) {
+            // Check if patient belongs to user's organization
+            if ($user->organization_id && $patient->organization_id === $user->organization_id) {
+                return true;
+            }
+            // Or if user created the patient
+            if ($patient->creator_id === $user->id) {
+                return true;
+            }
         }
 
         // Client can access their own patients
