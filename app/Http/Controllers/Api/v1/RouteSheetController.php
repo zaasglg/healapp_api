@@ -283,8 +283,8 @@ class RouteSheetController extends Controller
     {
         $user = $request->user();
         
-        // Only clients, managers, doctors can create tasks
-        if (!$user->hasAnyRole(['client', 'manager', 'doctor', 'admin'])) {
+        // Only clients, managers, doctors, admins, owners can create tasks
+        if (!$user->hasAnyRole(['client', 'manager', 'doctor', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на создание задач.',
             ], 403);
@@ -365,8 +365,8 @@ class RouteSheetController extends Controller
         $user = $request->user();
         $patient = $task->patient;
         
-        // Only clients, managers, doctors can update tasks
-        if (!$user->hasAnyRole(['client', 'manager', 'doctor', 'admin'])) {
+        // Only clients, managers, doctors, admins, owners can update tasks
+        if (!$user->hasAnyRole(['client', 'manager', 'doctor', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на обновление задач.',
             ], 403);
@@ -652,8 +652,8 @@ class RouteSheetController extends Controller
         $user = $request->user();
         $patient = $task->patient;
         
-        // Only clients, managers can delete tasks
-        if (!$user->hasAnyRole(['client', 'manager', 'admin'])) {
+        // Only clients, managers, admins, owners can delete tasks
+        if (!$user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на удаление задач.',
             ], 403);
