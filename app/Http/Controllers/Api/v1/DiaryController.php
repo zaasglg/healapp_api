@@ -588,6 +588,177 @@ class DiaryController extends Controller
     }
 
     /**
+     * @OA\Put(
+     *     path="/api/v1/diary/entries/{id}",
+     *     tags={"Diary"},
+     *     summary="Update a diary entry",
+     *     description="Update an existing diary entry. Only the author or users with full diary access can update entries.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Diary entry ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="type", type="string", example="physical", description="Entry type", enum={"care", "physical", "excretion", "symptom"}),
+     *             @OA\Property(property="key", type="string", example="temperature", description="Entry key"),
+     *             @OA\Property(property="value", type="object", description="Entry value as JSON object"),
+     *             @OA\Property(property="notes", type="string", nullable=true, example="Updated notes"),
+     *             @OA\Property(property="recorded_at", type="string", format="date-time", example="2024-01-01T10:00:00Z")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Diary entry updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="id", type="integer", example=1),
+     *             @OA\Property(property="diary_id", type="integer", example=1),
+     *             @OA\Property(property="author_id", type="integer", example=1),
+     *             @OA\Property(property="type", type="string", example="physical"),
+     *             @OA\Property(property="key", type="string", example="temperature"),
+     *             @OA\Property(property="value", type="object"),
+     *             @OA\Property(property="notes", type="string", nullable=true),
+     *             @OA\Property(property="recorded_at", type="string", format="date-time"),
+     *             @OA\Property(property="created_at", type="string", format="date-time"),
+     *             @OA\Property(property="updated_at", type="string", format="date-time")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Access denied",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="You do not have permission to update this entry.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Entry not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Diary entry not found.")
+     *         )
+     *     )
+     * )
+     */
+    public function updateEntry(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        
+        $entry = DiaryEntry::with('diary.patient')->find($id);
+        
+        if (!$entry) {
+            return response()->json([
+                'message' => 'Запись не найдена.',
+            ], 404);
+        }
+
+        // Check access to the diary's patient
+        if (!$this->canAccessPatient($user, $entry->diary->patient)) {
+            return response()->json([
+                'message' => 'У вас нет доступа к этой записи.',
+            ], 403);
+        }
+
+        // Validate request
+        $request->validate([
+            'type' => 'sometimes|string|in:care,physical,excretion,symptom',
+            'key' => 'sometimes|string|max:255',
+            'value' => 'sometimes|array',
+            'notes' => 'nullable|string|max:1000',
+            'recorded_at' => 'sometimes|date',
+        ]);
+
+        // Update only provided fields
+        $updateData = [];
+        
+        if ($request->has('type')) {
+            $updateData['type'] = $request->type;
+        }
+        if ($request->has('key')) {
+            $updateData['key'] = $request->key;
+        }
+        if ($request->has('value')) {
+            $updateData['value'] = $request->value;
+        }
+        if ($request->has('notes')) {
+            $updateData['notes'] = $request->notes;
+        }
+        if ($request->has('recorded_at')) {
+            $updateData['recorded_at'] = $request->recorded_at;
+        }
+
+        $entry->update($updateData);
+
+        return response()->json($entry->fresh(), 200);
+    }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/v1/diary/entries/{id}",
+     *     tags={"Diary"},
+     *     summary="Delete a diary entry",
+     *     description="Delete an existing diary entry. Only the author or users with full diary access can delete entries.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Diary entry ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Diary entry deleted successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Diary entry deleted successfully.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Access denied",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="You do not have permission to delete this entry.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Entry not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Diary entry not found.")
+     *         )
+     *     )
+     * )
+     */
+    public function deleteEntry(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        
+        $entry = DiaryEntry::with('diary.patient')->find($id);
+        
+        if (!$entry) {
+            return response()->json([
+                'message' => 'Запись не найдена.',
+            ], 404);
+        }
+
+        // Check access to the diary's patient
+        if (!$this->canAccessPatient($user, $entry->diary->patient)) {
+            return response()->json([
+                'message' => 'У вас нет доступа к этой записи.',
+            ], 403);
+        }
+
+        $entry->delete();
+
+        return response()->json([
+            'message' => 'Запись успешно удалена.',
+        ], 200);
+    }
+
+    /**
      * Check if user can access the patient.
      */
     private function canAccessPatient($user, Patient $patient): bool
