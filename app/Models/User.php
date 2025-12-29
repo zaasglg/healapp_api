@@ -27,6 +27,7 @@ class User extends Authenticatable
         'password',
         'verification_code',
         'phone_verified_at',
+        'city',
         'type',
         'organization_id',
     ];
@@ -128,6 +129,12 @@ class User extends Authenticatable
     public function getFullNameAttribute(): string
     {
         return trim("{$this->last_name} {$this->first_name} {$this->middle_name}");
+    }
+
+    public function getFullNameWithCityAttribute(): string
+    {
+        $fullName = $this->getFullNameAttribute();
+        return $this->city ? "{$fullName} ({$this->city})" : $fullName;
     }
 
     // ===== TYPE CHECKS =====

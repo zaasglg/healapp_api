@@ -26,6 +26,7 @@ class RegisterRequest extends FormRequest
             'last_name' => ['nullable', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
             'phone' => ['required', 'string', 'numeric', 'unique:users,phone'],
+            'city' => ['nullable', 'string', 'max:255'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
             'account_type' => ['required', 'string', 'in:client,specialist,pansionat,agency'],
             'organization_name' => ['nullable', 'string'],

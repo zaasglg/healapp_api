@@ -26,6 +26,8 @@ Authorization: Bearer <token>
 | `POST` | `/diary/create` | Создать дневник |
 | `GET` | `/diary` | Получить дневник с записями |
 | `POST` | `/diary` | Добавить запись в дневник |
+| `PUT` | `/diary/entries/{id}` | Изменить запись показателя |
+| `DELETE` | `/diary/entries/{id}` | Удалить запись показателя |
 | `PATCH` | `/diary/pinned` | Обновить закреплённые показатели |
 | `GET` | `/stats/chart` | Получить данные для графика |
 
@@ -252,7 +254,127 @@ Content-Type: application/json
 
 ---
 
-## 4. Обновить закреплённые показатели
+## 4. Изменить запись показателя
+
+Изменяет существующую запись показателя в дневнике.
+
+### Request
+
+```http
+PUT /api/v1/diary/entries/{id}
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+### Path Parameters
+
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| id | integer | ID записи показателя |
+
+### Body
+
+```json
+{
+  "type": "physical",
+  "key": "temperature",
+  "value": {
+    "value": 37.2
+  },
+  "notes": "Повышенная температура после прогулки",
+  "recorded_at": "2024-12-18T16:00:00Z"
+}
+```
+
+| Поле | Тип | Обязательно | Описание |
+|------|-----|-------------|----------|
+| type | string | ❌ | Тип записи: `care`, `physical`, `excretion`, `symptom` |
+| key | string | ❌ | Ключ показателя |
+| value | object | ❌ | Значение показателя (JSON) |
+| notes | string | ❌ | Заметки |
+| recorded_at | datetime | ❌ | Время записи (ISO 8601) |
+
+### Response 200 (OK)
+
+```json
+{
+  "id": 1,
+  "diary_id": 1,
+  "author_id": 1,
+  "type": "physical",
+  "key": "temperature",
+  "value": {
+    "value": 37.2
+  },
+  "notes": "Повышенная температура после прогулки",
+  "recorded_at": "2024-12-18T16:00:00.000000Z",
+  "created_at": "2024-12-18T14:30:00.000000Z",
+  "updated_at": "2024-12-18T16:05:00.000000Z"
+}
+```
+
+### Response 404 (Not Found)
+
+```json
+{
+  "message": "Запись не найдена."
+}
+```
+
+### Response 403 (Forbidden)
+
+```json
+{
+  "message": "У вас нет доступа к этой записи."
+}
+```
+
+---
+
+## 5. Удалить запись показателя
+
+Удаляет существующую запись показателя из дневника.
+
+### Request
+
+```http
+DELETE /api/v1/diary/entries/{id}
+Authorization: Bearer <token>
+```
+
+### Path Parameters
+
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| id | integer | ID записи показателя |
+
+### Response 200 (OK)
+
+```json
+{
+  "message": "Запись успешно удалена."
+}
+```
+
+### Response 404 (Not Found)
+
+```json
+{
+  "message": "Запись не найдена."
+}
+```
+
+### Response 403 (Forbidden)
+
+```json
+{
+  "message": "У вас нет доступа к этой записи."
+}
+```
+
+---
+
+## 6. Обновить закреплённые показатели
 
 Обновляет список закреплённых показателей с таймерами.
 
@@ -317,7 +439,7 @@ Content-Type: application/json
 
 ---
 
-## 5. Получить данные для графика
+## 7. Получить данные для графика
 
 Возвращает данные для построения графика динамики показателя.
 
@@ -535,7 +657,26 @@ curl -X POST https://api.example.com/api/v1/diary \
   }'
 ```
 
+### Изменить запись
+
+```bash
+curl -X PUT https://api.example.com/api/v1/diary/entries/1 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "value": {"value": 37.2},
+    "notes": "Повышенная температура"
+  }'
+```
+
+### Удалить запись
+
+```bash
+curl -X DELETE https://api.example.com/api/v1/diary/entries/1 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
 ---
 
-**Версия API**: 1.0  
-**Дата обновления**: 2024-12-18
+**Версия API**: 1.1  
+**Дата обновления**: 2024-12-29

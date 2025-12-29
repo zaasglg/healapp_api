@@ -39,6 +39,7 @@ class AuthController extends Controller
      *             @OA\Property(property="first_name", type="string", nullable=true),
      *             @OA\Property(property="last_name", type="string", nullable=true),
      *             @OA\Property(property="phone", type="string", example="79001234567"),
+     *             @OA\Property(property="city", type="string", nullable=true, description="Город пользователя (особенно важно для частных сиделок)"),
      *             @OA\Property(property="password", type="string", format="password"),
      *             @OA\Property(property="password_confirmation", type="string", format="password"),
      *             @OA\Property(property="account_type", type="string", enum={"client", "specialist", "pansionat", "agency"}),
@@ -69,6 +70,7 @@ class AuthController extends Controller
             'last_name' => $request->last_name,
             'middle_name' => $request->middle_name,
             'phone' => $request->phone,
+            'city' => $request->city,
             'password' => Hash::make($request->password),
             'verification_code' => $verificationCode,
             'type' => $userType->value,
@@ -220,7 +222,8 @@ class AuthController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="first_name", type="string"),
      *             @OA\Property(property="last_name", type="string"),
-     *             @OA\Property(property="middle_name", type="string")
+     *             @OA\Property(property="middle_name", type="string"),
+     *             @OA\Property(property="city", type="string", description="Город пользователя")
      *         )
      *     ),
      *     @OA\Response(response=200, description="Профиль обновлён")
@@ -229,7 +232,7 @@ class AuthController extends Controller
     public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
         $user = $request->user();
-        $user->fill($request->only(['first_name', 'last_name', 'middle_name']));
+        $user->fill($request->only(['first_name', 'last_name', 'middle_name', 'city']));
         $user->save();
         
         return response()->json($this->formatUser($user));
@@ -370,6 +373,7 @@ class AuthController extends Controller
             'middle_name' => $user->middle_name,
             'avatar' => $user->avatar,
             'phone' => $user->phone,
+            'city' => $user->city,
             'type' => $user->type?->value,
             'account_type' => $user->account_type,
             'phone_verified_at' => $user->phone_verified_at,
