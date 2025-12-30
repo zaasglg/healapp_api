@@ -556,6 +556,7 @@ class DiaryController extends Controller
             'patient_id' => 'required|exists:patients,id',
             'pinned_parameters' => 'required|array',
             'pinned_parameters.*.key' => 'required|string',
+            'pinned_parameters.*.label' => 'nullable|string',
             'pinned_parameters.*.interval_minutes' => 'nullable|integer|min:1',
             'pinned_parameters.*.times' => 'nullable|array',
             'pinned_parameters.*.settings' => 'nullable|array',
@@ -577,14 +578,99 @@ class DiaryController extends Controller
             $diary->grantAccess($user, 'full');
         }
 
+        // Сохраняем старые параметры для сравнения
+        $oldPinnedParameters = $diary->pinned_parameters ?? [];
+
         $diary->update([
             'pinned_parameters' => $request->pinned_parameters,
         ]);
+
+        // Создаём задачи в маршрутном листе для параметров с временем
+        $this->syncTasksFromPinnedParameters($patient, $request->pinned_parameters, $oldPinnedParameters, $user);
 
         return response()->json([
             'message' => 'Закреплённые параметры успешно обновлены',
             'diary' => $diary,
         ], 200);
+    }
+
+    /**
+     * Синхронизирует задачи в маршрутном листе с закрепленными параметрами
+     */
+    private function syncTasksFromPinnedParameters(Patient $patient, array $newParams, array $oldParams, $user): void
+    {
+        $today = now()->startOfDay();
+        $endDate = now()->addDays(7)->endOfDay();
+
+        foreach ($newParams as $param) {
+            if (empty($param['times'])) {
+                continue;
+            }
+
+            $key = $param['key'];
+            $label = $param['label'] ?? $param['key'];
+
+            // Находим или создаём шаблон задачи для этого параметра
+            $template = \App\Models\TaskTemplate::firstOrCreate(
+                [
+                    'patient_id' => $patient->id,
+                    'related_diary_key' => $key,
+                ],
+                [
+                    'creator_id' => $user->id,
+                    'title' => $label,
+                    'days_of_week' => null, // каждый день
+                    'time_ranges' => [],
+                    'start_date' => $today->format('Y-m-d'),
+                    'is_active' => true,
+                ]
+            );
+
+            // Обновляем time_ranges из times
+            $timeRanges = [];
+            foreach ($param['times'] as $time) {
+                $timeRanges[] = [
+                    'start' => $time,
+                    'end' => $time, // Для показателей start = end
+                ];
+            }
+
+            $template->update([
+                'title' => $label,
+                'time_ranges' => $timeRanges,
+                'is_active' => true,
+            ]);
+
+            // Удаляем будущие pending задачи для этого шаблона
+            \App\Models\Task::where('template_id', $template->id)
+                ->where('status', 'pending')
+                ->where('start_at', '>=', now())
+                ->delete();
+
+            // Генерируем новые задачи
+            $taskService = new \App\Services\TaskService();
+            $taskService->generateForPatient($patient, 7);
+        }
+
+        // Деактивируем шаблоны для удалённых параметров
+        $newKeys = array_column($newParams, 'key');
+        $oldKeys = array_column($oldParams, 'key');
+        $removedKeys = array_diff($oldKeys, $newKeys);
+
+        foreach ($removedKeys as $removedKey) {
+            \App\Models\TaskTemplate::where('patient_id', $patient->id)
+                ->where('related_diary_key', $removedKey)
+                ->update(['is_active' => false]);
+
+            // Удаляем будущие pending задачи
+            \App\Models\Task::whereHas('template', function ($q) use ($patient, $removedKey) {
+                $q->where('patient_id', $patient->id)
+                  ->where('related_diary_key', $removedKey);
+            })
+                ->where('status', 'pending')
+                ->where('start_at', '>=', now())
+                ->delete();
+        }
     }
 
     /**
