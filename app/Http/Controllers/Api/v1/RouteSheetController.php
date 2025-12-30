@@ -195,6 +195,8 @@ class RouteSheetController extends Controller
             ->get()
             ->map(function ($task) {
                 return array_merge($task->toArray(), [
+                    'start_time' => $task->start_at?->format('H:i'),
+                    'end_time' => $task->end_at?->format('H:i'),
                     'is_rescheduled' => $task->isRescheduled(),
                     'is_overdue' => $task->isOverdue(),
                 ]);
@@ -249,6 +251,8 @@ class RouteSheetController extends Controller
         $task->load(['patient', 'assignedTo', 'completedBy', 'rescheduledBy', 'template']);
         
         return response()->json(array_merge($task->toArray(), [
+            'start_time' => $task->start_at?->format('H:i'),
+            'end_time' => $task->end_at?->format('H:i'),
             'is_rescheduled' => $task->isRescheduled(),
             'is_overdue' => $task->isOverdue(),
         ]));
@@ -733,6 +737,8 @@ class RouteSheetController extends Controller
         
         $tasks = $query->get()->map(function ($task) {
             return array_merge($task->toArray(), [
+                'start_time' => $task->start_at?->format('H:i'),
+                'end_time' => $task->end_at?->format('H:i'),
                 'is_rescheduled' => $task->isRescheduled(),
                 'is_overdue' => $task->isOverdue(),
             ]);
