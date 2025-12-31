@@ -845,6 +845,95 @@ class DiaryController extends Controller
     }
 
     /**
+     * @OA\Get(
+     *     path="/api/v1/diary/{id}/access",
+     *     tags={"Diary"},
+     *     summary="Get users with access to diary",
+     *     description="Retrieve list of users who have access to a specific diary. Only owner/admin of organization or diary creator can view this.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Diary ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Access list retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="first_name", type="string", example="Иван"),
+     *                 @OA\Property(property="last_name", type="string", example="Иванов"),
+     *                 @OA\Property(property="phone", type="string", example="+79001234567"),
+     *                 @OA\Property(property="permission", type="string", example="edit", enum={"view", "edit", "full"}),
+     *                 @OA\Property(property="status", type="string", example="active", enum={"active", "revoked"}),
+     *                 @OA\Property(property="granted_at", type="string", format="date-time")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Access denied"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Diary not found"
+     *     )
+     * )
+     */
+    public function getAccess(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        
+        $diary = Diary::find($id);
+        
+        if (!$diary) {
+            return response()->json([
+                'message' => 'Дневник не найден.',
+            ], 404);
+        }
+
+        // Проверяем доступ: owner/admin организации или создатель дневника
+        $canManage = false;
+        
+        if ($user->organization_id && $user->hasAnyRole(['owner', 'admin'])) {
+            // Owner/admin организации может видеть доступы к дневникам пациентов своей организации
+            $canManage = $diary->patient && $diary->patient->organization_id === $user->organization_id;
+        }
+        
+        // Или если пользователь имеет full доступ к дневнику
+        if (!$canManage && $diary->hasAccess($user, 'full')) {
+            $canManage = true;
+        }
+
+        if (!$canManage) {
+            return response()->json([
+                'message' => 'У вас нет прав для просмотра списка доступов.',
+            ], 403);
+        }
+
+        $accessUsers = $diary->accessUsers()
+            ->select('users.id', 'users.first_name', 'users.last_name', 'users.phone')
+            ->get()
+            ->map(function ($accessUser) {
+                return [
+                    'id' => $accessUser->id,
+                    'first_name' => $accessUser->first_name,
+                    'last_name' => $accessUser->last_name,
+                    'phone' => $accessUser->phone,
+                    'permission' => $accessUser->pivot->permission,
+                    'status' => $accessUser->pivot->status,
+                    'granted_at' => $accessUser->pivot->created_at,
+                ];
+            });
+
+        return response()->json($accessUsers, 200);
+    }
+
+    /**
      * Check if user can access the patient.
      */
     private function canAccessPatient($user, Patient $patient): bool
