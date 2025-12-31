@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDiaryEntryRequest;
 use App\Models\Diary;
 use App\Models\DiaryEntry;
+use App\Models\Organization;
 use App\Models\Patient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
