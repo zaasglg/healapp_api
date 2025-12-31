@@ -896,22 +896,10 @@ class DiaryController extends Controller
             ], 404);
         }
 
-        // Проверяем доступ: owner/admin организации или создатель дневника
-        $canManage = false;
-        
-        if ($user->organization_id && $user->hasAnyRole(['owner', 'admin'])) {
-            // Owner/admin организации может видеть доступы к дневникам пациентов своей организации
-            $canManage = $diary->patient && $diary->patient->organization_id === $user->organization_id;
-        }
-        
-        // Или если пользователь имеет full доступ к дневнику
-        if (!$canManage && $diary->hasAccess($user, 'full')) {
-            $canManage = true;
-        }
-
-        if (!$canManage) {
+        // Проверяем доступ: любой пользователь с доступом к дневнику может видеть список
+        if (!$diary->hasAccess($user)) {
             return response()->json([
-                'message' => 'У вас нет прав для просмотра списка доступов.',
+                'message' => 'У вас нет доступа к этому дневнику.',
             ], 403);
         }
 
