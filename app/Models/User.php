@@ -263,22 +263,7 @@ class User extends Authenticatable
      */
     public function accessibleDiaries()
     {
-        // Клиент: только свои дневники
-        if ($this->isClient()) {
-            return Diary::whereHas('patient', function ($q) {
-                $q->where('owner_id', $this->id);
-            });
-        }
-
-        // Частная сиделка: только назначенные
-        if ($this->isPrivateCaregiver()) {
-            return Diary::whereHas('accessUsers', function ($q) {
-                $q->where('user_id', $this->id)
-                  ->where('diary_access.status', 'active');
-            });
-        }
-
-        // Сотрудник организации
+        // Сотрудник организации (приоритет выше чем type)
         if ($this->organization_id) {
             $org = Organization::find($this->organization_id);
             
@@ -300,6 +285,21 @@ class User extends Authenticatable
                       ->where('diary_access.status', 'active');
                 });
             }
+        }
+
+        // Клиент: только свои дневники
+        if ($this->isClient()) {
+            return Diary::whereHas('patient', function ($q) {
+                $q->where('owner_id', $this->id);
+            });
+        }
+
+        // Частная сиделка: только назначенные
+        if ($this->isPrivateCaregiver()) {
+            return Diary::whereHas('accessUsers', function ($q) {
+                $q->where('user_id', $this->id)
+                  ->where('diary_access.status', 'active');
+            });
         }
 
         return Diary::whereRaw('1 = 0'); // Пустой результат
