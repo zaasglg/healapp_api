@@ -49,8 +49,8 @@ Route::prefix('v1')->group(function () {
         // DIARY
         // ========================================
         Route::get('/diary', [\App\Http\Controllers\Api\v1\DiaryController::class, 'index']);
-        Route::get('/diary/{id}', [\App\Http\Controllers\Api\v1\DiaryController::class, 'show']);
         Route::get('/diary/{id}/access', [\App\Http\Controllers\Api\v1\DiaryController::class, 'getAccess']);
+        Route::get('/diary/{id}', [\App\Http\Controllers\Api\v1\DiaryController::class, 'show']);
         Route::post('/diary', [\App\Http\Controllers\Api\v1\DiaryController::class, 'store']);
         Route::post('/diary/create', [\App\Http\Controllers\Api\v1\DiaryController::class, 'create']);
         Route::patch('/diary/pinned', [\App\Http\Controllers\Api\v1\DiaryController::class, 'updatePinned']);

@@ -280,7 +280,11 @@ class User extends Authenticatable
 
         // Сотрудник организации
         if ($this->organization_id) {
-            $org = $this->organization;
+            $org = Organization::find($this->organization_id);
+            
+            if (!$org) {
+                return Diary::whereRaw('1 = 0');
+            }
             
             // Пансионат: все дневники организации
             if ($org->isBoardingHouse()) {
