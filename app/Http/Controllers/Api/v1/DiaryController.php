@@ -926,25 +926,9 @@ class DiaryController extends Controller
      */
     private function canAccessPatient($user, Patient $patient): bool
     {
-        // Клиент может видеть только своих пациентов (где owner_id = user.id)
-        if ($user->isClient()) {
-            return $patient->owner_id === $user->id;
-        }
-
-        // Частная сиделка может видеть только назначенных пациентов
-        if ($user->isPrivateCaregiver()) {
-            // Проверяем доступ через дневник
-            $diary = $patient->diary;
-            if ($diary && $diary->hasAccess($user)) {
-                return true;
-            }
-            // Или через назначение
-            return $patient->assignedUsers()->where('user_id', $user->id)->exists();
-        }
-
-        // Сотрудник организации
+        // Сотрудник организации (приоритет выше)
         if ($user->organization_id) {
-            $organization = $user->organization;
+            $organization = Organization::find($user->organization_id);
             
             if (!$organization) {
                 return false;
@@ -975,6 +959,22 @@ class DiaryController extends Controller
                 // Или через назначение
                 return $patient->assignedUsers()->where('user_id', $user->id)->exists();
             }
+        }
+
+        // Клиент может видеть только своих пациентов (где owner_id = user.id)
+        if ($user->isClient()) {
+            return $patient->owner_id === $user->id;
+        }
+
+        // Частная сиделка может видеть только назначенных пациентов
+        if ($user->isPrivateCaregiver()) {
+            // Проверяем доступ через дневник
+            $diary = $patient->diary;
+            if ($diary && $diary->hasAccess($user)) {
+                return true;
+            }
+            // Или через назначение
+            return $patient->assignedUsers()->where('user_id', $user->id)->exists();
         }
 
         return false;
