@@ -123,4 +123,15 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Panel Token
+    |--------------------------------------------------------------------------
+    |
+    | Secret token for admin panel access via URL parameter.
+    |
+    */
+
+    'admin_token' => env('ADMIN_TOKEN'),
+
 ];
