@@ -927,7 +927,8 @@ class DiaryController extends Controller
      */
     private function canAccessPatient($user, Patient $patient): bool
     {
-        // Сотрудник организации (приоритет выше)
+        // ВАЖНО: Сначала проверяем принадлежность к организации
+        // Сотрудник организации (приоритет выше, чем type)
         if ($user->organization_id) {
             $organization = Organization::find($user->organization_id);
             
@@ -941,17 +942,21 @@ class DiaryController extends Controller
             }
 
             // Владельцы и админы организации имеют доступ ко всем пациентам организации
-            if ($user->hasAnyRole(['owner', 'admin'])) {
+            if ($user->hasAnyRole(['owner', 'admin', 'manager'])) {
                 return true;
             }
 
-            // Пансионат: все сотрудники видят всех пациентов организации
+            // Пансионат: ВСЕ сотрудники (включая врачей и сиделок) видят ВСЕХ пациентов организации
             if ($organization->isBoardingHouse()) {
                 return true;
             }
 
             // Агентство: проверяем доступ через дневник или назначение
             if ($organization->isAgency()) {
+                // Admin и Manager видят всех
+                if ($user->hasAnyRole(['admin', 'manager'])) {
+                    return true;
+                }
                 // Проверяем доступ через дневник
                 $diary = $patient->diary;
                 if ($diary && $diary->hasAccess($user)) {
@@ -960,14 +965,11 @@ class DiaryController extends Controller
                 // Или через назначение
                 return $patient->assignedUsers()->where('user_id', $user->id)->exists();
             }
+            
+            return true;
         }
 
-        // Клиент может видеть только своих пациентов (где owner_id = user.id)
-        if ($user->isClient()) {
-            return $patient->owner_id === $user->id;
-        }
-
-        // Частная сиделка может видеть только назначенных пациентов
+        // Частная сиделка (без организации) может видеть только назначенных пациентов
         if ($user->isPrivateCaregiver()) {
             // Проверяем доступ через дневник
             $diary = $patient->diary;
@@ -976,6 +978,11 @@ class DiaryController extends Controller
             }
             // Или через назначение
             return $patient->assignedUsers()->where('user_id', $user->id)->exists();
+        }
+
+        // Обычный клиент (без организации) может видеть только своих пациентов (где owner_id = user.id)
+        if ($user->isClient() && !$user->organization_id) {
+            return $patient->owner_id === $user->id;
         }
 
         return false;

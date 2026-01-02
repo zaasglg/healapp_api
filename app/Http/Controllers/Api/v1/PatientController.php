@@ -468,17 +468,8 @@ class PatientController extends Controller
      */
     private function canAccessPatient($user, Patient $patient): bool
     {
-        // Клиент может видеть только своих пациентов (где owner_id = user.id)
-        if ($user->isClient()) {
-            return $patient->owner_id === $user->id;
-        }
-
-        // Частная сиделка может видеть только назначенных пациентов
-        if ($user->isPrivateCaregiver()) {
-            return $patient->assignedUsers()->where('user_id', $user->id)->exists();
-        }
-
-        // Сотрудник организации
+        // ВАЖНО: Сначала проверяем принадлежность к организации
+        // Сотрудник организации (приоритет выше, чем type)
         if ($user->organization_id) {
             $organization = $user->organization;
             
@@ -489,22 +480,39 @@ class PatientController extends Controller
             // Пациент должен принадлежать той же организации
             if ($patient->organization_id !== $organization->id) {
                 return false;
-        }
+            }
 
             // Владельцы и админы организации имеют доступ ко всем пациентам организации
-            if ($user->hasAnyRole(['owner', 'admin'])) {
+            if ($user->hasAnyRole(['owner', 'admin', 'manager'])) {
                 return true;
             }
 
-            // Пансионат: все сотрудники видят всех пациентов организации
+            // Пансионат: ВСЕ сотрудники (включая врачей и сиделок) видят ВСЕХ пациентов организации
             if ($organization->isBoardingHouse()) {
                 return true;
             }
 
-            // Агентство: только назначенные пациенты
+            // Агентство: только назначенные пациенты (для врачей и сиделок)
             if ($organization->isAgency()) {
+                // Admin и Manager видят всех
+                if ($user->hasAnyRole(['admin', 'manager'])) {
+                    return true;
+                }
+                // Врачи и сиделки - только назначенных
                 return $patient->assignedUsers()->where('user_id', $user->id)->exists();
             }
+            
+            return true;
+        }
+
+        // Частная сиделка (без организации) может видеть только назначенных пациентов
+        if ($user->isPrivateCaregiver()) {
+            return $patient->assignedUsers()->where('user_id', $user->id)->exists();
+        }
+
+        // Обычный клиент (без организации) может видеть только своих пациентов (где owner_id = user.id)
+        if ($user->isClient() && !$user->organization_id) {
+            return $patient->owner_id === $user->id;
         }
 
         return false;
