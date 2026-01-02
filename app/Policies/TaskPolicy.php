@@ -43,8 +43,8 @@ class TaskPolicy
             $organization = $user->organization;
             if ($organization && $organization->isBoardingHouse()) {
                 if ($user->hasRole('caregiver')) {
-                    return false;
-                }
+        return false;
+    }
             }
         }
         
@@ -62,8 +62,8 @@ class TaskPolicy
             $organization = $user->organization;
             if ($organization && $organization->isBoardingHouse()) {
                 if ($user->hasRole('caregiver')) {
-                    return false;
-                }
+        return false;
+    }
             }
         }
         
@@ -81,8 +81,8 @@ class TaskPolicy
             $organization = $user->organization;
             if ($organization && $organization->isBoardingHouse()) {
                 if ($user->hasAnyRole(['caregiver', 'doctor'])) {
-                    return false;
-                }
+        return false;
+    }
             }
         }
         

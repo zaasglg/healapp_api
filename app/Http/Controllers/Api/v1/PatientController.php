@@ -96,7 +96,7 @@ class PatientController extends Controller
                 // Fallback: все пациенты организации для владельцев/админов
                 if ($user->hasAnyRole(['owner', 'admin'])) {
                     $patients = Patient::where('organization_id', $organization->id)->get();
-                } else {
+        } else {
                     $patients = collect();
                 }
             }
@@ -489,7 +489,7 @@ class PatientController extends Controller
             // Пациент должен принадлежать той же организации
             if ($patient->organization_id !== $organization->id) {
                 return false;
-            }
+        }
 
             // Владельцы и админы организации имеют доступ ко всем пациентам организации
             if ($user->hasAnyRole(['owner', 'admin'])) {

@@ -115,12 +115,12 @@ class AuthController extends Controller
             $userType = UserType::CLIENT;
         } else {
             // Определяем user_type из account_type
-            $userType = match ($request->account_type) {
-                'client' => UserType::CLIENT,
-                'specialist' => UserType::PRIVATE_CAREGIVER,
-                'pansionat', 'agency' => UserType::ORGANIZATION,
-                default => UserType::CLIENT,
-            };
+        $userType = match ($request->account_type) {
+            'client' => UserType::CLIENT,
+            'specialist' => UserType::PRIVATE_CAREGIVER,
+            'pansionat', 'agency' => UserType::ORGANIZATION,
+            default => UserType::CLIENT,
+        };
         }
 
         // Создаём пользователя
@@ -149,7 +149,7 @@ class AuthController extends Controller
             // Отмечаем приглашение как принятое
             $invitation->markAsAccepted($user);
         } elseif (in_array($request->account_type, ['pansionat', 'agency'])) {
-            // Если это организация - создаём её и назначаем роль owner
+        // Если это организация - создаём её и назначаем роль owner
             $organizationType = $request->account_type === 'pansionat' 
                 ? OrganizationType::BOARDING_HOUSE 
                 : OrganizationType::AGENCY;
