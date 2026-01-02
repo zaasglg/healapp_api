@@ -21,17 +21,21 @@ class RegisterRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        // Если передан invite_token, account_type не обязателен
+        $rules = [
             'first_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['nullable', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
             'phone' => ['required', 'string', 'numeric', 'unique:users,phone'],
             'city' => ['nullable', 'string', 'max:255'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
-            'account_type' => ['required', 'string', 'in:client,specialist,pansionat,agency'],
+            'invite_token' => ['nullable', 'string', 'max:64'],
+            'account_type' => ['required_without:invite_token', 'string', 'in:client,specialist,pansionat,agency'],
             'organization_name' => ['nullable', 'string'],
             'address' => ['nullable', 'string'],
         ];
+
+        return $rules;
     }
 }
 

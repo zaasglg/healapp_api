@@ -50,6 +50,18 @@ class PatientPolicy
      */
     public function create(User $user): bool
     {
+        // В Пансионате: только admin, owner и manager могут создавать пациентов
+        // Doctor и Caregiver имеют только read-only доступ
+        if ($user->organization_id) {
+            $organization = $user->organization;
+            if ($organization && $organization->isBoardingHouse()) {
+                // В Пансионате запрещаем создание для doctor и caregiver
+                if ($user->hasAnyRole(['doctor', 'caregiver'])) {
+                    return false;
+                }
+            }
+        }
+        
         return $user->canCreatePatients();
     }
 
@@ -68,9 +80,24 @@ class PatientPolicy
             return true;
         }
 
-        // Только admin/owner организации
-        return $user->hasAnyRole(['owner', 'admin']) 
-            && $patient->organization_id === $user->organization_id;
+        // Сотрудник организации
+        if ($patient->organization_id && $patient->organization_id === $user->organization_id) {
+            $organization = $user->organization;
+            
+            // В Пансионате: только admin, owner и manager могут редактировать
+            // Doctor и Caregiver имеют только read-only доступ
+            if ($organization && $organization->isBoardingHouse()) {
+                if ($user->hasAnyRole(['doctor', 'caregiver'])) {
+                    return false;
+                }
+            }
+            
+            // Только admin/owner/manager организации могут редактировать
+            return $user->hasAnyRole(['owner', 'admin', 'manager']) 
+                && $patient->organization_id === $user->organization_id;
+        }
+
+        return false;
     }
 
     /**

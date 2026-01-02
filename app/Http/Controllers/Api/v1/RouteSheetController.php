@@ -134,17 +134,30 @@ class RouteSheetController extends Controller
             $query->where('patient_id', $patient->id);
         }
         
-        // For caregivers: only show tasks assigned to them
+        // For caregivers: строгая фильтрация задач
         if ($user->hasRole('caregiver')) {
-            $query->where(function ($q) use ($user) {
-                $q->where('assigned_to', $user->id)
-                  ->orWhereNull('assigned_to');
-            });
+            // Проверяем, является ли организация Пансионатом
+            $isPensionCaregiver = $user->organization_id 
+                && $user->organization 
+                && $user->organization->isBoardingHouse();
             
-            // If no patient_id specified, filter by assigned patients
-            if (!$request->has('patient_id')) {
-                $assignedPatientIds = $user->assignedPatients()->pluck('patients.id');
-                $query->whereIn('patient_id', $assignedPatientIds);
+            if ($isPensionCaregiver) {
+                // В Пансионате: сиделка видит ТОЛЬКО задачи, назначенные именно ей
+                // Строгая фильтрация: assigned_to ДОЛЖЕН быть равен user.id
+                $query->where('assigned_to', $user->id);
+                // НЕ показываем задачи с assigned_to = NULL
+            } else {
+                // Для агентств или частных сиделок: более мягкая логика
+                $query->where(function ($q) use ($user) {
+                    $q->where('assigned_to', $user->id)
+                      ->orWhereNull('assigned_to');
+                });
+                
+                // If no patient_id specified, filter by assigned patients
+                if (!$request->has('patient_id')) {
+                    $assignedPatientIds = $user->assignedPatients()->pluck('patients.id');
+                    $query->whereIn('patient_id', $assignedPatientIds);
+                }
             }
         }
         
@@ -287,6 +300,18 @@ class RouteSheetController extends Controller
     {
         $user = $request->user();
         
+        // В Пансионате: Caregiver НЕ МОЖЕТ создавать задачи
+        if ($user->organization_id) {
+            $organization = $user->organization;
+            if ($organization && $organization->isBoardingHouse()) {
+                if ($user->hasRole('caregiver')) {
+                    return response()->json([
+                        'message' => 'У вас нет прав на создание задач. Сиделки в Пансионате не могут создавать задачи.',
+                    ], 403);
+                }
+            }
+        }
+        
         // Only clients, managers, doctors, admins, owners can create tasks
         if (!$user->hasAnyRole(['client', 'manager', 'doctor', 'admin', 'owner'])) {
             return response()->json([
@@ -368,6 +393,18 @@ class RouteSheetController extends Controller
     {
         $user = $request->user();
         $patient = $task->patient;
+        
+        // В Пансионате: Caregiver НЕ МОЖЕТ обновлять задачи (только выполнять)
+        if ($user->organization_id) {
+            $organization = $user->organization;
+            if ($organization && $organization->isBoardingHouse()) {
+                if ($user->hasRole('caregiver')) {
+                    return response()->json([
+                        'message' => 'У вас нет прав на обновление задач. Сиделки в Пансионате могут только выполнять задачи.',
+                    ], 403);
+                }
+            }
+        }
         
         // Only clients, managers, doctors, admins, owners can update tasks
         if (!$user->hasAnyRole(['client', 'manager', 'doctor', 'admin', 'owner'])) {

@@ -59,28 +59,38 @@ class InvitationController extends Controller
      *     path="/api/v1/invitations/employee",
      *     tags={"Invitations"},
      *     summary="Создать приглашение для сотрудника",
+     *     description="Создает приглашение для сотрудника организации. Возвращает URL для регистрации с параметром invite_token.",
      *     security={{"sanctum": {}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
      *             required={"role"},
-     *             @OA\Property(property="role", type="string", enum={"admin", "doctor", "caregiver"}, example="caregiver")
+     *             @OA\Property(property="role", type="string", enum={"admin", "manager", "doctor", "caregiver"}, example="caregiver", description="Роль сотрудника в организации")
      *         )
      *     ),
      *     @OA\Response(
      *         response=201,
      *         description="Приглашение создано",
      *         @OA\JsonContent(
-     *             @OA\Property(property="invitation", type="object"),
-     *             @OA\Property(property="invite_url", type="string", example="https://app.com/invite/abc123...")
+     *             @OA\Property(property="message", type="string", example="Приглашение создано"),
+     *             @OA\Property(property="invitation", type="object",
+     *                 @OA\Property(property="id", type="integer"),
+     *                 @OA\Property(property="token", type="string"),
+     *                 @OA\Property(property="role", type="string"),
+     *                 @OA\Property(property="expires_at", type="string", format="date-time"),
+     *                 @OA\Property(property="organization_name", type="string")
+     *             ),
+     *             @OA\Property(property="invite_url", type="string", example="https://app.com/register?invite_token=abc123...")
      *         )
-     *     )
+     *     ),
+     *     @OA\Response(response=403, description="Недостаточно прав"),
+     *     @OA\Response(response=404, description="У пользователя нет организации")
      * )
      */
     public function createEmployeeInvite(Request $request): JsonResponse
     {
         $request->validate([
-            'role' => 'required|string|in:admin,doctor,caregiver',
+            'role' => 'required|string|in:admin,manager,doctor,caregiver',
         ]);
 
         $user = $request->user();
@@ -103,9 +113,20 @@ class InvitationController extends Controller
             'expires_at' => now()->addDays(7),
         ]);
 
+        // Формируем URL регистрации с параметром invite_token
+        $frontendUrl = config('app.frontend_url', config('app.url'));
+        $registerUrl = rtrim($frontendUrl, '/') . '/register?invite_token=' . $invitation->token;
+
         return response()->json([
-            'invitation' => $invitation,
-            'invite_url' => $invitation->getInviteUrl(),
+            'message' => 'Приглашение создано',
+            'invitation' => [
+                'id' => $invitation->id,
+                'token' => $invitation->token,
+                'role' => $invitation->role,
+                'expires_at' => $invitation->expires_at,
+                'organization_name' => $user->organization->name,
+            ],
+            'invite_url' => $registerUrl,
         ], 201);
     }
 

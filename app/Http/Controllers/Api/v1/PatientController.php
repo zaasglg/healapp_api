@@ -175,6 +175,20 @@ class PatientController extends Controller
     public function store(StorePatientRequest $request): JsonResponse
     {
         $user = $request->user();
+        
+        // В Пансионате: только admin, owner и manager могут создавать пациентов
+        // Doctor и Caregiver имеют только read-only доступ
+        if ($user->organization_id) {
+            $organization = $user->organization;
+            if ($organization && $organization->isBoardingHouse()) {
+                if ($user->hasAnyRole(['doctor', 'caregiver'])) {
+                    return response()->json([
+                        'message' => 'У вас нет прав на создание пациентов. Доступ только для чтения.',
+                    ], 403);
+                }
+            }
+        }
+        
         $data = $request->validated();
 
         // Set creator_id to authenticated user
@@ -367,6 +381,19 @@ class PatientController extends Controller
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
+        }
+
+        // В Пансионате: только admin, owner и manager могут обновлять пациентов
+        // Doctor и Caregiver имеют только read-only доступ
+        if ($user->organization_id && $patient->organization_id === $user->organization_id) {
+            $organization = $user->organization;
+            if ($organization && $organization->isBoardingHouse()) {
+                if ($user->hasAnyRole(['doctor', 'caregiver'])) {
+                    return response()->json([
+                        'message' => 'У вас нет прав на редактирование пациентов. Доступ только для чтения.',
+                    ], 403);
+                }
+            }
         }
 
         $patient->update($request->validated());

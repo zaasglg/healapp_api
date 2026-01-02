@@ -32,37 +32,96 @@ class AuthController extends Controller
      *     path="/api/v1/auth/register",
      *     tags={"Authentication"},
      *     summary="Регистрация нового пользователя",
+     *     description="Регистрация нового пользователя. Если передан invite_token, пользователь автоматически привязывается к организации и получает роль из приглашения.",
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"phone", "password", "password_confirmation", "account_type"},
+     *             required={"phone", "password", "password_confirmation"},
      *             @OA\Property(property="first_name", type="string", nullable=true),
      *             @OA\Property(property="last_name", type="string", nullable=true),
+     *             @OA\Property(property="middle_name", type="string", nullable=true),
      *             @OA\Property(property="phone", type="string", example="79001234567"),
      *             @OA\Property(property="city", type="string", nullable=true, description="Город пользователя (особенно важно для частных сиделок)"),
      *             @OA\Property(property="password", type="string", format="password"),
      *             @OA\Property(property="password_confirmation", type="string", format="password"),
-     *             @OA\Property(property="account_type", type="string", enum={"client", "specialist", "pansionat", "agency"}),
-     *             @OA\Property(property="organization_name", type="string", nullable=true)
+     *             @OA\Property(property="invite_token", type="string", nullable=true, description="Токен приглашения для регистрации сотрудника организации"),
+     *             @OA\Property(property="account_type", type="string", nullable=true, description="Тип аккаунта (обязателен, если не передан invite_token)", enum={"client", "specialist", "pansionat", "agency"}),
+     *             @OA\Property(property="organization_name", type="string", nullable=true, description="Название организации (для pansionat/agency)"),
+     *             @OA\Property(property="address", type="string", nullable=true, description="Адрес организации (для pansionat/agency)")
      *         )
      *     ),
-     *     @OA\Response(response=200, description="SMS отправлен")
+     *     @OA\Response(
+     *         response=200,
+     *         description="SMS отправлен",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="SMS sent"),
+     *             @OA\Property(property="phone", type="string", example="79001234567"),
+     *             @OA\Property(property="invitation_accepted", type="boolean", example=true, description="Было ли принято приглашение")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Приглашение не найдено",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Приглашение не найдено")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=410,
+     *         description="Приглашение истекло или уже использовано",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string"),
+     *             @OA\Property(property="status", type="string")
+     *         )
+     *     )
      * )
      */
     public function register(RegisterRequest $request): JsonResponse
     {
+        // Обработка приглашения (invite_token)
+        $invitation = null;
+        if ($request->has('invite_token') && $request->invite_token) {
+            $invitation = \App\Models\Invitation::where('token', $request->invite_token)->first();
+
+            if (!$invitation) {
+                return response()->json([
+                    'message' => 'Приглашение не найдено',
+                ], 404);
+            }
+
+            if (!$invitation->isValid()) {
+                return response()->json([
+                    'message' => 'Приглашение истекло или уже использовано',
+                    'status' => $invitation->status,
+                ], 410);
+            }
+
+            // Проверяем, что приглашение для сотрудника (employee)
+            if (!$invitation->isEmployeeInvite()) {
+                return response()->json([
+                    'message' => 'Это приглашение не для регистрации сотрудника',
+                ], 400);
+            }
+        }
+
         // В тестовом режиме используем фиксированный код '1234'
         $verificationCode = app()->environment('production')
             ? str_pad((string) rand(0, 9999), 4, '0', STR_PAD_LEFT)
             : '1234';
 
-        // Определяем user_type
-        $userType = match ($request->account_type) {
-            'client' => UserType::CLIENT,
-            'specialist' => UserType::PRIVATE_CAREGIVER,
-            'pansionat', 'agency' => UserType::ORGANIZATION,
-            default => UserType::CLIENT,
-        };
+        // Если есть приглашение - используем данные из него
+        if ($invitation) {
+            // Для сотрудников организации user_type = CLIENT (но с organization_id и ролью)
+            $userType = UserType::CLIENT;
+        } else {
+            // Определяем user_type из account_type
+            $userType = match ($request->account_type) {
+                'client' => UserType::CLIENT,
+                'specialist' => UserType::PRIVATE_CAREGIVER,
+                'pansionat', 'agency' => UserType::ORGANIZATION,
+                default => UserType::CLIENT,
+            };
+        }
 
         // Создаём пользователя
         $user = User::create([
@@ -76,8 +135,21 @@ class AuthController extends Controller
             'type' => $userType->value,
         ]);
 
-        // Если это организация - создаём её и назначаем роль owner
-        if (in_array($request->account_type, ['pansionat', 'agency'])) {
+        // Если есть приглашение - привязываем к организации и назначаем роль
+        if ($invitation) {
+            // КРИТИЧНО: Устанавливаем organization_id из приглашения
+            $user->organization_id = $invitation->organization_id;
+            $user->save();
+
+            // КРИТИЧНО: Назначаем роль из приглашения
+            if ($invitation->role) {
+                $user->syncRoles([$invitation->role]);
+            }
+
+            // Отмечаем приглашение как принятое
+            $invitation->markAsAccepted($user);
+        } elseif (in_array($request->account_type, ['pansionat', 'agency'])) {
+            // Если это организация - создаём её и назначаем роль owner
             $organizationType = $request->account_type === 'pansionat' 
                 ? OrganizationType::BOARDING_HOUSE 
                 : OrganizationType::AGENCY;
@@ -103,6 +175,7 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'SMS sent',
             'phone' => $user->phone,
+            'invitation_accepted' => $invitation !== null,
         ]);
     }
 

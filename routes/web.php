@@ -12,6 +12,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/invite/{token}', function ($token) {
+    return redirect("healapp://invite/{$token}");
+});
+
+
 // Admin routes with token auth
 Route::prefix('admin')->middleware(['web', AdminTokenAuth::class])->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
