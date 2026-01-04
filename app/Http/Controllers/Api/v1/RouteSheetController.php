@@ -924,8 +924,9 @@ class RouteSheetController extends Controller
             $entryValue = $value;
             $diaryType = in_array($key, $physicalKeys) ? 'physical' : 'care';
         } else {
-            // For general tasks without a specific key
-            $key = 'care_procedure'; // More generic key than task_completion
+            // For general tasks without a specific key - use task title as key
+            // This displays the indicator name (e.g., "Прогулка") in history instead of category name
+            $key = \Illuminate\Support\Str::slug($task->title, '_');
             $entryValue = ['value' => $task->title]; // Save title as value so it displays nicely
             $diaryType = 'care';
         }
