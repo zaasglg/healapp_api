@@ -643,9 +643,9 @@ class RouteSheetController extends Controller
             ], 403);
         }
         
-        if ($task->status !== Task::STATUS_PENDING) {
+        if ($task->status !== Task::STATUS_PENDING && $task->status !== Task::STATUS_MISSED) {
             return response()->json([
-                'message' => 'Отмечать как пропущенные можно только задачи со статусом "ожидает".',
+                'message' => 'Отмечать как пропущенные можно только задачи со статусом "ожидает" или "пропущено".',
             ], 422);
         }
         
