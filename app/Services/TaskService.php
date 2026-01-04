@@ -58,10 +58,13 @@ class TaskService
                         $startTime = Carbon::parse($currentDate->format('Y-m-d') . ' ' . $timeRange['start']);
                         $endTime = Carbon::parse($currentDate->format('Y-m-d') . ' ' . $timeRange['end']);
 
-                        // Check if task already exists
+                        // Check if task already exists (either at current time or was rescheduled from this time)
                         $exists = Task::where('patient_id', $patient->id)
                             ->where('template_id', $template->id)
-                            ->where('start_at', $startTime)
+                            ->where(function ($q) use ($startTime) {
+                                $q->where('start_at', $startTime)
+                                  ->orWhere('original_start_at', $startTime);
+                            })
                             ->exists();
 
                         if (!$exists) {
