@@ -919,17 +919,25 @@ class RouteSheetController extends Controller
         // Determine diary type based on key
         $physicalKeys = ['temperature', 'blood_pressure', 'pulse', 'weight', 'height', 'blood_sugar', 'saturation', 'breathing_rate', 'pain_level'];
         
-        $key = $task->related_diary_key ?? 'task_completion';
-        $diaryType = ($task->related_diary_key && in_array($task->related_diary_key, $physicalKeys)) ? 'physical' : 'care';
+        if ($task->related_diary_key) {
+            $key = $task->related_diary_key;
+            $entryValue = $value;
+            $diaryType = in_array($key, $physicalKeys) ? 'physical' : 'care';
+        } else {
+            // For general tasks without a specific key
+            $key = 'care_procedure'; // More generic key than task_completion
+            $entryValue = ['value' => $task->title]; // Save title as value so it displays nicely
+            $diaryType = 'care';
+        }
 
         DiaryEntry::create([
             'diary_id' => $diary->id,
             'author_id' => $user->id,
             'type' => $diaryType,
             'key' => $key,
-            'value' => $value,
+            'value' => $entryValue,
             'recorded_at' => $task->completed_at,
-            'notes' => 'Created from Task: ' . $task->title,
+            'notes' => $task->comment ?? 'Created from Task: ' . $task->title,
         ]);
     }
 
