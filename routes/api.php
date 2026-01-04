@@ -56,6 +56,8 @@ Route::prefix('v1')->group(function () {
         Route::patch('/diary/pinned', [\App\Http\Controllers\Api\v1\DiaryController::class, 'updatePinned']);
         Route::put('/diary/entries/{id}', [\App\Http\Controllers\Api\v1\DiaryController::class, 'updateEntry']);
         Route::delete('/diary/entries/{id}', [\App\Http\Controllers\Api\v1\DiaryController::class, 'deleteEntry']);
+        Route::put('/diary/{id}/entries/sync', [\App\Http\Controllers\Api\v1\DiaryController::class, 'syncEntries']);
+        Route::put('/diary/{id}/parameters', [\App\Http\Controllers\Api\v1\DiaryController::class, 'updateParameters']);
         
         // ========================================
         // ALARMS

@@ -846,6 +846,238 @@ class DiaryController extends Controller
     }
 
     /**
+     * @OA\Put(
+     *     path="/api/v1/diary/{id}/entries/sync",
+     *     tags={"Diary"},
+     *     summary="Sync all diary entries",
+     *     description="Bulk synchronize diary entries. Pass an array of entries - new ones will be created, existing ones updated, and missing ones deleted.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Diary ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"entries"},
+     *             @OA\Property(property="entries", type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="id", type="integer", nullable=true, description="Entry ID (for updates)"),
+     *                     @OA\Property(property="type", type="string", example="physical"),
+     *                     @OA\Property(property="key", type="string", example="temperature"),
+     *                     @OA\Property(property="value", type="object"),
+     *                     @OA\Property(property="notes", type="string", nullable=true),
+     *                     @OA\Property(property="recorded_at", type="string", format="date-time"),
+     *                     @OA\Property(property="_delete", type="boolean", nullable=true, description="Set to true to delete this entry")
+     *                 )
+     *             ),
+     *             @OA\Property(property="delete_missing", type="boolean", default=false, description="If true, entries not in the array will be deleted")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Entries synced successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string"),
+     *             @OA\Property(property="created", type="integer"),
+     *             @OA\Property(property="updated", type="integer"),
+     *             @OA\Property(property="deleted", type="integer"),
+     *             @OA\Property(property="entries", type="array", @OA\Items(type="object"))
+     *         )
+     *     ),
+     *     @OA\Response(response=403, description="Access denied"),
+     *     @OA\Response(response=404, description="Diary not found")
+     * )
+     */
+    public function syncEntries(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        
+        $diary = Diary::with('patient')->find($id);
+        
+        if (!$diary) {
+            return response()->json([
+                'message' => 'Дневник не найден.',
+            ], 404);
+        }
+
+        // Check access
+        if (!$this->canAccessPatient($user, $diary->patient)) {
+            return response()->json([
+                'message' => 'У вас нет доступа к этому дневнику.',
+            ], 403);
+        }
+
+        $request->validate([
+            'entries' => 'required|array',
+            'entries.*.id' => 'nullable|integer',
+            'entries.*.type' => 'required_without:entries.*._delete|string|in:care,physical,excretion,symptom',
+            'entries.*.key' => 'required_without:entries.*._delete|string|max:255',
+            'entries.*.value' => 'required_without:entries.*._delete|array',
+            'entries.*.notes' => 'nullable|string|max:1000',
+            'entries.*.recorded_at' => 'required_without:entries.*._delete|date',
+            'entries.*._delete' => 'nullable|boolean',
+            'delete_missing' => 'nullable|boolean',
+        ]);
+
+        $entries = $request->entries;
+        $deleteMissing = $request->boolean('delete_missing', false);
+        
+        $createdCount = 0;
+        $updatedCount = 0;
+        $deletedCount = 0;
+        $processedIds = [];
+        $resultEntries = [];
+
+        foreach ($entries as $entryData) {
+            // Если помечена на удаление
+            if (!empty($entryData['_delete']) && !empty($entryData['id'])) {
+                $entry = DiaryEntry::where('diary_id', $diary->id)
+                    ->where('id', $entryData['id'])
+                    ->first();
+                    
+                if ($entry) {
+                    $entry->delete();
+                    $deletedCount++;
+                }
+                continue;
+            }
+
+            // Обновление существующей записи
+            if (!empty($entryData['id'])) {
+                $entry = DiaryEntry::where('diary_id', $diary->id)
+                    ->where('id', $entryData['id'])
+                    ->first();
+                    
+                if ($entry) {
+                    $updateData = [];
+                    if (isset($entryData['type'])) $updateData['type'] = $entryData['type'];
+                    if (isset($entryData['key'])) $updateData['key'] = $entryData['key'];
+                    if (isset($entryData['value'])) $updateData['value'] = $entryData['value'];
+                    if (array_key_exists('notes', $entryData)) $updateData['notes'] = $entryData['notes'];
+                    if (isset($entryData['recorded_at'])) $updateData['recorded_at'] = $entryData['recorded_at'];
+                    
+                    $entry->update($updateData);
+                    $updatedCount++;
+                    $processedIds[] = $entry->id;
+                    $resultEntries[] = $entry->fresh();
+                    continue;
+                }
+            }
+
+            // Создание новой записи
+            $entry = DiaryEntry::create([
+                'diary_id' => $diary->id,
+                'author_id' => $user->id,
+                'type' => $entryData['type'],
+                'key' => $entryData['key'],
+                'value' => $entryData['value'],
+                'notes' => $entryData['notes'] ?? null,
+                'recorded_at' => $entryData['recorded_at'],
+            ]);
+            
+            $createdCount++;
+            $processedIds[] = $entry->id;
+            $resultEntries[] = $entry;
+        }
+
+        // Удаляем записи, которые не были в массиве (если включена опция)
+        if ($deleteMissing && !empty($processedIds)) {
+            $deletedCount += DiaryEntry::where('diary_id', $diary->id)
+                ->whereNotIn('id', $processedIds)
+                ->delete();
+        }
+
+        return response()->json([
+            'message' => 'Записи успешно синхронизированы.',
+            'created' => $createdCount,
+            'updated' => $updatedCount,
+            'deleted' => $deletedCount,
+            'entries' => $resultEntries,
+        ], 200);
+    }
+
+    /**
+     * @OA\Put(
+     *     path="/api/v1/diary/{id}/parameters",
+     *     tags={"Diary"},
+     *     summary="Update pinned parameters by diary ID",
+     *     description="Update the pinned parameters for a diary using diary ID in URL.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Diary ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(
+     *                 @OA\Property(property="key", type="string", example="blood_pressure"),
+     *                 @OA\Property(property="interval_minutes", type="integer", example=60),
+     *                 @OA\Property(property="times", type="array", @OA\Items(type="string"))
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Parameters updated successfully"),
+     *     @OA\Response(response=403, description="Access denied"),
+     *     @OA\Response(response=404, description="Diary not found")
+     * )
+     */
+    public function updateParameters(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        
+        $diary = Diary::with('patient')->find($id);
+        
+        if (!$diary) {
+            return response()->json([
+                'message' => 'Дневник не найден.',
+            ], 404);
+        }
+
+        // Check access
+        if (!$this->canAccessPatient($user, $diary->patient)) {
+            return response()->json([
+                'message' => 'У вас нет доступа к этому дневнику.',
+            ], 403);
+        }
+
+        // Тело запроса — это массив параметров напрямую
+        $parameters = $request->all();
+        
+        // Валидация массива параметров
+        $request->validate([
+            '*.key' => 'required|string',
+            '*.label' => 'nullable|string',
+            '*.interval_minutes' => 'nullable|integer|min:1',
+            '*.times' => 'nullable|array',
+            '*.settings' => 'nullable|array',
+        ]);
+
+        // Сохраняем старые параметры для сравнения
+        $oldPinnedParameters = $diary->pinned_parameters ?? [];
+
+        $diary->update([
+            'pinned_parameters' => $parameters,
+        ]);
+
+        // Создаём задачи в маршрутном листе для параметров с временем
+        $this->syncTasksFromPinnedParameters($diary->patient, $parameters, $oldPinnedParameters, $user);
+
+        return response()->json([
+            'message' => 'Параметры успешно обновлены.',
+            'diary' => $diary->fresh(),
+        ], 200);
+    }
+
+    /**
      * @OA\Get(
      *     path="/api/v1/diary/{id}/access",
      *     tags={"Diary"},
