@@ -924,9 +924,8 @@ class RouteSheetController extends Controller
             $entryValue = $value;
             $diaryType = in_array($key, $physicalKeys) ? 'physical' : 'care';
         } else {
-            // For general tasks without a specific key - use task title as key
-            // This displays the indicator name (e.g., "Прогулка") in history instead of category name
-            $key = \Illuminate\Support\Str::slug($task->title, '_');
+            // Mapping Russian task titles to standard English keys
+            $key = $this->mapTaskTitleToKey($task->title);
             $entryValue = ['value' => $task->title]; // Save title as value so it displays nicely
             $diaryType = 'care';
         }
@@ -940,6 +939,83 @@ class RouteSheetController extends Controller
             'recorded_at' => $task->completed_at,
             'notes' => $task->comment ?? 'Created from Task: ' . $task->title,
         ]);
+    }
+
+    /**
+     * Map Russian task title to standard English key.
+     */
+    private function mapTaskTitleToKey(string $title): string
+    {
+        // Mapping of Russian words/phrases to English keys
+        $mapping = [
+            // Care procedures
+            'прогулка' => 'walk',
+            'гулять' => 'walk',
+            'смена подгузника' => 'diaper_change',
+            'подгузник' => 'diaper_change',
+            'памперс' => 'diaper_change',
+            'кормление' => 'feeding',
+            'еда' => 'feeding',
+            'покормить' => 'feeding',
+            'завтрак' => 'breakfast',
+            'обед' => 'lunch',
+            'ужин' => 'dinner',
+            'полдник' => 'snack',
+            'перекус' => 'snack',
+            'купание' => 'bathing',
+            'душ' => 'shower',
+            'ванна' => 'bathing',
+            'мытье' => 'washing',
+            'гигиена' => 'hygiene',
+            'умывание' => 'face_washing',
+            'чистка зубов' => 'teeth_brushing',
+            'зубы' => 'teeth_brushing',
+            'одевание' => 'dressing',
+            'переодевание' => 'dressing',
+            'массаж' => 'massage',
+            'зарядка' => 'exercise',
+            'упражнения' => 'exercise',
+            'гимнастика' => 'gymnastics',
+            'физкультура' => 'physical_training',
+            'лекарство' => 'medication',
+            'лекарства' => 'medication',
+            'таблетки' => 'medication',
+            'препарат' => 'medication',
+            'укол' => 'injection',
+            'инъекция' => 'injection',
+            'капельница' => 'iv_drip',
+            'сон' => 'sleep',
+            'отдых' => 'rest',
+            'дневной сон' => 'nap',
+            'процедура' => 'procedure',
+            'процедуры' => 'procedure',
+            'уход' => 'care',
+            // Physical measurements
+            'давление' => 'blood_pressure',
+            'температура' => 'temperature',
+            'пульс' => 'pulse',
+            'сахар' => 'blood_sugar',
+            'вес' => 'weight',
+            'сатурация' => 'saturation',
+            'кислород' => 'saturation',
+        ];
+
+        $lowerTitle = mb_strtolower(trim($title));
+        
+        // Try exact match first
+        if (isset($mapping[$lowerTitle])) {
+            return $mapping[$lowerTitle];
+        }
+        
+        // Try partial match (if title contains the keyword)
+        foreach ($mapping as $russian => $english) {
+            if (mb_strpos($lowerTitle, $russian) !== false) {
+                return $english;
+            }
+        }
+        
+        // Fallback: use slug of the title
+        return \Illuminate\Support\Str::slug($title, '_');
     }
 
     /**
