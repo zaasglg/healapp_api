@@ -600,10 +600,14 @@ class RouteSheetController extends Controller
             'photos' => !empty($photoUrls) ? $photoUrls : $task->photos,
         ]);
         
-        // Create diary entry if task has related_diary_key and value is provided
+        // Create diary entry for the completed task (always, to show in history)
+        $this->createDiaryEntryFromTask($task, $user, $request->value ?? []);
+        
+        /* 
         if ($task->related_diary_key && $request->value) {
             $this->createDiaryEntryFromTask($task, $user, $request->value);
         }
+        */
         
         // Send notifications
         $this->sendTaskNotifications($task, $user);
@@ -914,13 +918,15 @@ class RouteSheetController extends Controller
         
         // Determine diary type based on key
         $physicalKeys = ['temperature', 'blood_pressure', 'pulse', 'weight', 'height', 'blood_sugar', 'saturation', 'breathing_rate', 'pain_level'];
-        $diaryType = in_array($task->related_diary_key, $physicalKeys) ? 'physical' : 'care';
+        
+        $key = $task->related_diary_key ?? 'task_completion';
+        $diaryType = ($task->related_diary_key && in_array($task->related_diary_key, $physicalKeys)) ? 'physical' : 'care';
 
         DiaryEntry::create([
             'diary_id' => $diary->id,
             'author_id' => $user->id,
             'type' => $diaryType,
-            'key' => $task->related_diary_key,
+            'key' => $key,
             'value' => $value,
             'recorded_at' => $task->completed_at,
             'notes' => 'Created from Task: ' . $task->title,
