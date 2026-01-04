@@ -898,7 +898,11 @@ class DiaryController extends Controller
         }
 
         // Проверяем доступ: любой пользователь с доступом к дневнику может видеть список
-        if (!$diary->hasAccess($user)) {
+        // Проверяем доступ: любой пользователь с доступом к дневнику может видеть список
+        // А также клиент у которого есть роль admin
+        $isClientAdmin = $user->isClient() && $user->hasRole('admin');
+
+        if (!$diary->hasAccess($user) && !$isClientAdmin) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому дневнику.',
             ], 403);
