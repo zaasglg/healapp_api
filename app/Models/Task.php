@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Task extends Model
 {
@@ -101,6 +102,23 @@ class Task extends Model
     public function rescheduledBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'rescheduled_by');
+    }
+
+    /**
+     * Get the diary entry created from this task.
+     * This enables bidirectional sync between route sheet and pinned indicators.
+     */
+    public function diaryEntry(): HasOne
+    {
+        return $this->hasOne(DiaryEntry::class, 'source_task_id');
+    }
+
+    /**
+     * Check if this task has a linked diary entry.
+     */
+    public function hasDiaryEntry(): bool
+    {
+        return $this->diaryEntry()->exists();
     }
 
     /**

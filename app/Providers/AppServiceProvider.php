@@ -6,7 +6,9 @@ use App\Models\Diary;
 use App\Models\DiaryEntry;
 use App\Models\Organization;
 use App\Models\Patient;
+use App\Models\Task;
 use App\Observers\DiaryEntryObserver;
+use App\Observers\TaskObserver;
 use App\Policies\DiaryPolicy;
 use App\Policies\OrganizationPolicy;
 use App\Policies\PatientPolicy;
@@ -41,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register observers
         DiaryEntry::observe(DiaryEntryObserver::class);
+        Task::observe(TaskObserver::class);
 
         // Register policies
         foreach ($this->policies as $model => $policy) {

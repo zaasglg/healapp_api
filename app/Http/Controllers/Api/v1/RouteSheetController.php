@@ -903,6 +903,7 @@ class RouteSheetController extends Controller
 
     /**
      * Create a diary entry from a completed task with measurement value.
+     * Links the diary entry to the task for bidirectional synchronization.
      */
     private function createDiaryEntryFromTask(Task $task, $user, array $value): void
     {
@@ -933,6 +934,7 @@ class RouteSheetController extends Controller
         DiaryEntry::create([
             'diary_id' => $diary->id,
             'author_id' => $user->id,
+            'source_task_id' => $task->id, // Link to source task for sync
             'type' => $diaryType,
             'key' => $key,
             'value' => $entryValue,

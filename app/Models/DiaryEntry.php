@@ -18,6 +18,7 @@ class DiaryEntry extends Model
     protected $fillable = [
         'diary_id',
         'author_id',
+        'source_task_id',
         'type',
         'key',
         'value',
@@ -60,5 +61,22 @@ class DiaryEntry extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'author_id');
+    }
+
+    /**
+     * Get the source task that created this diary entry.
+     * This enables bidirectional sync between route sheet and pinned indicators.
+     */
+    public function sourceTask(): BelongsTo
+    {
+        return $this->belongsTo(Task::class, 'source_task_id');
+    }
+
+    /**
+     * Check if this entry was created from a task.
+     */
+    public function hasSourceTask(): bool
+    {
+        return $this->source_task_id !== null;
     }
 }
