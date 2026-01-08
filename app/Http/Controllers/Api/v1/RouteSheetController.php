@@ -945,61 +945,99 @@ class RouteSheetController extends Controller
 
     /**
      * Map Russian task title to standard English key.
+     * Maps to standard diary keys: meal, medication, walk, hygiene, diaper_change, etc.
      */
     private function mapTaskTitleToKey(string $title): string
     {
-        // Mapping of Russian words/phrases to English keys
+        // Mapping of Russian words/phrases to standard English diary keys
         $mapping = [
-            // Care procedures
+            // === MEAL (Приём пищи) ===
+            'приём пищи' => 'meal',
+            'прием пищи' => 'meal',
+            'пища' => 'meal',
+            'кормление' => 'meal',
+            'еда' => 'meal',
+            'покормить' => 'meal',
+            'завтрак' => 'meal',
+            'обед' => 'meal',
+            'ужин' => 'meal',
+            'полдник' => 'meal',
+            'перекус' => 'meal',
+            
+            // === MEDICATION (Приём лекарств) ===
+            'приём лекарств' => 'medication',
+            'прием лекарств' => 'medication',
+            'лекарство' => 'medication',
+            'лекарства' => 'medication',
+            'таблетки' => 'medication',
+            'таблетка' => 'medication',
+            'препарат' => 'medication',
+            'препараты' => 'medication',
+            'витамины' => 'medication',
+            'укол' => 'medication',
+            'инъекция' => 'medication',
+            'капельница' => 'medication',
+            
+            // === WALK (Прогулка) ===
             'прогулка' => 'walk',
             'гулять' => 'walk',
+            'гуляние' => 'walk',
+            'выход на улицу' => 'walk',
+            
+            // === HYGIENE (Гигиена) ===
+            'гигиена' => 'hygiene',
+            'купание' => 'hygiene',
+            'душ' => 'hygiene',
+            'ванна' => 'hygiene',
+            'мытье' => 'hygiene',
+            'мытьё' => 'hygiene',
+            'умывание' => 'hygiene',
+            'чистка зубов' => 'hygiene',
+            'зубы' => 'hygiene',
+            'туалет' => 'hygiene',
+            
+            // === DIAPER_CHANGE (Смена подгузника) ===
             'смена подгузника' => 'diaper_change',
             'подгузник' => 'diaper_change',
             'памперс' => 'diaper_change',
-            'кормление' => 'feeding',
-            'еда' => 'feeding',
-            'покормить' => 'feeding',
-            'завтрак' => 'breakfast',
-            'обед' => 'lunch',
-            'ужин' => 'dinner',
-            'полдник' => 'snack',
-            'перекус' => 'snack',
-            'купание' => 'bathing',
-            'душ' => 'shower',
-            'ванна' => 'bathing',
-            'мытье' => 'washing',
-            'гигиена' => 'hygiene',
-            'умывание' => 'face_washing',
-            'чистка зубов' => 'teeth_brushing',
-            'зубы' => 'teeth_brushing',
+            'смена памперса' => 'diaper_change',
+            
+            // === PHYSICAL MEASUREMENTS ===
+            'температура' => 'temperature',
+            'измерение температуры' => 'temperature',
+            'давление' => 'blood_pressure',
+            'артериальное давление' => 'blood_pressure',
+            'измерение давления' => 'blood_pressure',
+            'пульс' => 'pulse',
+            'измерение пульса' => 'pulse',
+            'сахар' => 'blood_sugar',
+            'сахар в крови' => 'blood_sugar',
+            'глюкоза' => 'blood_sugar',
+            'сатурация' => 'saturation',
+            'кислород' => 'saturation',
+            'уровень кислорода' => 'saturation',
+            'частота дыхания' => 'breathing_rate',
+            'дыхание' => 'breathing_rate',
+            'уровень боли' => 'pain_level',
+            'боль' => 'pain_level',
+            'вес' => 'weight',
+            'взвешивание' => 'weight',
+            'рост' => 'height',
+            
+            // === OTHER CARE ===
+            'сон' => 'sleep',
+            'отдых' => 'rest',
+            'дневной сон' => 'nap',
             'одевание' => 'dressing',
             'переодевание' => 'dressing',
             'массаж' => 'massage',
             'зарядка' => 'exercise',
             'упражнения' => 'exercise',
-            'гимнастика' => 'gymnastics',
-            'физкультура' => 'physical_training',
-            'лекарство' => 'medication',
-            'лекарства' => 'medication',
-            'таблетки' => 'medication',
-            'препарат' => 'medication',
-            'укол' => 'injection',
-            'инъекция' => 'injection',
-            'капельница' => 'iv_drip',
-            'сон' => 'sleep',
-            'отдых' => 'rest',
-            'дневной сон' => 'nap',
+            'гимнастика' => 'exercise',
+            'физкультура' => 'exercise',
             'процедура' => 'procedure',
             'процедуры' => 'procedure',
             'уход' => 'care',
-            // Physical measurements
-            'давление' => 'blood_pressure',
-            'температура' => 'temperature',
-            'пульс' => 'pulse',
-            'сахар' => 'blood_sugar',
-            'вес' => 'weight',
-            'сатурация' => 'saturation',
-            'кислород' => 'saturation',
         ];
 
         $lowerTitle = mb_strtolower(trim($title));
@@ -1010,7 +1048,13 @@ class RouteSheetController extends Controller
         }
         
         // Try partial match (if title contains the keyword)
-        foreach ($mapping as $russian => $english) {
+        // Sort by key length descending to match longer phrases first
+        $sortedMapping = $mapping;
+        uksort($sortedMapping, function($a, $b) {
+            return mb_strlen($b) - mb_strlen($a);
+        });
+        
+        foreach ($sortedMapping as $russian => $english) {
             if (mb_strpos($lowerTitle, $russian) !== false) {
                 return $english;
             }
