@@ -502,6 +502,11 @@ class DiaryController extends Controller
         unset($data['patient_id']);
         $data['diary_id'] = $diary->id;
         
+        // Автоопределение типа по ключу, если не указан
+        if (empty($data['type'])) {
+            $data['type'] = $this->getTypeByKey($data['key'] ?? '');
+        }
+        
         // Ensure value is properly formatted as array/JSON
         if (!is_array($data['value'])) {
             // If value is a string, try to decode it as JSON
@@ -920,7 +925,7 @@ class DiaryController extends Controller
         $request->validate([
             'entries' => 'required|array',
             'entries.*.id' => 'nullable|integer',
-            'entries.*.type' => 'required_without:entries.*._delete|string|in:care,physical,excretion,symptom',
+            'entries.*.type' => 'nullable|string', // Теперь опционально - автоопределяется по key
             'entries.*.key' => 'required_without:entries.*._delete|string|max:255',
             'entries.*.value' => 'required_without:entries.*._delete|array',
             'entries.*.notes' => 'nullable|string|max:1000',
@@ -952,6 +957,9 @@ class DiaryController extends Controller
                 continue;
             }
 
+            // Автоопределение типа по ключу, если не указан
+            $type = $entryData['type'] ?? $this->getTypeByKey($entryData['key'] ?? '');
+
             // Обновление существующей записи
             if (!empty($entryData['id'])) {
                 $entry = DiaryEntry::where('diary_id', $diary->id)
@@ -960,7 +968,7 @@ class DiaryController extends Controller
                     
                 if ($entry) {
                     $updateData = [];
-                    if (isset($entryData['type'])) $updateData['type'] = $entryData['type'];
+                    $updateData['type'] = $type;
                     if (isset($entryData['key'])) $updateData['key'] = $entryData['key'];
                     if (isset($entryData['value'])) $updateData['value'] = $entryData['value'];
                     if (array_key_exists('notes', $entryData)) $updateData['notes'] = $entryData['notes'];
@@ -978,7 +986,7 @@ class DiaryController extends Controller
             $entry = DiaryEntry::create([
                 'diary_id' => $diary->id,
                 'author_id' => $user->id,
-                'type' => $entryData['type'],
+                'type' => $type,
                 'key' => $entryData['key'],
                 'value' => $entryData['value'],
                 'notes' => $entryData['notes'] ?? null,
@@ -1228,5 +1236,57 @@ class DiaryController extends Controller
         }
 
         return false;
+    }
+    
+    /**
+     * Определяет тип записи по ключу показателя
+     */
+    private function getTypeByKey(string $key): string
+    {
+        // Маппинг ключей к типам
+        $keyToType = [
+            // Physical - Физикальные параметры
+            'temperature' => 'physical',
+            'blood_pressure' => 'physical',
+            'pulse' => 'physical',
+            'saturation' => 'physical',
+            'oxygen_saturation' => 'physical',
+            'blood_sugar' => 'physical',
+            'respiratory_rate' => 'physical',
+            'weight' => 'physical',
+            
+            // Care - Уход
+            'meal' => 'care',
+            'medicine' => 'care',
+            'medication' => 'care',
+            'vitamins' => 'care',
+            'diaper_change' => 'care',
+            'hygiene' => 'care',
+            'skin_moisturizing' => 'care',
+            'walk' => 'care',
+            'progulka' => 'care',
+            'cognitive_games' => 'care',
+            'sleep' => 'care',
+            'care_procedure' => 'care',
+            'task_completion' => 'care',
+            
+            // Excretion - Выделения
+            'urination' => 'excretion',
+            'urine' => 'excretion',
+            'defecation' => 'excretion',
+            
+            // Symptom - Симптомы
+            'pain_level' => 'symptom',
+            'nausea' => 'symptom',
+            'vomiting' => 'symptom',
+            'dyspnea' => 'symptom',
+            'itching' => 'symptom',
+            'cough' => 'symptom',
+            'dry_mouth' => 'symptom',
+            'hiccups' => 'symptom',
+            'taste_disorder' => 'symptom',
+        ];
+        
+        return $keyToType[$key] ?? 'care'; // По умолчанию 'care'
     }
 }

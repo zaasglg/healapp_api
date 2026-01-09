@@ -24,7 +24,7 @@ class StoreDiaryEntryRequest extends FormRequest
     {
         return [
             'patient_id' => ['required', 'integer', 'exists:patients,id'],
-            'type' => ['required', 'string', Rule::in(['care', 'physical', 'excretion', 'symptom'])],
+            'type' => ['nullable', 'string'], // Опционально - автоопределяется по key
             'key' => ['required', 'string', 'max:255'],
             'value' => ['required'],
             'notes' => ['nullable', 'string'],
