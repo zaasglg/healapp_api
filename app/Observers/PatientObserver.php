@@ -9,34 +9,33 @@ class PatientObserver
 {
     /**
      * Handle the Patient "created" event.
+     * Создаём дневник для пациента в пансионате.
+     * DiaryObserver автоматически даст доступ всем сотрудникам.
      */
     public function created(Patient $patient): void
     {
-        // Если пациент создан в организации-пансионате, создаём дневник и даём доступ всем сотрудникам
+        // Если пациент создан в организации-пансионате, создаём дневник
         if ($patient->organization_id) {
             $organization = $patient->organization;
             
             if ($organization && $organization->isBoardingHouse()) {
                 // Создаём дневник для пациента, если его ещё нет
-                $diary = Diary::firstOrCreate(
+                // DiaryObserver автоматически даст доступ всем сотрудникам
+                Diary::firstOrCreate(
                     ['patient_id' => $patient->id],
                     [
                         'pinned_parameters' => [],
                         'settings' => null,
                     ]
                 );
-                
-                // Даём доступ всем сотрудникам организации
-                $employees = $organization->employees()->get();
-                foreach ($employees as $employee) {
-                    $diary->grantAccess($employee, 'view');
-                }
             }
         }
     }
 
     /**
      * Handle the Patient "updated" event.
+     * Создаём дневник при перемещении пациента в пансионат.
+     * DiaryObserver автоматически даст доступ всем сотрудникам.
      */
     public function updated(Patient $patient): void
     {
@@ -46,19 +45,14 @@ class PatientObserver
             
             if ($organization && $organization->isBoardingHouse()) {
                 // Создаём дневник, если его нет
-                $diary = Diary::firstOrCreate(
+                // DiaryObserver автоматически даст доступ всем сотрудникам
+                Diary::firstOrCreate(
                     ['patient_id' => $patient->id],
                     [
                         'pinned_parameters' => [],
                         'settings' => null,
                     ]
                 );
-                
-                // Даём доступ всем сотрудникам новой организации
-                $employees = $organization->employees()->get();
-                foreach ($employees as $employee) {
-                    $diary->grantAccess($employee, 'view');
-                }
             }
         }
     }

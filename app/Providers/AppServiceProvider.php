@@ -8,6 +8,7 @@ use App\Models\Organization;
 use App\Models\Patient;
 use App\Models\Task;
 use App\Observers\DiaryEntryObserver;
+use App\Observers\DiaryObserver;
 use App\Observers\PatientObserver;
 use App\Observers\TaskObserver;
 use App\Policies\DiaryPolicy;
@@ -43,6 +44,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Register observers
+        Diary::observe(DiaryObserver::class);
         DiaryEntry::observe(DiaryEntryObserver::class);
         Task::observe(TaskObserver::class);
         Patient::observe(PatientObserver::class);
