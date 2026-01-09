@@ -308,10 +308,11 @@ class InvitationController extends Controller
 
         // Обрабатываем приглашение по типу
         if ($invitation->isEmployeeInvite()) {
-            // Привязываем к организации и назначаем роль
-            $user->organization_id = $invitation->organization_id;
-            $user->save();
-            $user->syncRoles([$invitation->role]);
+            // Привязываем к организации и назначаем роль через метод addEmployee
+            $organization = Organization::find($invitation->organization_id);
+            if ($organization) {
+                $organization->addEmployee($user, $invitation->role);
+            }
         } elseif ($invitation->isClientInvite() && $invitation->patient_id) {
             // Привязываем клиента к карточке подопечного
             $invitation->patient->update(['owner_id' => $user->id]);

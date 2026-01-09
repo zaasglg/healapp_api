@@ -135,6 +135,27 @@ class Organization extends Model
         
         // Убираем старые организационные роли и назначаем новую
         $user->syncRoles([$role]);
+        
+        // Если это пансионат - автоматически даём доступ ко всем дневникам организации
+        if ($this->isBoardingHouse()) {
+            $this->grantAccessToDiariesForEmployee($user);
+        }
+    }
+    
+    /**
+     * Предоставить доступ к дневникам организации для сотрудника
+     */
+    public function grantAccessToDiariesForEmployee(User $user): void
+    {
+        // Получаем все дневники пациентов организации
+        $diaries = \App\Models\Diary::whereHas('patient', function ($query) {
+            $query->where('organization_id', $this->id);
+        })->get();
+        
+        // Даём доступ "view" к каждому дневнику
+        foreach ($diaries as $diary) {
+            $diary->grantAccess($user, 'view');
+        }
     }
 
     /**

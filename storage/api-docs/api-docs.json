@@ -676,6 +676,7 @@
                     "Authentication"
                 ],
                 "summary": "Регистрация нового пользователя",
+                "description": "Регистрация нового пользователя. Если передан invite_token, пользователь автоматически привязывается к организации и получает роль из приглашения.",
                 "operationId": "15ab81fc91b8e90f74ea030fc44604ca",
                 "requestBody": {
                     "required": true,
@@ -685,8 +686,7 @@
                                 "required": [
                                     "phone",
                                     "password",
-                                    "password_confirmation",
-                                    "account_type"
+                                    "password_confirmation"
                                 ],
                                 "properties": {
                                     "first_name": {
@@ -697,9 +697,18 @@
                                         "type": "string",
                                         "nullable": true
                                     },
+                                    "middle_name": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
                                     "phone": {
                                         "type": "string",
                                         "example": "79001234567"
+                                    },
+                                    "city": {
+                                        "description": "Город пользователя (особенно важно для частных сиделок)",
+                                        "type": "string",
+                                        "nullable": true
                                     },
                                     "password": {
                                         "type": "string",
@@ -709,16 +718,29 @@
                                         "type": "string",
                                         "format": "password"
                                     },
+                                    "invite_token": {
+                                        "description": "Токен приглашения для регистрации сотрудника организации",
+                                        "type": "string",
+                                        "nullable": true
+                                    },
                                     "account_type": {
+                                        "description": "Тип аккаунта (обязателен, если не передан invite_token)",
                                         "type": "string",
                                         "enum": [
                                             "client",
                                             "specialist",
                                             "pansionat",
                                             "agency"
-                                        ]
+                                        ],
+                                        "nullable": true
                                     },
                                     "organization_name": {
+                                        "description": "Название организации (для pansionat/agency)",
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "address": {
+                                        "description": "Адрес организации (для pansionat/agency)",
                                         "type": "string",
                                         "nullable": true
                                     }
@@ -730,7 +752,63 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "SMS отправлен"
+                        "description": "SMS отправлен",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "SMS sent"
+                                        },
+                                        "phone": {
+                                            "type": "string",
+                                            "example": "79001234567"
+                                        },
+                                        "invitation_accepted": {
+                                            "description": "Было ли принято приглашение",
+                                            "type": "boolean",
+                                            "example": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Приглашение не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Приглашение не найдено"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "410": {
+                        "description": "Приглашение истекло или уже использовано",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "status": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -866,6 +944,10 @@
                                     },
                                     "middle_name": {
                                         "type": "string"
+                                    },
+                                    "city": {
+                                        "description": "Город пользователя",
+                                        "type": "string"
                                     }
                                 },
                                 "type": "object"
@@ -876,6 +958,42 @@
                 "responses": {
                     "200": {
                         "description": "Профиль обновлён"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auth/avatar": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Загрузить аватар",
+                "operationId": "1f3f0417625db9fa91f02dbc01c07bd4",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "properties": {
+                                    "avatar": {
+                                        "description": "Файл изображения аватара",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Аватар загружен"
                     }
                 },
                 "security": [
@@ -1233,7 +1351,7 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Diary entry created successfully",
+                        "description": "Diary entry created successfully. Если есть pending задача с таким же related_diary_key на сегодня, она автоматически будет отмечена как выполненная.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1250,11 +1368,18 @@
                                             "type": "integer",
                                             "example": 1
                                         },
+                                        "source_task_id": {
+                                            "description": "ID связанной задачи (устанавливается автоматически при синхронизации)",
+                                            "type": "integer",
+                                            "example": null,
+                                            "nullable": true
+                                        },
                                         "type": {
                                             "type": "string",
                                             "example": "physical"
                                         },
                                         "key": {
+                                            "description": "Допустимые ключи: temperature, blood_pressure, pulse, blood_sugar, saturation, breathing_rate, pain_level, weight, height, hygiene, diaper_change, meal, medication, walk",
                                             "type": "string",
                                             "example": "temperature"
                                         },
@@ -1499,11 +1624,18 @@
                                                         "type": "integer",
                                                         "example": 1
                                                     },
+                                                    "source_task_id": {
+                                                        "description": "ID задачи из маршрутного листа",
+                                                        "type": "integer",
+                                                        "example": 5,
+                                                        "nullable": true
+                                                    },
                                                     "type": {
                                                         "type": "string",
                                                         "example": "physical"
                                                     },
                                                     "key": {
+                                                        "description": "Ключ: temperature, blood_pressure, pulse, meal, medication, walk, hygiene, diaper_change и др.",
                                                         "type": "string",
                                                         "example": "temperature"
                                                     },
@@ -1838,6 +1970,506 @@
                 ]
             }
         },
+        "/api/v1/diary/entries/{id}": {
+            "put": {
+                "tags": [
+                    "Diary"
+                ],
+                "summary": "Update a diary entry",
+                "description": "Update an existing diary entry. Only the author or users with full diary access can update entries.",
+                "operationId": "8bc1809dc45e567024275d78e8cf3825",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Diary entry ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "type": {
+                                        "description": "Entry type",
+                                        "type": "string",
+                                        "enum": [
+                                            "care",
+                                            "physical",
+                                            "excretion",
+                                            "symptom"
+                                        ],
+                                        "example": "physical"
+                                    },
+                                    "key": {
+                                        "description": "Entry key",
+                                        "type": "string",
+                                        "example": "temperature"
+                                    },
+                                    "value": {
+                                        "description": "Entry value as JSON object",
+                                        "type": "object"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Updated notes",
+                                        "nullable": true
+                                    },
+                                    "recorded_at": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2024-01-01T10:00:00Z"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Diary entry updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "diary_id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "author_id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "example": "physical"
+                                        },
+                                        "key": {
+                                            "type": "string",
+                                            "example": "temperature"
+                                        },
+                                        "value": {
+                                            "type": "object"
+                                        },
+                                        "notes": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "recorded_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "created_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You do not have permission to update this entry."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Entry not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Diary entry not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Diary"
+                ],
+                "summary": "Delete a diary entry",
+                "description": "Delete an existing diary entry. Only the author or users with full diary access can delete entries.",
+                "operationId": "860c84a340b263f9a033d414cd654a49",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Diary entry ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Diary entry deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Diary entry deleted successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You do not have permission to delete this entry."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Entry not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Diary entry not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/diary/{id}/entries/sync": {
+            "put": {
+                "tags": [
+                    "Diary"
+                ],
+                "summary": "Sync all diary entries",
+                "description": "Bulk synchronize diary entries. Pass an array of entries - new ones will be created, existing ones updated, and missing ones deleted.",
+                "operationId": "196739cac4d2cc117635285133dc6bdd",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Diary ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "entries"
+                                ],
+                                "properties": {
+                                    "entries": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "id": {
+                                                    "description": "Entry ID (for updates)",
+                                                    "type": "integer",
+                                                    "nullable": true
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "example": "physical"
+                                                },
+                                                "key": {
+                                                    "type": "string",
+                                                    "example": "temperature"
+                                                },
+                                                "value": {
+                                                    "type": "object"
+                                                },
+                                                "notes": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "recorded_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "_delete": {
+                                                    "description": "Set to true to delete this entry",
+                                                    "type": "boolean",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "delete_missing": {
+                                        "description": "If true, entries not in the array will be deleted",
+                                        "type": "boolean",
+                                        "default": false
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Entries synced successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "created": {
+                                            "type": "integer"
+                                        },
+                                        "updated": {
+                                            "type": "integer"
+                                        },
+                                        "deleted": {
+                                            "type": "integer"
+                                        },
+                                        "entries": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    },
+                    "404": {
+                        "description": "Diary not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/diary/{id}/parameters": {
+            "put": {
+                "tags": [
+                    "Diary"
+                ],
+                "summary": "Update pinned parameters by diary ID",
+                "description": "Update the pinned parameters for a diary using diary ID in URL.",
+                "operationId": "58c41067edc9cea7dae8db87aeeb026e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Diary ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "array",
+                                "items": {
+                                    "properties": {
+                                        "key": {
+                                            "type": "string",
+                                            "example": "blood_pressure"
+                                        },
+                                        "interval_minutes": {
+                                            "type": "integer",
+                                            "example": 60
+                                        },
+                                        "times": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Parameters updated successfully"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    },
+                    "404": {
+                        "description": "Diary not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/diary/{id}/access": {
+            "get": {
+                "tags": [
+                    "Diary"
+                ],
+                "summary": "Get users with access to diary",
+                "description": "Retrieve list of users who have access to a specific diary. Only owner/admin of organization or diary creator can view this.",
+                "operationId": "18e8b6cebd587650c175a79c1bc74256",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Diary ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Access list retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 1
+                                            },
+                                            "first_name": {
+                                                "type": "string",
+                                                "example": "Иван"
+                                            },
+                                            "last_name": {
+                                                "type": "string",
+                                                "example": "Иванов"
+                                            },
+                                            "phone": {
+                                                "type": "string",
+                                                "example": "+79001234567"
+                                            },
+                                            "permission": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "view",
+                                                    "edit",
+                                                    "full"
+                                                ],
+                                                "example": "edit"
+                                            },
+                                            "status": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "active",
+                                                    "revoked"
+                                                ],
+                                                "example": "active"
+                                            },
+                                            "granted_at": {
+                                                "type": "string",
+                                                "format": "date-time"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    },
+                    "404": {
+                        "description": "Diary not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/api/v1/invitations": {
             "get": {
                 "tags": [
@@ -1878,6 +2510,7 @@
                     "Invitations"
                 ],
                 "summary": "Создать приглашение для сотрудника",
+                "description": "Создает приглашение для сотрудника организации. Возвращает URL для регистрации с параметром invite_token.",
                 "operationId": "867d0e45b4881ab6319b53aebe01fe09",
                 "requestBody": {
                     "required": true,
@@ -1889,9 +2522,11 @@
                                 ],
                                 "properties": {
                                     "role": {
+                                        "description": "Роль сотрудника в организации",
                                         "type": "string",
                                         "enum": [
                                             "admin",
+                                            "manager",
                                             "doctor",
                                             "caregiver"
                                         ],
@@ -1910,18 +2545,46 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Приглашение создано"
+                                        },
                                         "invitation": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "token": {
+                                                    "type": "string"
+                                                },
+                                                "role": {
+                                                    "type": "string"
+                                                },
+                                                "expires_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "organization_name": {
+                                                    "type": "string"
+                                                }
+                                            },
                                             "type": "object"
                                         },
                                         "invite_url": {
                                             "type": "string",
-                                            "example": "https://app.com/invite/abc123..."
+                                            "example": "https://app.com/register?invite_token=abc123..."
                                         }
                                     },
                                     "type": "object"
                                 }
                             }
                         }
+                    },
+                    "403": {
+                        "description": "Недостаточно прав"
+                    },
+                    "404": {
+                        "description": "У пользователя нет организации"
                     }
                 },
                 "security": [
@@ -2932,6 +3595,12 @@
                                             "Physical therapy"
                                         ],
                                         "nullable": true
+                                    },
+                                    "organization_id": {
+                                        "description": "Organization ID (optional, defaults to user's organization)",
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -3692,10 +4361,21 @@
                                                         "format": "date-time"
                                                     },
                                                     "status": {
-                                                        "type": "string"
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "pending",
+                                                            "completed",
+                                                            "missed",
+                                                            "cancelled"
+                                                        ]
                                                     },
                                                     "priority": {
                                                         "type": "integer"
+                                                    },
+                                                    "related_diary_key": {
+                                                        "description": "Ключ связи с дневником: temperature, blood_pressure, pulse, blood_sugar, saturation, breathing_rate, pain_level, weight, height, hygiene, diaper_change, meal, medication, walk",
+                                                        "type": "string",
+                                                        "nullable": true
                                                     },
                                                     "is_rescheduled": {
                                                         "type": "boolean"
@@ -3707,6 +4387,11 @@
                                                         "type": "object"
                                                     },
                                                     "assigned_to": {
+                                                        "type": "object",
+                                                        "nullable": true
+                                                    },
+                                                    "diary_entry": {
+                                                        "description": "Связанная запись дневника (если задача выполнена)",
                                                         "type": "object",
                                                         "nullable": true
                                                     }
@@ -3752,7 +4437,7 @@
                     "Route Sheet"
                 ],
                 "summary": "Create a single task (without template)",
-                "description": "Create a one-time task directly to the route sheet",
+                "description": "Create a one-time task directly to the route sheet. При выполнении задачи автоматически создаётся запись в дневнике.",
                 "operationId": "30ec236ed3ffa41797d284392cccf5ea",
                 "requestBody": {
                     "required": true,
@@ -3767,9 +4452,11 @@
                                 ],
                                 "properties": {
                                     "patient_id": {
+                                        "description": "ID пациента",
                                         "type": "integer"
                                     },
                                     "title": {
+                                        "description": "Название задачи (например: Приём пищи, Измерение давления)",
                                         "type": "string"
                                     },
                                     "start_at": {
@@ -3783,15 +4470,17 @@
                                         "example": "2024-01-01 09:30:00"
                                     },
                                     "assigned_to": {
-                                        "description": "User ID of assigned caregiver",
+                                        "description": "ID сиделки для назначения",
                                         "type": "integer",
                                         "nullable": true
                                     },
                                     "priority": {
+                                        "description": "Приоритет (0-10)",
                                         "type": "integer",
                                         "example": 0
                                     },
                                     "related_diary_key": {
+                                        "description": "Ключ показателя дневника: temperature, blood_pressure, pulse, blood_sugar, saturation, breathing_rate, pain_level, weight, height, hygiene, diaper_change, meal, medication, walk",
                                         "type": "string",
                                         "example": "blood_pressure",
                                         "nullable": true
@@ -3804,7 +4493,41 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Task created successfully"
+                        "description": "Task created successfully. При выполнении создаст DiaryEntry с указанным related_diary_key",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "patient_id": {
+                                            "type": "integer"
+                                        },
+                                        "title": {
+                                            "type": "string"
+                                        },
+                                        "start_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "end_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "example": "pending"
+                                        },
+                                        "related_diary_key": {
+                                            "type": "string",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "403": {
                         "description": "Access denied"
@@ -4011,7 +4734,7 @@
                     "Route Sheet"
                 ],
                 "summary": "Mark task as completed",
-                "description": "Complete a task with optional comment, photos, and measurement value",
+                "description": "Complete a task with optional comment, photos, and measurement value. При выполнении автоматически создаётся запись в дневнике (DiaryEntry) с привязкой к этой задаче. Закреплённые показатели (pinned_parameters) автоматически обновляются.",
                 "operationId": "c5390b7d68b5a3f24dce1a334dd5256a",
                 "parameters": [
                     {
@@ -4029,11 +4752,12 @@
                             "schema": {
                                 "properties": {
                                     "comment": {
+                                        "description": "Комментарий к выполнению",
                                         "type": "string",
                                         "nullable": true
                                     },
                                     "photos": {
-                                        "description": "Array of photo files",
+                                        "description": "Массив фотографий (max 5)",
                                         "type": "array",
                                         "items": {
                                             "type": "string",
@@ -4041,11 +4765,12 @@
                                         }
                                     },
                                     "value": {
-                                        "description": "Measurement value for diary entry",
+                                        "description": "Значение показателя для записи в дневник",
                                         "type": "object",
                                         "nullable": true
                                     },
                                     "completed_at": {
+                                        "description": "Время выполнения (по умолчанию текущее)",
                                         "type": "string",
                                         "format": "date-time",
                                         "nullable": true
@@ -4058,7 +4783,44 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Task completed successfully"
+                        "description": "Task completed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "example": "completed"
+                                        },
+                                        "completed_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "completed_by": {
+                                            "type": "integer"
+                                        },
+                                        "related_diary_key": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Задача успешно выполнена"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    },
+                    "422": {
+                        "description": "Validation error or task not pending"
                     }
                 },
                 "security": [

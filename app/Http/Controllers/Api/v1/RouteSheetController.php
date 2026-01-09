@@ -85,12 +85,14 @@ class RouteSheetController extends Controller
      *                 @OA\Property(property="title", type="string"),
      *                 @OA\Property(property="start_at", type="string", format="date-time"),
      *                 @OA\Property(property="end_at", type="string", format="date-time"),
-     *                 @OA\Property(property="status", type="string"),
+     *                 @OA\Property(property="status", type="string", enum={"pending", "completed", "missed", "cancelled"}),
      *                 @OA\Property(property="priority", type="integer"),
+     *                 @OA\Property(property="related_diary_key", type="string", nullable=true, description="Ключ связи с дневником: temperature, blood_pressure, pulse, blood_sugar, saturation, breathing_rate, pain_level, weight, height, hygiene, diaper_change, meal, medication, walk"),
      *                 @OA\Property(property="is_rescheduled", type="boolean"),
      *                 @OA\Property(property="is_overdue", type="boolean"),
      *                 @OA\Property(property="patient", type="object"),
-     *                 @OA\Property(property="assigned_to", type="object", nullable=true)
+     *                 @OA\Property(property="assigned_to", type="object", nullable=true),
+     *                 @OA\Property(property="diary_entry", type="object", nullable=true, description="Связанная запись дневника (если задача выполнена)")
      *             )),
      *             @OA\Property(property="summary", type="object",
      *                 @OA\Property(property="total", type="integer"),
@@ -276,22 +278,34 @@ class RouteSheetController extends Controller
      *     path="/api/v1/route-sheet",
      *     tags={"Route Sheet"},
      *     summary="Create a single task (without template)",
-     *     description="Create a one-time task directly to the route sheet",
+     *     description="Create a one-time task directly to the route sheet. При выполнении задачи автоматически создаётся запись в дневнике.",
      *     security={{"sanctum": {}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
      *             required={"patient_id", "title", "start_at", "end_at"},
-     *             @OA\Property(property="patient_id", type="integer"),
-     *             @OA\Property(property="title", type="string"),
+     *             @OA\Property(property="patient_id", type="integer", description="ID пациента"),
+     *             @OA\Property(property="title", type="string", description="Название задачи (например: Приём пищи, Измерение давления)"),
      *             @OA\Property(property="start_at", type="string", format="date-time", example="2024-01-01 09:00:00"),
      *             @OA\Property(property="end_at", type="string", format="date-time", example="2024-01-01 09:30:00"),
-     *             @OA\Property(property="assigned_to", type="integer", nullable=true, description="User ID of assigned caregiver"),
-     *             @OA\Property(property="priority", type="integer", example=0),
-     *             @OA\Property(property="related_diary_key", type="string", nullable=true, example="blood_pressure")
+     *             @OA\Property(property="assigned_to", type="integer", nullable=true, description="ID сиделки для назначения"),
+     *             @OA\Property(property="priority", type="integer", example=0, description="Приоритет (0-10)"),
+     *             @OA\Property(property="related_diary_key", type="string", nullable=true, example="blood_pressure", description="Ключ показателя дневника: temperature, blood_pressure, pulse, blood_sugar, saturation, breathing_rate, pain_level, weight, height, hygiene, diaper_change, meal, medication, walk")
      *         )
      *     ),
-     *     @OA\Response(response=201, description="Task created successfully"),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Task created successfully. При выполнении создаст DiaryEntry с указанным related_diary_key",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="id", type="integer"),
+     *             @OA\Property(property="patient_id", type="integer"),
+     *             @OA\Property(property="title", type="string"),
+     *             @OA\Property(property="start_at", type="string", format="date-time"),
+     *             @OA\Property(property="end_at", type="string", format="date-time"),
+     *             @OA\Property(property="status", type="string", example="pending"),
+     *             @OA\Property(property="related_diary_key", type="string", nullable=true)
+     *         )
+     *     ),
      *     @OA\Response(response=403, description="Access denied"),
      *     @OA\Response(response=422, description="Validation error")
      * )
@@ -533,18 +547,31 @@ class RouteSheetController extends Controller
      *     path="/api/v1/route-sheet/{id}/complete",
      *     tags={"Route Sheet"},
      *     summary="Mark task as completed",
-     *     description="Complete a task with optional comment, photos, and measurement value",
+     *     description="Complete a task with optional comment, photos, and measurement value. При выполнении автоматически создаётся запись в дневнике (DiaryEntry) с привязкой к этой задаче. Закреплённые показатели (pinned_parameters) автоматически обновляются.",
      *     security={{"sanctum": {}}},
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\RequestBody(
      *         @OA\JsonContent(
-     *             @OA\Property(property="comment", type="string", nullable=true),
-     *             @OA\Property(property="photos", type="array", @OA\Items(type="string", format="binary"), description="Array of photo files"),
-     *             @OA\Property(property="value", type="object", nullable=true, description="Measurement value for diary entry"),
-     *             @OA\Property(property="completed_at", type="string", format="date-time", nullable=true)
+     *             @OA\Property(property="comment", type="string", nullable=true, description="Комментарий к выполнению"),
+     *             @OA\Property(property="photos", type="array", @OA\Items(type="string", format="binary"), description="Массив фотографий (max 5)"),
+     *             @OA\Property(property="value", type="object", nullable=true, description="Значение показателя для записи в дневник"),
+     *             @OA\Property(property="completed_at", type="string", format="date-time", nullable=true, description="Время выполнения (по умолчанию текущее)")
      *         )
      *     ),
-     *     @OA\Response(response=200, description="Task completed successfully")
+     *     @OA\Response(
+     *         response=200,
+     *         description="Task completed successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="id", type="integer"),
+     *             @OA\Property(property="status", type="string", example="completed"),
+     *             @OA\Property(property="completed_at", type="string", format="date-time"),
+     *             @OA\Property(property="completed_by", type="integer"),
+     *             @OA\Property(property="related_diary_key", type="string", nullable=true),
+     *             @OA\Property(property="message", type="string", example="Задача успешно выполнена")
+     *         )
+     *     ),
+     *     @OA\Response(response=403, description="Access denied"),
+     *     @OA\Response(response=422, description="Validation error or task not pending")
      * )
      */
     public function complete(Request $request, Task $task): JsonResponse

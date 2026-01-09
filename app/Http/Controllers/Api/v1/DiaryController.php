@@ -198,8 +198,9 @@ class DiaryController extends Controller
      *                     @OA\Property(property="id", type="integer", example=1),
      *                     @OA\Property(property="diary_id", type="integer", example=1),
      *                     @OA\Property(property="author_id", type="integer", example=1),
+     *                     @OA\Property(property="source_task_id", type="integer", nullable=true, example=5, description="ID задачи из маршрутного листа"),
      *                     @OA\Property(property="type", type="string", example="physical"),
-     *                     @OA\Property(property="key", type="string", example="temperature"),
+     *                     @OA\Property(property="key", type="string", example="temperature", description="Ключ: temperature, blood_pressure, pulse, meal, medication, walk, hygiene, diaper_change и др."),
      *                     @OA\Property(property="value", type="object"),
      *                     @OA\Property(property="notes", type="string", nullable=true),
      *                     @OA\Property(property="recorded_at", type="string", format="date-time"),
@@ -427,13 +428,14 @@ class DiaryController extends Controller
      *     ),
      *     @OA\Response(
      *         response=201,
-     *         description="Diary entry created successfully",
+     *         description="Diary entry created successfully. Если есть pending задача с таким же related_diary_key на сегодня, она автоматически будет отмечена как выполненная.",
      *         @OA\JsonContent(
      *             @OA\Property(property="id", type="integer", example=1),
      *             @OA\Property(property="diary_id", type="integer", example=1),
      *             @OA\Property(property="author_id", type="integer", example=1),
+     *             @OA\Property(property="source_task_id", type="integer", nullable=true, example=null, description="ID связанной задачи (устанавливается автоматически при синхронизации)"),
      *             @OA\Property(property="type", type="string", example="physical"),
-     *             @OA\Property(property="key", type="string", example="temperature"),
+     *             @OA\Property(property="key", type="string", example="temperature", description="Допустимые ключи: temperature, blood_pressure, pulse, blood_sugar, saturation, breathing_rate, pain_level, weight, height, hygiene, diaper_change, meal, medication, walk"),
      *             @OA\Property(property="value", type="object", description="Entry value as JSON object"),
      *             @OA\Property(property="notes", type="string", nullable=true, example="Normal temperature"),
      *             @OA\Property(property="recorded_at", type="string", format="date-time", example="2024-01-01T10:00:00.000000Z"),
@@ -515,7 +517,11 @@ class DiaryController extends Controller
         // Set author_id to authenticated user
         $data['author_id'] = $user->id;
 
+        \Log::info('DiaryEntry store data before create:', $data);
+
         $entry = DiaryEntry::create($data);
+
+        \Log::info('DiaryEntry created:', $entry->toArray());
 
         return response()->json($entry, 201);
     }
