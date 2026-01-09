@@ -536,7 +536,7 @@ class DiaryController extends Controller
      *     path="/api/v1/diary/pinned",
      *     tags={"Diary"},
      *     summary="Update pinned parameters for diary",
-     *     description="Update the pinned parameters with timers for a patient's diary.",
+     *     description="Update the pinned parameters with timers for a patient's diary. Also allows updating diary settings.",
      *     security={{"sanctum": {}}},
      *     @OA\RequestBody(
      *         required=true,
@@ -549,6 +549,9 @@ class DiaryController extends Controller
      *                     @OA\Property(property="interval_minutes", type="integer", example=60),
      *                     @OA\Property(property="last_recorded_at", type="string", format="date-time", nullable=true)
      *                 )
+     *             ),
+     *             @OA\Property(property="settings", type="object", nullable=true,
+     *                 @OA\Property(property="all_indicators", type="array", @OA\Items(type="string"), example={"vitamins", "meal", "skin_moisturizing", "walk"})
      *             )
      *         )
      *     ),
@@ -572,6 +575,9 @@ class DiaryController extends Controller
             'pinned_parameters.*.interval_minutes' => 'nullable|integer|min:1',
             'pinned_parameters.*.times' => 'nullable|array',
             'pinned_parameters.*.settings' => 'nullable|array',
+            'settings' => 'nullable|array',
+            'settings.all_indicators' => 'nullable|array',
+            'settings.all_indicators.*' => 'nullable|string',
         ]);
 
         $patient = Patient::findOrFail($request->patient_id);
@@ -593,16 +599,24 @@ class DiaryController extends Controller
         // Сохраняем старые параметры для сравнения
         $oldPinnedParameters = $diary->pinned_parameters ?? [];
 
-        $diary->update([
+        // Подготавливаем данные для обновления
+        $updateData = [
             'pinned_parameters' => $request->pinned_parameters,
-        ]);
+        ];
+        
+        // Если переданы settings - обновляем их
+        if ($request->has('settings')) {
+            $updateData['settings'] = $request->settings;
+        }
+
+        $diary->update($updateData);
 
         // Создаём задачи в маршрутном листе для параметров с временем
         $this->syncTasksFromPinnedParameters($patient, $request->pinned_parameters, $oldPinnedParameters, $user);
 
         return response()->json([
             'message' => 'Закреплённые параметры успешно обновлены',
-            'diary' => $diary,
+            'diary' => $diary->fresh(),
         ], 200);
     }
 
