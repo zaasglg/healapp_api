@@ -569,8 +569,8 @@ class DiaryController extends Controller
     {
         $request->validate([
             'patient_id' => 'required|exists:patients,id',
-            'pinned_parameters' => 'required|array',
-            'pinned_parameters.*.key' => 'required|string',
+            'pinned_parameters' => 'nullable|array', // Сделал nullable - можно обновлять только settings
+            'pinned_parameters.*.key' => 'required_with:pinned_parameters|string',
             'pinned_parameters.*.label' => 'nullable|string',
             'pinned_parameters.*.interval_minutes' => 'nullable|integer|min:1',
             'pinned_parameters.*.times' => 'nullable|array',
@@ -600,19 +600,26 @@ class DiaryController extends Controller
         $oldPinnedParameters = $diary->pinned_parameters ?? [];
 
         // Подготавливаем данные для обновления
-        $updateData = [
-            'pinned_parameters' => $request->pinned_parameters,
-        ];
+        $updateData = [];
+        
+        // Если переданы pinned_parameters - обновляем их
+        if ($request->has('pinned_parameters') && is_array($request->pinned_parameters)) {
+            $updateData['pinned_parameters'] = $request->pinned_parameters;
+        }
         
         // Если переданы settings - обновляем их
         if ($request->has('settings')) {
             $updateData['settings'] = $request->settings;
         }
-
-        $diary->update($updateData);
+        
+        if (!empty($updateData)) {
+            $diary->update($updateData);
+        }
 
         // Создаём задачи в маршрутном листе для параметров с временем
-        $this->syncTasksFromPinnedParameters($patient, $request->pinned_parameters, $oldPinnedParameters, $user);
+        if (isset($updateData['pinned_parameters'])) {
+            $this->syncTasksFromPinnedParameters($patient, $updateData['pinned_parameters'], $oldPinnedParameters, $user);
+        }
 
         return response()->json([
             'message' => 'Закреплённые параметры успешно обновлены',
