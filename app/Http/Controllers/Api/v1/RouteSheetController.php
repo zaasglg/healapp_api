@@ -136,33 +136,6 @@ class RouteSheetController extends Controller
             $query->where('patient_id', $patient->id);
         }
         
-        // For caregivers: строгая фильтрация задач
-        if ($user->hasRole('caregiver')) {
-            // Проверяем, является ли организация Пансионатом
-            $isPensionCaregiver = $user->organization_id 
-                && $user->organization 
-                && $user->organization->isBoardingHouse();
-            
-            if ($isPensionCaregiver) {
-                // В Пансионате: сиделка видит ТОЛЬКО задачи, назначенные именно ей
-                // Строгая фильтрация: assigned_to ДОЛЖЕН быть равен user.id
-                $query->where('assigned_to', $user->id);
-                // НЕ показываем задачи с assigned_to = NULL
-            } else {
-                // Для агентств или частных сиделок: более мягкая логика
-                $query->where(function ($q) use ($user) {
-                    $q->where('assigned_to', $user->id)
-                      ->orWhereNull('assigned_to');
-                });
-                
-                // If no patient_id specified, filter by assigned patients
-                if (!$request->has('patient_id')) {
-                    $assignedPatientIds = $user->assignedPatients()->pluck('patients.id');
-                    $query->whereIn('patient_id', $assignedPatientIds);
-                }
-            }
-        }
-        
         // Если patient_id не указан, фильтруем по доступу пользователя
         if (!$request->has('patient_id')) {
             // Клиент: только свои пациенты
@@ -171,8 +144,8 @@ class RouteSheetController extends Controller
                     $q->where('owner_id', $user->id);
                 });
             }
-            // Частная сиделка: только назначенные пациенты
-            elseif ($user->isPrivateCaregiver()) {
+            // Частная сиделка (без организации): только назначенные пациенты
+            elseif ($user->isPrivateCaregiver() && !$user->organization_id) {
                 $assignedPatientIds = $user->assignedPatients()->pluck('patients.id');
                 $query->whereIn('patient_id', $assignedPatientIds);
             }
@@ -180,26 +153,59 @@ class RouteSheetController extends Controller
             elseif ($user->organization_id) {
                 $organization = $user->organization;
                 if ($organization) {
-                    // Пансионат: все пациенты организации
+                    // Пансионат
                     if ($organization->isBoardingHouse()) {
+                        // Все сотрудники видят пациентов организации
                         $query->whereHas('patient', function ($q) use ($organization) {
                             $q->where('organization_id', $organization->id);
                         });
+                        
+                        // Сиделки видят ТОЛЬКО свои назначенные задачи
+                        if ($user->hasRole('caregiver')) {
+                            $query->where('assigned_to', $user->id);
+                        }
                     }
-                    // Агентство: только назначенные пациенты (для сиделок/врачей)
+                    // Патронажное агентство
                     elseif ($organization->isAgency()) {
                         if ($user->hasAnyRole(['owner', 'admin'])) {
-                            // Владельцы и админы видят всех пациентов организации
+                            // Владельцы и админы видят все задачи всех пациентов организации
                             $query->whereHas('patient', function ($q) use ($organization) {
                                 $q->where('organization_id', $organization->id);
                             });
                         } else {
-                            // Остальные сотрудники видят только назначенных пациентов
+                            // Остальные сотрудники (врачи, сиделки) видят только задачи назначенных пациентов
                             $assignedPatientIds = $user->assignedPatients()
                                 ->where('organization_id', $organization->id)
                                 ->pluck('patients.id');
                             $query->whereIn('patient_id', $assignedPatientIds);
+                            
+                            // Дополнительно фильтруем: показываем задачи, назначенные им или без назначения
+                            $query->where(function ($q) use ($user) {
+                                $q->where('assigned_to', $user->id)
+                                  ->orWhereNull('assigned_to');
+                            });
                         }
+                    }
+                }
+            }
+        }
+        // Если patient_id указан, проверяем доступ к пациенту
+        else {
+            // Дополнительная фильтрация для сотрудников организаций
+            if ($user->organization_id) {
+                $organization = $user->organization;
+                if ($organization && $organization->isBoardingHouse()) {
+                    // В пансионате сиделки видят только свои задачи
+                    if ($user->hasRole('caregiver')) {
+                        $query->where('assigned_to', $user->id);
+                    }
+                } elseif ($organization && $organization->isAgency()) {
+                    // В агентстве сотрудники (кроме owner/admin) видят только свои задачи или без назначения
+                    if (!$user->hasAnyRole(['owner', 'admin'])) {
+                        $query->where(function ($q) use ($user) {
+                            $q->where('assigned_to', $user->id)
+                              ->orWhereNull('assigned_to');
+                        });
                     }
                 }
             }
@@ -773,19 +779,41 @@ class RouteSheetController extends Controller
         
         // For caregivers: tasks assigned to them
         if ($user->hasRole('caregiver')) {
-            $query->where(function ($q) use ($user) {
-                $q->where('assigned_to', $user->id)
-                  ->orWhere(function ($q2) use ($user) {
-                      // Also include unassigned tasks for patients they're assigned to
-                      $q2->whereNull('assigned_to')
-                         ->whereIn('patient_id', $user->assignedPatients()->pluck('patients.id'));
-                  });
-            });
+            // Проверяем тип организации
+            $isPensionCaregiver = $user->organization_id 
+                && $user->organization 
+                && $user->organization->isBoardingHouse();
+            
+            if ($isPensionCaregiver) {
+                // В Пансионате: только задачи, назначенные именно этой сиделке
+                $query->where('assigned_to', $user->id);
+            } else {
+                // В Агентстве или частная сиделка: задачи назначенные ей + незанятые задачи по назначенным пациентам
+                $query->where(function ($q) use ($user) {
+                    $q->where('assigned_to', $user->id)
+                      ->orWhere(function ($q2) use ($user) {
+                          // Also include unassigned tasks for patients they're assigned to
+                          $q2->whereNull('assigned_to')
+                             ->whereIn('patient_id', $user->assignedPatients()->pluck('patients.id'));
+                      });
+                });
+            }
         }
         // For doctors: similar logic
         elseif ($user->hasRole('doctor')) {
             $assignedPatientIds = $user->assignedPatients()->pluck('patients.id');
             $query->whereIn('patient_id', $assignedPatientIds);
+            
+            // В агентстве врачи также видят только свои назначенные задачи или без назначения
+            if ($user->organization_id) {
+                $organization = $user->organization;
+                if ($organization && $organization->isAgency()) {
+                    $query->where(function ($q) use ($user) {
+                        $q->where('assigned_to', $user->id)
+                          ->orWhereNull('assigned_to');
+                    });
+                }
+            }
         }
         // For managers: organization patients
         elseif ($user->hasRole('manager')) {
