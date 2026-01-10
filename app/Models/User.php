@@ -249,8 +249,23 @@ class User extends Authenticatable
                 return true;
             }
             
-            // Агентство: нужен явный доступ
+            // Патронажное агентство
             if ($org->isAgency()) {
+                // Owner и Admin имеют доступ ко всем дневникам организации
+                if ($this->hasAnyRole(['owner', 'admin'])) {
+                    return true;
+                }
+                
+                // Проверяем, назначен ли сотрудник к этому пациенту через patient_user
+                $isAssignedToPatient = $patient->assignedUsers()
+                    ->where('user_id', $this->id)
+                    ->exists();
+                
+                if ($isAssignedToPatient) {
+                    return true;
+                }
+                
+                // Также проверяем явный доступ через diary_access
                 return $diary->hasAccess($this);
             }
         }
@@ -278,12 +293,24 @@ class User extends Authenticatable
                 });
             }
             
-            // Агентство: только назначенные
+            // Патронажное агентство
             if ($org->isAgency()) {
-                return Diary::whereHas('accessUsers', function ($q) {
-                    $q->where('user_id', $this->id)
-                      ->where('diary_access.status', 'active');
-                });
+                // Owner и Admin видят все дневники организации
+                if ($this->hasAnyRole(['owner', 'admin'])) {
+                    return Diary::whereHas('patient', function ($q) {
+                        $q->where('organization_id', $this->organization_id);
+                    });
+                }
+                
+                // Остальные сотрудники (врачи, сиделки) видят дневники назначенных пациентов
+                // Используем таблицу patient_user для назначений
+                $assignedPatientIds = $this->assignedPatients()->pluck('patients.id');
+                
+                return Diary::whereIn('patient_id', $assignedPatientIds)
+                    ->orWhereHas('accessUsers', function ($q) {
+                        $q->where('user_id', $this->id)
+                          ->where('diary_access.status', 'active');
+                    });
             }
         }
 
