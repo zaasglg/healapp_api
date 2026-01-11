@@ -492,14 +492,22 @@ class PatientController extends Controller
                 return true;
             }
 
-            // Агентство: только назначенные пациенты (для врачей и сиделок)
+            // Агентство: только сотрудники, явно добавленные через admin
             if ($organization->isAgency()) {
                 // Admin и Manager видят всех
                 if ($user->hasAnyRole(['admin', 'manager'])) {
                     return true;
                 }
-                // Врачи и сиделки - только назначенных
-                return $patient->assignedUsers()->where('user_id', $user->id)->exists();
+                
+                // Проверяем назначение через patient_user
+                $isAssigned = $patient->assignedUsers()->where('user_id', $user->id)->exists();
+                if ($isAssigned) {
+                    return true;
+                }
+                
+                // Проверяем доступ через diary_access
+                $hasDiaryAccess = $patient->diary && $patient->diary->hasAccess($user);
+                return $hasDiaryAccess;
             }
             
             return true;

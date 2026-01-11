@@ -1222,19 +1222,22 @@ class DiaryController extends Controller
                 return true;
             }
 
-            // Агентство: проверяем доступ через дневник или назначение
+            // Агентство: только сотрудники, явно добавленные через admin
             if ($organization->isAgency()) {
                 // Admin и Manager видят всех
                 if ($user->hasAnyRole(['admin', 'manager'])) {
                     return true;
                 }
-                // Проверяем доступ через дневник
-                $diary = $patient->diary;
-                if ($diary && $diary->hasAccess($user)) {
+                
+                // Проверяем назначение через patient_user
+                $isAssigned = $patient->assignedUsers()->where('user_id', $user->id)->exists();
+                if ($isAssigned) {
                     return true;
                 }
-                // Или через назначение
-                return $patient->assignedUsers()->where('user_id', $user->id)->exists();
+                
+                // Проверяем доступ через diary_access
+                $hasDiaryAccess = $patient->diary && $patient->diary->hasAccess($user);
+                return $hasDiaryAccess;
             }
             
             return true;

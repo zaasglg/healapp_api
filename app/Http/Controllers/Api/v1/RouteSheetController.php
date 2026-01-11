@@ -1135,36 +1135,22 @@ class RouteSheetController extends Controller
      */
     private function canAccessPatient($user, Patient $patient): bool
     {
-        // Логирование для отладки
-        \Log::info('canAccessPatient check', [
-            'user_id' => $user->id,
-            'user_type' => $user->type,
-            'user_roles' => $user->getRoleNames()->toArray(),
-            'user_organization_id' => $user->organization_id,
-            'patient_id' => $patient->id,
-            'patient_organization_id' => $patient->organization_id,
-            'patient_owner_id' => $patient->owner_id,
-        ]);
-
         // ВАЖНО: Сначала проверяем принадлежность к организации
         // Сотрудник организации (приоритет выше, чем type)
         if ($user->organization_id) {
             $organization = $user->organization;
             
             if (!$organization) {
-                \Log::info('canAccessPatient: organization not found');
                 return false;
             }
 
             // Пациент должен принадлежать той же организации
             if ($patient->organization_id !== $organization->id) {
-                \Log::info('canAccessPatient: patient belongs to different organization');
                 return false;
             }
 
             // Владельцы и админы организации имеют доступ ко всем пациентам организации
             if ($user->hasAnyRole(['owner', 'admin', 'manager'])) {
-                \Log::info('canAccessPatient: user is owner/admin/manager');
                 return true;
             }
 
@@ -1174,17 +1160,27 @@ class RouteSheetController extends Controller
                 return true;
             }
 
-            // Агентство: только назначенные пациенты (для врачей и сиделок)
+            // Агентство: только сотрудники, явно добавленные через admin
             if ($organization->isAgency()) {
                 // Admin и Manager видят всех
                 if ($user->hasAnyRole(['admin', 'manager'])) {
                     \Log::info('canAccessPatient: agency admin/manager');
                     return true;
                 }
-                // Врачи и сиделки - только назначенных
+                
+                // Проверяем назначение через patient_user
                 $isAssigned = $patient->assignedUsers()->where('user_id', $user->id)->exists();
                 \Log::info('canAccessPatient: agency check assigned', ['isAssigned' => $isAssigned]);
-                return $isAssigned;
+                
+                if ($isAssigned) {
+                    return true;
+                }
+                
+                // Проверяем доступ через diary_access
+                $hasDiaryAccess = $patient->diary && $patient->diary->hasAccess($user);
+                \Log::info('canAccessPatient: agency check diary access', ['hasDiaryAccess' => $hasDiaryAccess]);
+                
+                return $hasDiaryAccess;
             }
             
             return true;
@@ -1193,35 +1189,28 @@ class RouteSheetController extends Controller
         // Приоритет ролям над типом пользователя
         // Пользователь с ролью сиделки/врача (независимо от type)
         if ($user->hasAnyRole(['caregiver', 'doctor'])) {
-            \Log::info('canAccessPatient: user has caregiver/doctor role');
-            
             // Проверяем, назначен ли к пациенту
             $isAssigned = $patient->assignedUsers()->where('user_id', $user->id)->exists();
-            \Log::info('canAccessPatient: isAssigned', ['isAssigned' => $isAssigned]);
             if ($isAssigned) {
                 return true;
             }
             
             // Проверяем доступ через дневник
             $hasDiaryAccess = $patient->diary && $patient->diary->hasAccess($user);
-            \Log::info('canAccessPatient: hasDiaryAccess', ['hasDiaryAccess' => $hasDiaryAccess, 'has_diary' => (bool)$patient->diary]);
             if ($hasDiaryAccess) {
                 return true;
             }
             
             // Частная сиделка (без организации) - только назначенные
             if ($user->isPrivateCaregiver()) {
-                \Log::info('canAccessPatient: private caregiver, returning isAssigned');
                 return $isAssigned;
             }
             
-            \Log::info('canAccessPatient: caregiver/doctor - no access found');
             return false;
         }
 
         // Клиент: проверяем владение или создание пациента
         if ($user->isClient()) {
-            \Log::info('canAccessPatient: user is client');
             // Владелец пациента
             if ($patient->owner_id === $user->id) {
                 return true;
