@@ -1177,6 +1177,15 @@ class RouteSheetController extends Controller
             return $patient->assignedUsers()->where('user_id', $user->id)->exists();
         }
 
+        // Пользователь без организации, но с ролью сиделки/врача (например, ошибочно отмечен как client)
+        // Разрешаем доступ, если он явно назначен к пациенту или имеет активный доступ к дневнику
+        if (!$user->organization_id && $user->hasAnyRole(['caregiver', 'doctor'])) {
+            $isAssigned = $patient->assignedUsers()->where('user_id', $user->id)->exists();
+            $hasDiaryAccess = $patient->diary && $patient->diary->hasAccess($user);
+
+            return $isAssigned || $hasDiaryAccess;
+        }
+
         // Обычный клиент (без организации) может видеть только своих пациентов (где owner_id = user.id)
         if ($user->isClient() && !$user->organization_id) {
             return $patient->owner_id === $user->id;
