@@ -505,14 +505,42 @@ class PatientController extends Controller
             return true;
         }
 
-        // Частная сиделка (без организации) может видеть только назначенных пациентов
-        if ($user->isPrivateCaregiver()) {
-            return $patient->assignedUsers()->where('user_id', $user->id)->exists();
+        // Приоритет ролям над типом пользователя
+        // Пользователь с ролью сиделки/врача (независимо от type)
+        if ($user->hasAnyRole(['caregiver', 'doctor'])) {
+            // Проверяем, назначен ли к пациенту
+            $isAssigned = $patient->assignedUsers()->where('user_id', $user->id)->exists();
+            if ($isAssigned) {
+                return true;
+            }
+            
+            // Проверяем доступ через дневник
+            $hasDiaryAccess = $patient->diary && $patient->diary->hasAccess($user);
+            if ($hasDiaryAccess) {
+                return true;
+            }
+            
+            // Частная сиделка (без организации) - только назначенные
+            if ($user->isPrivateCaregiver()) {
+                return $isAssigned;
+            }
+            
+            return false;
         }
 
-        // Обычный клиент (без организации) может видеть только своих пациентов (где owner_id = user.id)
-        if ($user->isClient() && !$user->organization_id) {
-            return $patient->owner_id === $user->id;
+        // Клиент: проверяем владение или создание пациента
+        if ($user->isClient()) {
+            // Владелец пациента
+            if ($patient->owner_id === $user->id) {
+                return true;
+            }
+            
+            // Создатель пациента
+            if ($patient->creator_id === $user->id) {
+                return true;
+            }
+            
+            return false;
         }
 
         return false;
