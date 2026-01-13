@@ -294,7 +294,7 @@ class InvitationController extends Controller
 
             $userType = $invitation->isClientInvite() 
                 ? UserType::CLIENT 
-                : UserType::CLIENT; // Сотрудники тоже CLIENT по user_type
+                : UserType::ORGANIZATION;
 
             $user = User::create([
                 'phone' => $request->phone,
