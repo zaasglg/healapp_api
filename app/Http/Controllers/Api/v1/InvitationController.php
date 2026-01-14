@@ -59,7 +59,7 @@ class InvitationController extends Controller
      *     path="/api/v1/invitations/employee",
      *     tags={"Invitations"},
      *     summary="Создать приглашение для сотрудника",
-     *     description="Создает приглашение для сотрудника организации. Возвращает URL для регистрации с параметром invite_token.",
+     *     description="Создает приглашение для сотрудника организации. Возвращает deeplink URL в формате /invite/{token}.",
      *     security={{"sanctum": {}}},
      *     @OA\RequestBody(
      *         required=true,
@@ -80,7 +80,7 @@ class InvitationController extends Controller
      *                 @OA\Property(property="expires_at", type="string", format="date-time"),
      *                 @OA\Property(property="organization_name", type="string")
      *             ),
-     *             @OA\Property(property="invite_url", type="string", example="https://app.com/register?invite_token=abc123...")
+     *             @OA\Property(property="invite_url", type="string", example="https://app.com/invite/abc123...")
      *         )
      *     ),
      *     @OA\Response(response=403, description="Недостаточно прав"),
@@ -113,10 +113,6 @@ class InvitationController extends Controller
             'expires_at' => now()->addDays(7),
         ]);
 
-        // Формируем URL регистрации с параметром invite_token
-        $frontendUrl = config('app.frontend_url', config('app.url'));
-        $registerUrl = rtrim($frontendUrl, '/') . '/register?invite_token=' . $invitation->token;
-
         return response()->json([
             'message' => 'Приглашение создано',
             'invitation' => [
@@ -135,7 +131,7 @@ class InvitationController extends Controller
                 'updated_at' => $invitation->updated_at,
                 'organization_name' => $user->organization->name,
             ],
-            'invite_url' => $registerUrl,
+            'invite_url' => $invitation->getInviteUrl(),
         ], 201);
     }
 
@@ -144,6 +140,7 @@ class InvitationController extends Controller
      *     path="/api/v1/invitations/client",
      *     tags={"Invitations"},
      *     summary="Создать приглашение для клиента",
+     *     description="Создает приглашение для клиента. Возвращает deeplink URL в формате /client-invite/{token}.",
      *     security={{"sanctum": {}}},
      *     @OA\RequestBody(
      *         required=true,
@@ -152,7 +149,14 @@ class InvitationController extends Controller
      *             @OA\Property(property="patient_id", type="integer", example=1)
      *         )
      *     ),
-     *     @OA\Response(response=201, description="Приглашение создано")
+     *     @OA\Response(
+     *         response=201,
+     *         description="Приглашение создано",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="invitation", type="object"),
+     *             @OA\Property(property="invite_url", type="string", example="https://app.com/client-invite/abc123...")
+     *         )
+     *     )
      * )
      */
     public function createClientInvite(Request $request): JsonResponse

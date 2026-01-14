@@ -113,7 +113,12 @@ class Invitation extends Model
 
     public function getInviteUrl(): string
     {
-        return config('app.frontend_url', config('app.url')) . '/invite/' . $this->token;
+        $path = match ($this->type) {
+            self::TYPE_EMPLOYEE => '/invite/',
+            self::TYPE_CLIENT => '/client-invite/',
+            default => '/invite/',
+        };
+        return config('app.frontend_url', config('app.url')) . $path . $this->token;
     }
 
     public function isEmployeeInvite(): bool
