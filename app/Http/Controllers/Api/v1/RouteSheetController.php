@@ -1185,6 +1185,14 @@ class RouteSheetController extends Controller
 
             // Пансионат: ВСЕ сотрудники (включая врачей и сиделок) видят ВСЕХ пациентов организации
             if ($organization->isBoardingHouse()) {
+                if ($patient->diary && $patient->diary->accessUsers()
+                    ->where('user_id', $user->id)
+                    ->wherePivot('status', 'revoked')
+                    ->exists()) {
+                    \Log::info('canAccessPatient: boarding house - access revoked');
+                    return false;
+                }
+
                 \Log::info('canAccessPatient: boarding house - all access');
                 return true;
             }

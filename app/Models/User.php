@@ -290,6 +290,9 @@ class User extends Authenticatable
             if ($org->isBoardingHouse()) {
                 return Diary::whereHas('patient', function ($q) {
                     $q->where('organization_id', $this->organization_id);
+                })->whereDoesntHave('accessUsers', function ($q) {
+                    $q->where('user_id', $this->id)
+                        ->where('diary_access.status', 'revoked');
                 });
             }
             

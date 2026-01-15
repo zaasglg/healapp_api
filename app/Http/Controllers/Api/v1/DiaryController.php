@@ -1219,6 +1219,13 @@ class DiaryController extends Controller
 
             // Пансионат: ВСЕ сотрудники (включая врачей и сиделок) видят ВСЕХ пациентов организации
             if ($organization->isBoardingHouse()) {
+                if ($patient->diary && $patient->diary->accessUsers()
+                    ->where('user_id', $user->id)
+                    ->wherePivot('status', 'revoked')
+                    ->exists()) {
+                    return false;
+                }
+
                 return true;
             }
 
