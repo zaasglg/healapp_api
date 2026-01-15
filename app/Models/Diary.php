@@ -122,9 +122,12 @@ class Diary extends Model
      */
     public function revokeAccess(User $user): void
     {
-        // Soft revoke - just change status
-        $this->accessUsers()->updateExistingPivot($user->id, [
-            'status' => 'revoked',
+        // Soft revoke - set status to revoked (create pivot if missing)
+        $this->accessUsers()->syncWithoutDetaching([
+            $user->id => [
+                'permission' => 'view',
+                'status' => 'revoked',
+            ],
         ]);
     }
 

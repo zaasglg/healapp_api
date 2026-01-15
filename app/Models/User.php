@@ -246,6 +246,13 @@ class User extends Authenticatable
             
             // Пансионат: все сотрудники видят все дневники
             if ($org->isBoardingHouse()) {
+                if ($diary->accessUsers()
+                    ->where('user_id', $this->id)
+                    ->wherePivot('status', 'revoked')
+                    ->exists()) {
+                    return false;
+                }
+
                 return true;
             }
             
