@@ -1176,6 +1176,7 @@ class DiaryController extends Controller
         }
 
         $accessUsers = $diary->accessUsers()
+            ->wherePivot('status', 'active')
             ->select('users.id', 'users.first_name', 'users.last_name', 'users.phone')
             ->get()
             ->map(function ($accessUser) {
