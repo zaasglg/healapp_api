@@ -108,40 +108,40 @@ class RouteSheetController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        
+
         // Determine date range
         $date = $request->query('date', now()->format('Y-m-d'));
         $fromDate = $request->query('from_date', $date);
         $toDate = $request->query('to_date', $date);
-        
+
         $query = Task::with(['patient', 'assignedTo', 'template'])
             ->whereDate('start_at', '>=', $fromDate)
             ->whereDate('start_at', '<=', $toDate);
-        
+
         // Filter by status if provided
         if ($request->has('status')) {
             $query->where('status', $request->query('status'));
         }
-        
+
         // Filter by patient if provided
         if ($request->has('patient_id')) {
             $patient = Patient::findOrFail($request->query('patient_id'));
-            
+
             if (!$this->canAccessPatient($user, $patient)) {
                 return response()->json([
                     'message' => 'У вас нет доступа к этому пациенту.',
                 ], 403);
             }
-            
+
             $query->where('patient_id', $patient->id);
         }
-        
+
         // For caregivers: строгая фильтрация задач
         if ($user->hasRole('caregiver')) {
             // Проверяем тип организации
             if ($user->organization_id && $user->organization) {
                 $organization = $user->organization;
-                
+
                 if ($organization->isBoardingHouse()) {
                     // В Пансионате: сиделка видит ТОЛЬКО задачи, назначенные именно ей
                     $query->where('assigned_to', $user->id);
@@ -149,7 +149,7 @@ class RouteSheetController extends Controller
                     // В Агентстве: сиделка видит ТОЛЬКО задачи, назначенные именно ей
                     // (строгая фильтрация, без незанятых задач)
                     $query->where('assigned_to', $user->id);
-                    
+
                     // Фильтруем только по пациентам, к которым есть доступ
                     if (!$request->has('patient_id')) {
                         $assignedPatientIds = $user->assignedPatients()->pluck('patients.id');
@@ -163,16 +163,16 @@ class RouteSheetController extends Controller
                 // Частные сиделки (без организации): свои задачи + незанятые задачи назначенных пациентов
                 $query->where(function ($q) use ($user) {
                     $q->where('assigned_to', $user->id)
-                      ->orWhereNull('assigned_to');
+                        ->orWhereNull('assigned_to');
                 });
-                
+
                 if (!$request->has('patient_id')) {
                     $assignedPatientIds = $user->assignedPatients()->pluck('patients.id');
                     $query->whereIn('patient_id', $assignedPatientIds);
                 }
             }
         }
-        
+
         // Если patient_id не указан, фильтруем по доступу пользователя
         if (!$request->has('patient_id')) {
             // Клиент: только свои пациенты
@@ -214,7 +214,7 @@ class RouteSheetController extends Controller
                 }
             }
         }
-        
+
         $tasks = $query->orderBy('start_at', 'asc')
             ->orderBy('priority', 'desc')
             ->get()
@@ -226,7 +226,7 @@ class RouteSheetController extends Controller
                     'is_overdue' => $task->isOverdue(),
                 ]);
             });
-        
+
         // Summary statistics
         $summary = [
             'total' => $tasks->count(),
@@ -235,7 +235,7 @@ class RouteSheetController extends Controller
             'missed' => $tasks->where('status', 'missed')->count(),
             'overdue' => $tasks->where('is_overdue', true)->count(),
         ];
-        
+
         return response()->json([
             'date' => $date,
             'from_date' => $fromDate,
@@ -266,15 +266,15 @@ class RouteSheetController extends Controller
     {
         $user = $request->user();
         $patient = $task->patient;
-        
+
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этой задаче.',
             ], 403);
         }
-        
+
         $task->load(['patient', 'assignedTo', 'completedBy', 'rescheduledBy', 'template']);
-        
+
         return response()->json(array_merge($task->toArray(), [
             'start_time' => $task->start_at?->format('H:i'),
             'end_time' => $task->end_at?->format('H:i'),
@@ -323,7 +323,7 @@ class RouteSheetController extends Controller
     public function store(Request $request): JsonResponse
     {
         $user = $request->user();
-        
+
         // В Пансионате: Caregiver НЕ МОЖЕТ создавать задачи
         if ($user->organization_id) {
             $organization = $user->organization;
@@ -335,14 +335,14 @@ class RouteSheetController extends Controller
                 }
             }
         }
-        
+
         // Only clients, managers, doctors, admins, owners can create tasks
         if (!$user->hasAnyRole(['client', 'manager', 'doctor', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на создание задач.',
             ], 403);
         }
-        
+
         $validator = Validator::make($request->all(), [
             'patient_id' => 'required|exists:patients,id',
             'title' => 'required|string|max:255',
@@ -352,22 +352,22 @@ class RouteSheetController extends Controller
             'priority' => 'nullable|integer|min:0|max:10',
             'related_diary_key' => 'nullable|string|max:50',
         ]);
-        
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Ошибка валидации',
                 'errors' => $validator->errors(),
             ], 422);
         }
-        
+
         $patient = Patient::findOrFail($request->patient_id);
-        
+
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
-        
+
         // Check if assigned user is valid (belongs to organization or is assigned to patient)
         if ($request->assigned_to) {
             if (!$this->canAssignUser($user, $patient, $request->assigned_to)) {
@@ -376,7 +376,7 @@ class RouteSheetController extends Controller
                 ], 422);
             }
         }
-        
+
         $task = Task::create([
             'patient_id' => $request->patient_id,
             'title' => $request->title,
@@ -387,9 +387,9 @@ class RouteSheetController extends Controller
             'related_diary_key' => $request->related_diary_key,
             'status' => Task::STATUS_PENDING,
         ]);
-        
+
         $task->load(['patient', 'assignedTo']);
-        
+
         return response()->json($task, 201);
     }
 
@@ -417,7 +417,7 @@ class RouteSheetController extends Controller
     {
         $user = $request->user();
         $patient = $task->patient;
-        
+
         // В Пансионате: Caregiver НЕ МОЖЕТ обновлять задачи (только выполнять)
         if ($user->organization_id) {
             $organization = $user->organization;
@@ -429,27 +429,27 @@ class RouteSheetController extends Controller
                 }
             }
         }
-        
+
         // Only clients, managers, doctors, admins, owners can update tasks
         if (!$user->hasAnyRole(['client', 'manager', 'doctor', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на обновление задач.',
             ], 403);
         }
-        
+
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этой задаче.',
             ], 403);
         }
-        
+
         // Only pending tasks can be updated
         if ($task->status !== Task::STATUS_PENDING) {
             return response()->json([
                 'message' => 'Обновлять можно только задачи со статусом "ожидает".',
             ], 422);
         }
-        
+
         $validator = Validator::make($request->all(), [
             'title' => 'sometimes|string|max:255',
             'start_at' => 'sometimes|date_format:Y-m-d H:i:s',
@@ -457,26 +457,26 @@ class RouteSheetController extends Controller
             'assigned_to' => 'nullable|exists:users,id',
             'priority' => 'sometimes|integer|min:0|max:10',
         ]);
-        
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Ошибка валидации',
                 'errors' => $validator->errors(),
             ], 422);
         }
-        
+
         $data = $validator->validated();
-        
+
         if (isset($data['start_at'])) {
             $data['start_at'] = Carbon::parse($data['start_at']);
         }
         if (isset($data['end_at'])) {
             $data['end_at'] = Carbon::parse($data['end_at']);
         }
-        
+
         $task->update($data);
         $task->load(['patient', 'assignedTo']);
-        
+
         return response()->json($task);
     }
 
@@ -504,48 +504,48 @@ class RouteSheetController extends Controller
     {
         $user = $request->user();
         $patient = $task->patient;
-        
+
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет прав на перенос этой задачи.',
             ], 403);
         }
-        
+
         // Only pending tasks can be rescheduled
         if ($task->status !== Task::STATUS_PENDING) {
             return response()->json([
                 'message' => 'Переносить можно только задачи со статусом "ожидает".',
             ], 422);
         }
-        
+
         $validator = Validator::make($request->all(), [
             'start_at' => 'required|date_format:Y-m-d H:i:s',
             'end_at' => 'required|date_format:Y-m-d H:i:s|after:start_at',
             'reason' => 'required|string|max:500',
         ]);
-        
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Ошибка валидации',
                 'errors' => $validator->errors(),
             ], 422);
         }
-        
+
         // Save original time if not already rescheduled
         if (!$task->isRescheduled()) {
             $task->original_start_at = $task->start_at;
             $task->original_end_at = $task->end_at;
         }
-        
+
         $task->start_at = Carbon::parse($request->start_at);
         $task->end_at = Carbon::parse($request->end_at);
         $task->reschedule_reason = $request->reason;
         $task->rescheduled_by = $user->id;
         $task->rescheduled_at = now();
         $task->save();
-        
+
         $task->load(['patient', 'assignedTo', 'rescheduledBy']);
-        
+
         return response()->json(array_merge($task->toArray(), [
             'is_rescheduled' => true,
             'message' => 'Задача успешно перенесена',
@@ -588,19 +588,19 @@ class RouteSheetController extends Controller
     {
         $user = $request->user();
         $patient = $task->patient;
-        
+
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет прав на выполнение этой задачи.',
             ], 403);
         }
-        
+
         if ($task->status !== Task::STATUS_PENDING) {
             return response()->json([
                 'message' => 'Выполнять можно только задачи со статусом "ожидает".',
             ], 422);
         }
-        
+
         $validator = Validator::make($request->all(), [
             'comment' => 'nullable|string|max:1000',
             'photos' => 'nullable|array|max:5',
@@ -608,14 +608,14 @@ class RouteSheetController extends Controller
             'value' => 'nullable|array',
             'completed_at' => 'nullable|date_format:Y-m-d H:i:s',
         ]);
-        
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Ошибка валидации',
                 'errors' => $validator->errors(),
             ], 422);
         }
-        
+
         // Handle photo uploads
         $photoUrls = [];
         if ($request->hasFile('photos')) {
@@ -624,11 +624,11 @@ class RouteSheetController extends Controller
                 $photoUrls[] = Storage::url($path);
             }
         }
-        
-        $completedAt = $request->completed_at 
-            ? Carbon::parse($request->completed_at) 
+
+        $completedAt = $request->completed_at
+            ? Carbon::parse($request->completed_at)
             : now();
-        
+
         $task->update([
             'status' => Task::STATUS_COMPLETED,
             'completed_at' => $completedAt,
@@ -636,21 +636,21 @@ class RouteSheetController extends Controller
             'comment' => $request->comment,
             'photos' => !empty($photoUrls) ? $photoUrls : $task->photos,
         ]);
-        
+
         // Create diary entry for the completed task (always, to show in history)
         $this->createDiaryEntryFromTask($task, $user, $request->value ?? []);
-        
+
         /* 
         if ($task->related_diary_key && $request->value) {
             $this->createDiaryEntryFromTask($task, $user, $request->value);
         }
         */
-        
+
         // Send notifications
         $this->sendTaskNotifications($task, $user);
-        
+
         $task->load(['patient', 'assignedTo', 'completedBy']);
-        
+
         return response()->json(array_merge($task->toArray(), [
             'message' => 'Задача успешно выполнена',
         ]));
@@ -677,42 +677,42 @@ class RouteSheetController extends Controller
     {
         $user = $request->user();
         $patient = $task->patient;
-        
+
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет прав на обновление этой задачи.',
             ], 403);
         }
-        
+
         if ($task->status !== Task::STATUS_PENDING && $task->status !== Task::STATUS_MISSED) {
             return response()->json([
                 'message' => 'Отмечать как пропущенные можно только задачи со статусом "ожидает" или "пропущено".',
             ], 422);
         }
-        
+
         $validator = Validator::make($request->all(), [
             'reason' => 'required|string|max:1000',
         ]);
-        
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Ошибка валидации',
                 'errors' => $validator->errors(),
             ], 422);
         }
-        
+
         $task->update([
             'status' => Task::STATUS_MISSED,
             'completed_at' => now(),
             'completed_by' => $user->id,
             'comment' => $request->reason,
         ]);
-        
+
         // Send notifications (including critical notification to manager)
         $this->sendTaskNotifications($task, $user);
-        
+
         $task->load(['patient', 'assignedTo', 'completedBy']);
-        
+
         return response()->json(array_merge($task->toArray(), [
             'message' => 'Задача отмечена как пропущенная',
         ]));
@@ -733,29 +733,29 @@ class RouteSheetController extends Controller
     {
         $user = $request->user();
         $patient = $task->patient;
-        
+
         // Only clients, managers, admins, owners can delete tasks
         if (!$user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на удаление задач.',
             ], 403);
         }
-        
+
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет прав на удаление этой задачи.',
             ], 403);
         }
-        
+
         // Only pending or cancelled tasks can be deleted
         if (!in_array($task->status, [Task::STATUS_PENDING, Task::STATUS_CANCELLED])) {
             return response()->json([
                 'message' => 'Удалять можно только задачи со статусом "ожидает" или "отменена".',
             ], 422);
         }
-        
+
         $task->delete();
-        
+
         return response()->json([
             'message' => 'Задача успешно удалена',
         ]);
@@ -775,18 +775,18 @@ class RouteSheetController extends Controller
     {
         $user = $request->user();
         $date = $request->query('date', now()->format('Y-m-d'));
-        
+
         $query = Task::with(['patient', 'template'])
             ->whereDate('start_at', $date)
             ->orderBy('start_at', 'asc')
             ->orderBy('priority', 'desc');
-        
+
         // For caregivers: tasks assigned to them
         if ($user->hasRole('caregiver')) {
             // Проверяем тип организации
             if ($user->organization_id && $user->organization) {
                 $organization = $user->organization;
-                
+
                 if ($organization->isAgency()) {
                     // В Агентстве: только задачи, назначенные именно этой сиделке
                     $query->where('assigned_to', $user->id);
@@ -794,20 +794,20 @@ class RouteSheetController extends Controller
                     // В Пансионате или других организациях: свои задачи + незанятые
                     $query->where(function ($q) use ($user) {
                         $q->where('assigned_to', $user->id)
-                          ->orWhere(function ($q2) use ($user) {
-                              $q2->whereNull('assigned_to')
-                                 ->whereIn('patient_id', $user->assignedPatients()->pluck('patients.id'));
-                          });
+                            ->orWhere(function ($q2) use ($user) {
+                                $q2->whereNull('assigned_to')
+                                    ->whereIn('patient_id', $user->assignedPatients()->pluck('patients.id'));
+                            });
                     });
                 }
             } else {
                 // Частные сиделки: свои задачи + незанятые задачи назначенных пациентов
                 $query->where(function ($q) use ($user) {
                     $q->where('assigned_to', $user->id)
-                      ->orWhere(function ($q2) use ($user) {
-                          $q2->whereNull('assigned_to')
-                             ->whereIn('patient_id', $user->assignedPatients()->pluck('patients.id'));
-                      });
+                        ->orWhere(function ($q2) use ($user) {
+                            $q2->whereNull('assigned_to')
+                                ->whereIn('patient_id', $user->assignedPatients()->pluck('patients.id'));
+                        });
                 });
             }
         }
@@ -831,7 +831,7 @@ class RouteSheetController extends Controller
                 $q->where('creator_id', $user->id);
             });
         }
-        
+
         $tasks = $query->get()->map(function ($task) {
             return array_merge($task->toArray(), [
                 'start_time' => $task->start_at?->format('H:i'),
@@ -840,7 +840,7 @@ class RouteSheetController extends Controller
                 'is_overdue' => $task->isOverdue(),
             ]);
         });
-        
+
         // Group by time slots for calendar view
         $timeSlots = [];
         foreach ($tasks as $task) {
@@ -850,7 +850,7 @@ class RouteSheetController extends Controller
             }
             $timeSlots[$hour][] = $task;
         }
-        
+
         return response()->json([
             'date' => $date,
             'tasks' => $tasks,
@@ -880,34 +880,34 @@ class RouteSheetController extends Controller
     public function availableEmployees(Request $request): JsonResponse
     {
         $user = $request->user();
-        
+
         $validator = Validator::make($request->all(), [
             'patient_id' => 'required|exists:patients,id',
             'start_at' => 'required|date_format:Y-m-d H:i:s',
             'end_at' => 'required|date_format:Y-m-d H:i:s',
         ]);
-        
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Ошибка валидации',
                 'errors' => $validator->errors(),
             ], 422);
         }
-        
+
         $patient = Patient::findOrFail($request->patient_id);
-        
+
         if (!$this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
-        
+
         $startAt = Carbon::parse($request->start_at);
         $endAt = Carbon::parse($request->end_at);
-        
+
         // Get employees from organization or assigned to patient
         $employees = collect();
-        
+
         if ($patient->organization) {
             // Get organization employees (caregivers and doctors)
             $employees = $patient->organization->employees()
@@ -923,7 +923,7 @@ class RouteSheetController extends Controller
                 })
                 ->get();
         }
-        
+
         // Check availability for each employee
         $employeesWithAvailability = $employees->map(function ($employee) use ($startAt, $endAt) {
             // Count tasks in the time range
@@ -931,14 +931,14 @@ class RouteSheetController extends Controller
                 ->where('status', Task::STATUS_PENDING)
                 ->where(function ($q) use ($startAt, $endAt) {
                     $q->whereBetween('start_at', [$startAt, $endAt])
-                      ->orWhereBetween('end_at', [$startAt, $endAt])
-                      ->orWhere(function ($q2) use ($startAt, $endAt) {
-                          $q2->where('start_at', '<=', $startAt)
-                             ->where('end_at', '>=', $endAt);
-                      });
+                        ->orWhereBetween('end_at', [$startAt, $endAt])
+                        ->orWhere(function ($q2) use ($startAt, $endAt) {
+                            $q2->where('start_at', '<=', $startAt)
+                                ->where('end_at', '>=', $endAt);
+                        });
                 })
                 ->count();
-            
+
             return [
                 'id' => $employee->id,
                 'name' => $employee->name,
@@ -947,7 +947,7 @@ class RouteSheetController extends Controller
                 'conflicting_tasks_count' => $conflictingTasks,
             ];
         });
-        
+
         return response()->json([
             'employees' => $employeesWithAvailability,
             'time_slot' => [
@@ -964,7 +964,7 @@ class RouteSheetController extends Controller
     private function createDiaryEntryFromTask(Task $task, $user, array $value): void
     {
         $patient = $task->patient;
-        
+
         // Get or create diary for patient
         $diary = $patient->diary;
         if (!$diary) {
@@ -972,10 +972,10 @@ class RouteSheetController extends Controller
                 'patient_id' => $patient->id,
             ]);
         }
-        
+
         // Determine diary type based on key
         $physicalKeys = ['temperature', 'blood_pressure', 'pulse', 'weight', 'height', 'blood_sugar', 'saturation', 'breathing_rate', 'pain_level'];
-        
+
         if ($task->related_diary_key) {
             $key = $task->related_diary_key;
             $entryValue = $value;
@@ -983,7 +983,13 @@ class RouteSheetController extends Controller
         } else {
             // Mapping Russian task titles to standard English keys
             $key = $this->mapTaskTitleToKey($task->title);
-            $entryValue = ['value' => $task->title]; // Save title as value so it displays nicely
+
+            if (!empty($value)) {
+                $entryValue = $value;
+            } else {
+                $entryValue = ['value' => $task->title]; // Save title as value so it displays nicely
+            }
+
             $diaryType = 'care';
         }
 
@@ -1019,7 +1025,7 @@ class RouteSheetController extends Controller
             'ужин' => 'meal',
             'полдник' => 'meal',
             'перекус' => 'meal',
-            
+
             // === MEDICATION (Приём лекарств) ===
             'приём лекарств' => 'medication',
             'прием лекарств' => 'medication',
@@ -1033,13 +1039,13 @@ class RouteSheetController extends Controller
             'укол' => 'medication',
             'инъекция' => 'medication',
             'капельница' => 'medication',
-            
+
             // === WALK (Прогулка) ===
             'прогулка' => 'walk',
             'гулять' => 'walk',
             'гуляние' => 'walk',
             'выход на улицу' => 'walk',
-            
+
             // === HYGIENE (Гигиена) ===
             'гигиена' => 'hygiene',
             'купание' => 'hygiene',
@@ -1051,13 +1057,13 @@ class RouteSheetController extends Controller
             'чистка зубов' => 'hygiene',
             'зубы' => 'hygiene',
             'туалет' => 'hygiene',
-            
+
             // === DIAPER_CHANGE (Смена подгузника) ===
             'смена подгузника' => 'diaper_change',
             'подгузник' => 'diaper_change',
             'памперс' => 'diaper_change',
             'смена памперса' => 'diaper_change',
-            
+
             // === PHYSICAL MEASUREMENTS ===
             'температура' => 'temperature',
             'измерение температуры' => 'temperature',
@@ -1079,7 +1085,7 @@ class RouteSheetController extends Controller
             'вес' => 'weight',
             'взвешивание' => 'weight',
             'рост' => 'height',
-            
+
             // === OTHER CARE ===
             'сон' => 'sleep',
             'отдых' => 'rest',
@@ -1097,25 +1103,25 @@ class RouteSheetController extends Controller
         ];
 
         $lowerTitle = mb_strtolower(trim($title));
-        
+
         // Try exact match first
         if (isset($mapping[$lowerTitle])) {
             return $mapping[$lowerTitle];
         }
-        
+
         // Try partial match (if title contains the keyword)
         // Sort by key length descending to match longer phrases first
         $sortedMapping = $mapping;
-        uksort($sortedMapping, function($a, $b) {
+        uksort($sortedMapping, function ($a, $b) {
             return mb_strlen($b) - mb_strlen($a);
         });
-        
+
         foreach ($sortedMapping as $russian => $english) {
             if (mb_strpos($lowerTitle, $russian) !== false) {
                 return $english;
             }
         }
-        
+
         // Fallback: use slug of the title
         return \Illuminate\Support\Str::slug($title, '_');
     }
@@ -1168,7 +1174,7 @@ class RouteSheetController extends Controller
         // Сотрудник организации (приоритет выше, чем type)
         if ($user->organization_id) {
             $organization = $user->organization;
-            
+
             if (!$organization) {
                 return false;
             }
@@ -1185,10 +1191,12 @@ class RouteSheetController extends Controller
 
             // Пансионат: ВСЕ сотрудники (включая врачей и сиделок) видят ВСЕХ пациентов организации
             if ($organization->isBoardingHouse()) {
-                if ($patient->diary && $patient->diary->accessUsers()
-                    ->where('user_id', $user->id)
-                    ->wherePivot('status', 'revoked')
-                    ->exists()) {
+                if (
+                    $patient->diary && $patient->diary->accessUsers()
+                        ->where('user_id', $user->id)
+                        ->wherePivot('status', 'revoked')
+                        ->exists()
+                ) {
                     \Log::info('canAccessPatient: boarding house - access revoked');
                     return false;
                 }
@@ -1204,22 +1212,22 @@ class RouteSheetController extends Controller
                     \Log::info('canAccessPatient: agency admin/manager');
                     return true;
                 }
-                
+
                 // Проверяем назначение через patient_user
                 $isAssigned = $patient->assignedUsers()->where('user_id', $user->id)->exists();
                 \Log::info('canAccessPatient: agency check assigned', ['isAssigned' => $isAssigned]);
-                
+
                 if ($isAssigned) {
                     return true;
                 }
-                
+
                 // Проверяем доступ через diary_access
                 $hasDiaryAccess = $patient->diary && $patient->diary->hasAccess($user);
                 \Log::info('canAccessPatient: agency check diary access', ['hasDiaryAccess' => $hasDiaryAccess]);
-                
+
                 return $hasDiaryAccess;
             }
-            
+
             return true;
         }
 
@@ -1231,18 +1239,18 @@ class RouteSheetController extends Controller
             if ($isAssigned) {
                 return true;
             }
-            
+
             // Проверяем доступ через дневник
             $hasDiaryAccess = $patient->diary && $patient->diary->hasAccess($user);
             if ($hasDiaryAccess) {
                 return true;
             }
-            
+
             // Частная сиделка (без организации) - только назначенные
             if ($user->isPrivateCaregiver()) {
                 return $isAssigned;
             }
-            
+
             return false;
         }
 
@@ -1252,12 +1260,12 @@ class RouteSheetController extends Controller
             if ($patient->owner_id === $user->id) {
                 return true;
             }
-            
+
             // Создатель пациента
             if ($patient->creator_id === $user->id) {
                 return true;
             }
-            
+
             return false;
         }
 
@@ -1273,24 +1281,24 @@ class RouteSheetController extends Controller
         if (!$assignee) {
             return false;
         }
-        
+
         // Assignee must be a caregiver or doctor
         if (!$assignee->hasAnyRole(['caregiver', 'doctor'])) {
             return false;
         }
-        
+
         // Check if assignee belongs to the same organization
         if ($patient->organization) {
             if ($assignee->organization_id === $patient->organization_id) {
                 return true;
             }
         }
-        
+
         // Check if assignee is assigned to this patient
         if ($patient->assignedUsers()->where('user_id', $assigneeId)->exists()) {
             return true;
         }
-        
+
         return false;
     }
 }
