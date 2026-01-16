@@ -1100,6 +1100,9 @@ class RouteSheetController extends Controller
             'процедура' => 'procedure',
             'процедуры' => 'procedure',
             'уход' => 'care',
+
+            // === COGNITIVE (Когнитивные) ===
+            'когнитивные игры' => 'cognitive_games',
         ];
 
         $lowerTitle = mb_strtolower(trim($title));
