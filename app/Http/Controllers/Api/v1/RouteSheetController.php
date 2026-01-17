@@ -1103,7 +1103,7 @@ class RouteSheetController extends Controller
 
             // === COGNITIVE (Когнитивные) ===
             'когнитивные игры' => 'cognitive_games',
-            'Увлажнение кожи' => 'skin_moisturizing',
+            'увлажнение кожи' => 'skin_moisturizing',
         ];
 
         $lowerTitle = mb_strtolower(trim($title));
