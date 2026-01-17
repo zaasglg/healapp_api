@@ -146,15 +146,38 @@ class RouteSheetController extends Controller
                     // В Пансионате: сиделка видит ТОЛЬКО задачи, назначенные именно ей
                     $query->where('assigned_to', $user->id);
                 } elseif ($organization->isAgency()) {
-                    // В Агентстве: сиделка видит ТОЛЬКО задачи, назначенные именно ей
-                    // (строгая фильтрация, без незанятых задач)
-                    $query->where('assigned_to', $user->id);
-
-                    // Фильтруем только по пациентам, к которым есть доступ
+                    // В Агентстве: все задачи пациентов, к которым есть доступ
+                    // Если указан patient_id, проверка доступа уже выполнена выше (строки 130-134)
+                    // Если не указан, фильтруем по доступным пациентам
                     if (!$request->has('patient_id')) {
-                        $assignedPatientIds = $user->assignedPatients()->pluck('patients.id');
-                        $query->whereIn('patient_id', $assignedPatientIds);
+                        // Получаем ID пациентов, к которым сотрудник имеет доступ
+                        $accessiblePatientIds = \App\Models\Patient::where('organization_id', $organization->id)
+                            ->whereHas('assignedUsers', function ($q) use ($user) {
+                                $q->where('user_id', $user->id);
+                            })
+                            ->pluck('id')
+                            ->toArray();
+
+                        // Также проверяем доступ через diary_access
+                        $diaryAccessPatientIds = \App\Models\Patient::where('organization_id', $organization->id)
+                            ->whereHas('diary.accessUsers', function ($q) use ($user) {
+                                $q->where('user_id', $user->id)
+                                    ->where('status', '!=', 'revoked');
+                            })
+                            ->pluck('id')
+                            ->toArray();
+
+                        // Объединяем оба массива
+                        $allAccessiblePatientIds = array_unique(array_merge($accessiblePatientIds, $diaryAccessPatientIds));
+
+                        if (!empty($allAccessiblePatientIds)) {
+                            $query->whereIn('patient_id', $allAccessiblePatientIds);
+                        } else {
+                            // Если нет доступа ни к одному пациенту, возвращаем пустой результат
+                            $query->whereRaw('1 = 0');
+                        }
                     }
+
                 } else {
                     // Для других типов организаций
                     $query->where('assigned_to', $user->id);
@@ -788,8 +811,33 @@ class RouteSheetController extends Controller
                 $organization = $user->organization;
 
                 if ($organization->isAgency()) {
-                    // В Агентстве: только задачи, назначенные именно этой сиделке
-                    $query->where('assigned_to', $user->id);
+                    // В Агентстве: все задачи пациентов, к которым есть доступ
+                    // Получаем ID пациентов, к которым сотрудник имеет доступ
+                    $accessiblePatientIds = \App\Models\Patient::where('organization_id', $organization->id)
+                        ->whereHas('assignedUsers', function ($q) use ($user) {
+                            $q->where('user_id', $user->id);
+                        })
+                        ->pluck('id')
+                        ->toArray();
+
+                    // Также проверяем доступ через diary_access
+                    $diaryAccessPatientIds = \App\Models\Patient::where('organization_id', $organization->id)
+                        ->whereHas('diary.accessUsers', function ($q) use ($user) {
+                            $q->where('user_id', $user->id)
+                                ->where('status', '!=', 'revoked');
+                        })
+                        ->pluck('id')
+                        ->toArray();
+
+                    // Объединяем оба массива
+                    $allAccessiblePatientIds = array_unique(array_merge($accessiblePatientIds, $diaryAccessPatientIds));
+
+                    if (!empty($allAccessiblePatientIds)) {
+                        $query->whereIn('patient_id', $allAccessiblePatientIds);
+                    } else {
+                        // Если нет доступа ни к одному пациенту, возвращаем пустой результат
+                        $query->whereRaw('1 = 0');
+                    }
                 } else {
                     // В Пансионате или других организациях: свои задачи + незанятые
                     $query->where(function ($q) use ($user) {
@@ -813,8 +861,47 @@ class RouteSheetController extends Controller
         }
         // For doctors: similar logic
         elseif ($user->hasRole('doctor')) {
-            $assignedPatientIds = $user->assignedPatients()->pluck('patients.id');
-            $query->whereIn('patient_id', $assignedPatientIds);
+            // Проверяем тип организации
+            if ($user->organization_id && $user->organization) {
+                $organization = $user->organization;
+
+                if ($organization->isAgency()) {
+                    // В Агентстве: все задачи пациентов, к которым есть доступ
+                    $accessiblePatientIds = \App\Models\Patient::where('organization_id', $organization->id)
+                        ->whereHas('assignedUsers', function ($q) use ($user) {
+                            $q->where('user_id', $user->id);
+                        })
+                        ->pluck('id')
+                        ->toArray();
+
+                    // Также проверяем доступ через diary_access
+                    $diaryAccessPatientIds = \App\Models\Patient::where('organization_id', $organization->id)
+                        ->whereHas('diary.accessUsers', function ($q) use ($user) {
+                            $q->where('user_id', $user->id)
+                                ->where('status', '!=', 'revoked');
+                        })
+                        ->pluck('id')
+                        ->toArray();
+
+                    // Объединяем оба массива
+                    $allAccessiblePatientIds = array_unique(array_merge($accessiblePatientIds, $diaryAccessPatientIds));
+
+                    if (!empty($allAccessiblePatientIds)) {
+                        $query->whereIn('patient_id', $allAccessiblePatientIds);
+                    } else {
+                        // Если нет доступа ни к одному пациенту, возвращаем пустой результат
+                        $query->whereRaw('1 = 0');
+                    }
+                } else {
+                    // Для других организаций: назначенные пациенты
+                    $assignedPatientIds = $user->assignedPatients()->pluck('patients.id');
+                    $query->whereIn('patient_id', $assignedPatientIds);
+                }
+            } else {
+                // Частные врачи: назначенные пациенты
+                $assignedPatientIds = $user->assignedPatients()->pluck('patients.id');
+                $query->whereIn('patient_id', $assignedPatientIds);
+            }
         }
         // For managers: organization patients
         elseif ($user->hasRole('manager')) {
