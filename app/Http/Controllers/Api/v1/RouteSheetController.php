@@ -1080,12 +1080,23 @@ class RouteSheetController extends Controller
             $diaryType = 'care';
         }
 
+        // DiaryEntry::create([
+        //     'diary_id' => $diary->id,
+        //     'author_id' => $user->id,
+        //     'source_task_id' => $task->id, // Link to source task for sync
+        //     'type' => $diaryType,
+        //     'key' => $key,
+        //     'value' => $entryValue,
+        //     'recorded_at' => $task->completed_at,
+        //     'notes' => $task->comment ?? 'Created from Task: ' . $task->title,
+        // ]);
+
         DiaryEntry::create([
             'diary_id' => $diary->id,
             'author_id' => $user->id,
-            'source_task_id' => $task->id, // Link to source task for sync
+            'source_task_id' => $task->id,
             'type' => $diaryType,
-            'key' => $key,
+            'parameter_key' => $key,
             'value' => $entryValue,
             'recorded_at' => $task->completed_at,
             'notes' => $task->comment ?? 'Created from Task: ' . $task->title,
