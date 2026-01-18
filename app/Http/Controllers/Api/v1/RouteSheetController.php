@@ -1165,8 +1165,7 @@ class RouteSheetController extends Controller
             'сатурация' => 'saturation',
             'кислород' => 'saturation',
             'уровень кислорода' => 'saturation',
-            'частота дыхания' => 'breathing_rate',
-            'дыхание' => 'breathing_rate',
+            'частота дыхания' => 'respiratory_rate',
             'уровень боли' => 'pain_level',
             'боль' => 'pain_level',
             'вес' => 'weight',
@@ -1189,6 +1188,8 @@ class RouteSheetController extends Controller
             'уход' => 'care',
             'дефекация' => 'defecation',
             'прием витаминов' => 'vitamins',
+            'уровень сахара в крови' => 'blood_sugar',
+            'выпито/выделено и цвет мочи' => 'urine',
 
             // === COGNITIVE (Когнитивные) ===
             'когнитивные игры' => 'cognitive_games',
