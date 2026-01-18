@@ -1188,7 +1188,7 @@ class RouteSheetController extends Controller
             'процедуры' => 'procedure',
             'уход' => 'care',
             'дефекация' => 'defecation',
-            'приём витаминов' => 'vitamins',
+            'прием витаминов' => 'vitamins',
 
             // === COGNITIVE (Когнитивные) ===
             'когнитивные игры' => 'cognitive_games',
