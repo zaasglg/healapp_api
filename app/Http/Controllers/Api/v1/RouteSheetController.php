@@ -1191,6 +1191,7 @@ class RouteSheetController extends Controller
             'уровень сахара в крови' => 'blood_sugar',
             'выпито/выделено и цвет мочи' => 'urine',
 
+
             // === COGNITIVE (Когнитивные) ===
             'когнитивные игры' => 'cognitive_games',
             'увлажнение кожи' => 'skin_moisturizing',
