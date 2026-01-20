@@ -29,9 +29,9 @@ class DiaryPolicy
      */
     public function create(User $user): bool
     {
-        // Клиенты не создают дневники напрямую
+        // Клиенты могут создавать дневники для своих пациентов
         if ($user->isClient()) {
-            return false;
+            return true;
         }
 
         // Частные сиделки могут создавать
@@ -40,7 +40,7 @@ class DiaryPolicy
         }
 
         // Только owner/admin организации
-        return $user->hasAnyRole(['owner', 'admin']);
+        return $user->hasAnyRole(["owner", "admin"]);
     }
 
     /**
@@ -56,13 +56,13 @@ class DiaryPolicy
         }
 
         // Частная сиделка с доступом
-        if ($user->isPrivateCaregiver() && $diary->hasAccess($user, 'edit')) {
+        if ($user->isPrivateCaregiver() && $diary->hasAccess($user, "edit")) {
             return true;
         }
 
         // Только admin/owner организации
-        return $user->hasAnyRole(['owner', 'admin']) 
-            && $patient->organization_id === $user->organization_id;
+        return $user->hasAnyRole(["owner", "admin"]) &&
+            $patient->organization_id === $user->organization_id;
     }
 
     /**
@@ -76,8 +76,8 @@ class DiaryPolicy
         }
 
         // Owner/Admin организации
-        return $user->canManageAccess() 
-            && $diary->patient->organization_id === $user->organization_id;
+        return $user->canManageAccess() &&
+            $diary->patient->organization_id === $user->organization_id;
     }
 
     /**
@@ -90,7 +90,7 @@ class DiaryPolicy
             return true;
         }
 
-        return $user->isOwner() 
-            && $diary->patient->organization_id === $user->organization_id;
+        return $user->isOwner() &&
+            $diary->patient->organization_id === $user->organization_id;
     }
 }
