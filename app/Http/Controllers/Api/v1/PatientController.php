@@ -24,12 +24,16 @@ class PatientController extends Controller
      *     summary="Get list of patients",
      *     description="Retrieve a list of patients. Clients see their own patients, managers see their organization's patients.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Response(
      *         response=200,
      *         description="List of patients retrieved successfully",
+     *
      *         @OA\JsonContent(
      *             type="array",
+     *
      *             @OA\Items(
+     *
      *                 @OA\Property(property="id", type="integer", example=1),
      *                 @OA\Property(property="creator_id", type="integer", example=1),
      *                 @OA\Property(property="organization_id", type="integer", nullable=true, example=1),
@@ -48,10 +52,13 @@ class PatientController extends Controller
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     )
@@ -63,7 +70,7 @@ class PatientController extends Controller
 
         // Клиент видит только своих пациентов (где owner_id = user.id)
         if ($user->isClient()) {
-            $patients = Patient::where('owner_id', $user->id)->get();
+            $patients = Patient::where("owner_id", $user->id)->get();
         }
         // Частная сиделка видит пациентов, к которым назначена
         elseif ($user->isPrivateCaregiver()) {
@@ -72,31 +79,41 @@ class PatientController extends Controller
         // Сотрудник организации видит пациентов своей организации
         elseif ($user->organization_id) {
             $organization = $user->organization;
-            
+
             if (!$organization) {
                 return response()->json([], 200);
             }
 
             // Пансионат: все сотрудники видят всех пациентов организации
             if ($organization->isBoardingHouse()) {
-                $patients = Patient::where('organization_id', $organization->id)->get();
+                $patients = Patient::where(
+                    "organization_id",
+                    $organization->id,
+                )->get();
             }
             // Агентство: только назначенные пациенты
             elseif ($organization->isAgency()) {
                 // Владельцы и админы видят всех пациентов организации
-                if ($user->hasAnyRole(['owner', 'admin'])) {
-                    $patients = Patient::where('organization_id', $organization->id)->get();
+                if ($user->hasAnyRole(["owner", "admin"])) {
+                    $patients = Patient::where(
+                        "organization_id",
+                        $organization->id,
+                    )->get();
                 } else {
                     // Остальные сотрудники видят только назначенных пациентов
-                    $patients = $user->assignedPatients()
-                        ->where('organization_id', $organization->id)
+                    $patients = $user
+                        ->assignedPatients()
+                        ->where("organization_id", $organization->id)
                         ->get();
                 }
             } else {
                 // Fallback: все пациенты организации для владельцев/админов
-                if ($user->hasAnyRole(['owner', 'admin'])) {
-                    $patients = Patient::where('organization_id', $organization->id)->get();
-        } else {
+                if ($user->hasAnyRole(["owner", "admin"])) {
+                    $patients = Patient::where(
+                        "organization_id",
+                        $organization->id,
+                    )->get();
+                } else {
                     $patients = collect();
                 }
             }
@@ -116,10 +133,13 @@ class PatientController extends Controller
      *     summary="Create a new patient",
      *     description="Create a new patient profile. Clients create personal patients, managers create organization patients.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"first_name", "last_name", "gender", "mobility"},
+     *
      *             @OA\Property(property="first_name", type="string", example="Ivan", description="Patient's first name"),
      *             @OA\Property(property="last_name", type="string", example="Petrov", description="Patient's last name"),
      *             @OA\Property(property="middle_name", type="string", nullable=true, example="Sergeevich", description="Patient's middle name"),
@@ -134,10 +154,13 @@ class PatientController extends Controller
      *             @OA\Property(property="organization_id", type="integer", nullable=true, example=1, description="Organization ID (optional, defaults to user's organization)")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=201,
      *         description="Patient created successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="id", type="integer", example=1),
      *             @OA\Property(property="creator_id", type="integer", example=1),
      *             @OA\Property(property="organization_id", type="integer", nullable=true, example=1),
@@ -155,17 +178,23 @@ class PatientController extends Controller
      *             @OA\Property(property="updated_at", type="string", format="date-time")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=422,
      *         description="Validation error",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="The given data was invalid."),
      *             @OA\Property(property="errors", type="object")
      *         )
@@ -175,41 +204,62 @@ class PatientController extends Controller
     public function store(StorePatientRequest $request): JsonResponse
     {
         $user = $request->user();
-        
+
         // В Пансионате: только admin, owner и manager могут создавать пациентов
         // Doctor и Caregiver имеют только read-only доступ
         if ($user->organization_id) {
             $organization = $user->organization;
             if ($organization && $organization->isBoardingHouse()) {
-                if ($user->hasAnyRole(['doctor', 'caregiver'])) {
-                    return response()->json([
-                        'message' => 'У вас нет прав на создание пациентов. Доступ только для чтения.',
-                    ], 403);
+                if ($user->hasAnyRole(["doctor", "caregiver"])) {
+                    return response()->json(
+                        [
+                            "message" =>
+                                "У вас нет прав на создание пациентов. Доступ только для чтения.",
+                        ],
+                        403,
+                    );
                 }
             }
         }
-        
+
         $data = $request->validated();
 
         // Set creator_id to authenticated user
-        $data['creator_id'] = $user->id;
+        $data["creator_id"] = $user->id;
 
-        // Determine organization_id
-        // 1. If explicitly provided in request, use it (with validation)
-        // 2. If user belongs to an organization, use their organization
-        // 3. Otherwise, leave as null (for private caregivers or clients)
-        if (!isset($data['organization_id']) || $data['organization_id'] === null) {
-            if ($user->organization_id) {
-                $data['organization_id'] = $user->organization_id;
-            }
-        } else {
-            // If organization_id is provided, validate user has access to it
-            // Only allow setting organization_id if user belongs to that organization
-            // or is the owner of that organization
-            if ($user->organization_id !== $data['organization_id']) {
-                return response()->json([
-                    'message' => 'Вы не можете создавать пациентов для другой организации',
-                ], 403);
+        // For CLIENT users: automatically set owner_id to current user
+        // Clients create patients for themselves (their relatives)
+        if ($user->isClient()) {
+            $data["owner_id"] = $user->id;
+            // Clients don't belong to organizations
+            $data["organization_id"] = null;
+        }
+        // For organization members and private caregivers
+        else {
+            // Determine organization_id
+            // 1. If explicitly provided in request, use it (with validation)
+            // 2. If user belongs to an organization, use their organization
+            // 3. Otherwise, leave as null (for private caregivers)
+            if (
+                !isset($data["organization_id"]) ||
+                $data["organization_id"] === null
+            ) {
+                if ($user->organization_id) {
+                    $data["organization_id"] = $user->organization_id;
+                }
+            } else {
+                // If organization_id is provided, validate user has access to it
+                // Only allow setting organization_id if user belongs to that organization
+                // or is the owner of that organization
+                if ($user->organization_id !== $data["organization_id"]) {
+                    return response()->json(
+                        [
+                            "message" =>
+                                "Вы не можете создавать пациентов для другой организации",
+                        ],
+                        403,
+                    );
+                }
             }
         }
 
@@ -225,17 +275,22 @@ class PatientController extends Controller
      *     summary="Get a specific patient",
      *     description="Retrieve details of a specific patient. Access is restricted to the creator or organization members.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="Patient ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Patient details retrieved successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="id", type="integer", example=1),
      *             @OA\Property(property="creator_id", type="integer", example=1),
      *             @OA\Property(property="organization_id", type="integer", nullable=true, example=1),
@@ -253,24 +308,33 @@ class PatientController extends Controller
      *             @OA\Property(property="updated_at", type="string", format="date-time")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have access to this patient.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=404,
      *         description="Patient not found",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\Patient] {id}")
      *         )
      *     )
@@ -282,9 +346,12 @@ class PatientController extends Controller
 
         // Check access
         if (!$this->canAccessPatient($user, $patient)) {
-            return response()->json([
-                'message' => 'У вас нет доступа к этому пациенту.',
-            ], 403);
+            return response()->json(
+                [
+                    "message" => "У вас нет доступа к этому пациенту.",
+                ],
+                403,
+            );
         }
 
         return response()->json($patient, 200);
@@ -297,16 +364,21 @@ class PatientController extends Controller
      *     summary="Update a patient",
      *     description="Update patient information. Access is restricted to the creator or organization members.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="Patient ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="first_name", type="string", example="Ivan"),
      *             @OA\Property(property="last_name", type="string", example="Petrov"),
      *             @OA\Property(property="middle_name", type="string", nullable=true, example="Sergeevich"),
@@ -320,10 +392,13 @@ class PatientController extends Controller
      *             @OA\Property(property="needed_services", type="array", nullable=true, @OA\Items(type="string"), example={"Nursing care", "Physical therapy"})
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Patient updated successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="id", type="integer", example=1),
      *             @OA\Property(property="creator_id", type="integer", example=1),
      *             @OA\Property(property="organization_id", type="integer", nullable=true, example=1),
@@ -341,57 +416,81 @@ class PatientController extends Controller
      *             @OA\Property(property="updated_at", type="string", format="date-time")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have access to this patient.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=404,
      *         description="Patient not found",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\Patient] {id}")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=422,
      *         description="Validation error",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="The given data was invalid."),
      *             @OA\Property(property="errors", type="object")
      *         )
      *     )
      * )
      */
-    public function update(UpdatePatientRequest $request, Patient $patient): JsonResponse
-    {
+    public function update(
+        UpdatePatientRequest $request,
+        Patient $patient,
+    ): JsonResponse {
         $user = $request->user();
 
         // Check access
         if (!$this->canAccessPatient($user, $patient)) {
-            return response()->json([
-                'message' => 'У вас нет доступа к этому пациенту.',
-            ], 403);
+            return response()->json(
+                [
+                    "message" => "У вас нет доступа к этому пациенту.",
+                ],
+                403,
+            );
         }
 
         // В Пансионате: только admin, owner и manager могут обновлять пациентов
         // Doctor и Caregiver имеют только read-only доступ
-        if ($user->organization_id && $patient->organization_id === $user->organization_id) {
+        if (
+            $user->organization_id &&
+            $patient->organization_id === $user->organization_id
+        ) {
             $organization = $user->organization;
             if ($organization && $organization->isBoardingHouse()) {
-                if ($user->hasAnyRole(['doctor', 'caregiver'])) {
-                    return response()->json([
-                        'message' => 'У вас нет прав на редактирование пациентов. Доступ только для чтения.',
-                    ], 403);
+                if ($user->hasAnyRole(["doctor", "caregiver"])) {
+                    return response()->json(
+                        [
+                            "message" =>
+                                "У вас нет прав на редактирование пациентов. Доступ только для чтения.",
+                        ],
+                        403,
+                    );
                 }
             }
         }
@@ -408,38 +507,52 @@ class PatientController extends Controller
      *     summary="Delete a patient",
      *     description="Delete a patient. Access is restricted to the creator or organization members.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="Patient ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Patient deleted successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Patient deleted successfully")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have access to this patient.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=404,
      *         description="Patient not found",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\Patient] {id}")
      *         )
      *     )
@@ -451,16 +564,22 @@ class PatientController extends Controller
 
         // Check access
         if (!$this->canAccessPatient($user, $patient)) {
-            return response()->json([
-                'message' => 'У вас нет доступа к этому пациенту.',
-            ], 403);
+            return response()->json(
+                [
+                    "message" => "У вас нет доступа к этому пациенту.",
+                ],
+                403,
+            );
         }
 
         $patient->delete();
 
-        return response()->json([
-            'message' => 'Пациент успешно удалён',
-        ], 200);
+        return response()->json(
+            [
+                "message" => "Пациент успешно удалён",
+            ],
+            200,
+        );
     }
 
     /**
@@ -472,7 +591,7 @@ class PatientController extends Controller
         // Сотрудник организации (приоритет выше, чем type)
         if ($user->organization_id) {
             $organization = $user->organization;
-            
+
             if (!$organization) {
                 return false;
             }
@@ -483,16 +602,20 @@ class PatientController extends Controller
             }
 
             // Владельцы и админы организации имеют доступ ко всем пациентам организации
-            if ($user->hasAnyRole(['owner', 'admin', 'manager'])) {
+            if ($user->hasAnyRole(["owner", "admin", "manager"])) {
                 return true;
             }
 
             // Пансионат: ВСЕ сотрудники (включая врачей и сиделок) видят ВСЕХ пациентов организации
             if ($organization->isBoardingHouse()) {
-                if ($patient->diary && $patient->diary->accessUsers()
-                    ->where('user_id', $user->id)
-                    ->wherePivot('status', 'revoked')
-                    ->exists()) {
+                if (
+                    $patient->diary &&
+                    $patient->diary
+                        ->accessUsers()
+                        ->where("user_id", $user->id)
+                        ->wherePivot("status", "revoked")
+                        ->exists()
+                ) {
                     return false;
                 }
 
@@ -502,44 +625,53 @@ class PatientController extends Controller
             // Агентство: только сотрудники, явно добавленные через admin
             if ($organization->isAgency()) {
                 // Admin и Manager видят всех
-                if ($user->hasAnyRole(['admin', 'manager'])) {
+                if ($user->hasAnyRole(["admin", "manager"])) {
                     return true;
                 }
-                
+
                 // Проверяем назначение через patient_user
-                $isAssigned = $patient->assignedUsers()->where('user_id', $user->id)->exists();
+                $isAssigned = $patient
+                    ->assignedUsers()
+                    ->where("user_id", $user->id)
+                    ->exists();
                 if ($isAssigned) {
                     return true;
                 }
-                
+
                 // Проверяем доступ через diary_access
-                $hasDiaryAccess = $patient->diary && $patient->diary->hasAccess($user);
+                $hasDiaryAccess =
+                    $patient->diary && $patient->diary->hasAccess($user);
+
                 return $hasDiaryAccess;
             }
-            
+
             return true;
         }
 
         // Приоритет ролям над типом пользователя
         // Пользователь с ролью сиделки/врача (независимо от type)
-        if ($user->hasAnyRole(['caregiver', 'doctor'])) {
+        if ($user->hasAnyRole(["caregiver", "doctor"])) {
             // Проверяем, назначен ли к пациенту
-            $isAssigned = $patient->assignedUsers()->where('user_id', $user->id)->exists();
+            $isAssigned = $patient
+                ->assignedUsers()
+                ->where("user_id", $user->id)
+                ->exists();
             if ($isAssigned) {
                 return true;
             }
-            
+
             // Проверяем доступ через дневник
-            $hasDiaryAccess = $patient->diary && $patient->diary->hasAccess($user);
+            $hasDiaryAccess =
+                $patient->diary && $patient->diary->hasAccess($user);
             if ($hasDiaryAccess) {
                 return true;
             }
-            
+
             // Частная сиделка (без организации) - только назначенные
             if ($user->isPrivateCaregiver()) {
                 return $isAssigned;
             }
-            
+
             return false;
         }
 
@@ -549,12 +681,12 @@ class PatientController extends Controller
             if ($patient->owner_id === $user->id) {
                 return true;
             }
-            
+
             // Создатель пациента
             if ($patient->creator_id === $user->id) {
                 return true;
             }
-            
+
             return false;
         }
 

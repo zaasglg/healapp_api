@@ -15,39 +15,35 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasApiTokens, HasRoles;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     protected $fillable = [
-        'first_name',
-        'last_name',
-        'middle_name',
-        'avatar',
-        'phone',
-        'unverified_phone',
-        'password',
-        'verification_code',
-        'phone_verified_at',
-        'city',
-        'type',
-        'organization_id',
+        "first_name",
+        "last_name",
+        "middle_name",
+        "avatar",
+        "phone",
+        "unverified_phone",
+        "password",
+        "verification_code",
+        "phone_verified_at",
+        "city",
+        "type",
+        "organization_id",
     ];
 
-    protected $hidden = [
-        'password',
-        'remember_token',
-        'verification_code',
-    ];
+    protected $hidden = ["password", "remember_token", "verification_code"];
 
     protected function casts(): array
     {
         return [
-            'phone_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'type' => UserType::class,
+            "phone_verified_at" => "datetime",
+            "password" => "hashed",
+            "type" => UserType::class,
         ];
     }
 
-    protected $appends = ['account_type'];
+    protected $appends = ["account_type"];
 
     // ===== RELATIONS =====
 
@@ -56,7 +52,7 @@ class User extends Authenticatable
      */
     public function organization(): BelongsTo
     {
-        return $this->belongsTo(Organization::class, 'organization_id');
+        return $this->belongsTo(Organization::class, "organization_id");
     }
 
     /**
@@ -64,7 +60,7 @@ class User extends Authenticatable
      */
     public function ownedOrganizations(): HasMany
     {
-        return $this->hasMany(Organization::class, 'owner_id');
+        return $this->hasMany(Organization::class, "owner_id");
     }
 
     /**
@@ -72,7 +68,7 @@ class User extends Authenticatable
      */
     public function patients(): HasMany
     {
-        return $this->hasMany(Patient::class, 'creator_id');
+        return $this->hasMany(Patient::class, "creator_id");
     }
 
     /**
@@ -80,7 +76,7 @@ class User extends Authenticatable
      */
     public function ownedPatients(): HasMany
     {
-        return $this->hasMany(Patient::class, 'owner_id');
+        return $this->hasMany(Patient::class, "owner_id");
     }
 
     /**
@@ -88,8 +84,12 @@ class User extends Authenticatable
      */
     public function assignedPatients(): BelongsToMany
     {
-        return $this->belongsToMany(Patient::class, 'patient_user', 'user_id', 'patient_id')
-            ->withTimestamps();
+        return $this->belongsToMany(
+            Patient::class,
+            "patient_user",
+            "user_id",
+            "patient_id",
+        )->withTimestamps();
     }
 
     /**
@@ -97,7 +97,7 @@ class User extends Authenticatable
      */
     public function sentInvitations(): HasMany
     {
-        return $this->hasMany(Invitation::class, 'inviter_id');
+        return $this->hasMany(Invitation::class, "inviter_id");
     }
 
     // ===== ACCESSORS =====
@@ -105,20 +105,23 @@ class User extends Authenticatable
     public function getAccountTypeAttribute(): ?string
     {
         if ($this->isClient()) {
-            return 'client';
+            return "client";
         }
 
         if ($this->isPrivateCaregiver()) {
-            return 'specialist';
+            return "specialist";
         }
 
         // Для сотрудников организации
         if ($this->organization_id) {
             $org = $this->organization;
             if ($org) {
-                if ($this->hasRole('owner') || $this->hasRole('admin')) {
-                    return $org->type === OrganizationType::BOARDING_HOUSE ? 'pansionat' : 'agency';
+                if ($this->hasRole("owner") || $this->hasRole("admin")) {
+                    return $org->type === OrganizationType::BOARDING_HOUSE
+                        ? "pansionat"
+                        : "agency";
                 }
+
                 return $this->roles->first()?->name;
             }
         }
@@ -128,12 +131,15 @@ class User extends Authenticatable
 
     public function getFullNameAttribute(): string
     {
-        return trim("{$this->last_name} {$this->first_name} {$this->middle_name}");
+        return trim(
+            "{$this->last_name} {$this->first_name} {$this->middle_name}",
+        );
     }
 
     public function getFullNameWithCityAttribute(): string
     {
         $fullName = $this->getFullNameAttribute();
+
         return $this->city ? "{$fullName} ({$this->city})" : $fullName;
     }
 
@@ -166,7 +172,7 @@ class User extends Authenticatable
      */
     public function isOwner(): bool
     {
-        return $this->hasRole('owner');
+        return $this->hasRole("owner");
     }
 
     /**
@@ -174,7 +180,7 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return $this->hasRole('admin') || $this->hasRole('owner');
+        return $this->hasRole("admin") || $this->hasRole("owner");
     }
 
     /**
@@ -182,7 +188,7 @@ class User extends Authenticatable
      */
     public function canManageEmployees(): bool
     {
-        return $this->hasAnyRole(['owner', 'admin']);
+        return $this->hasAnyRole(["owner", "admin"]);
     }
 
     /**
@@ -190,7 +196,7 @@ class User extends Authenticatable
      */
     public function canManageAccess(): bool
     {
-        return $this->hasAnyRole(['owner', 'admin']);
+        return $this->hasAnyRole(["owner", "admin"]);
     }
 
     /**
@@ -198,7 +204,9 @@ class User extends Authenticatable
      */
     public function canCreatePatients(): bool
     {
-        return $this->hasAnyRole(['owner', 'admin']) || $this->isPrivateCaregiver();
+        return $this->hasAnyRole(["owner", "admin"]) ||
+            $this->isPrivateCaregiver() ||
+            $this->isClient();
     }
 
     /**
@@ -206,7 +214,7 @@ class User extends Authenticatable
      */
     public function canCreateTasks(): bool
     {
-        return $this->hasAnyRole(['owner', 'admin', 'doctor']);
+        return $this->hasAnyRole(["owner", "admin", "doctor"]);
     }
 
     /**
@@ -214,7 +222,8 @@ class User extends Authenticatable
      */
     public function canCompleteTasks(): bool
     {
-        return $this->hasAnyRole(['owner', 'admin', 'caregiver']) || $this->isPrivateCaregiver();
+        return $this->hasAnyRole(["owner", "admin", "caregiver"]) ||
+            $this->isPrivateCaregiver();
     }
 
     // ===== DIARY ACCESS =====
@@ -236,42 +245,49 @@ class User extends Authenticatable
             return $diary->hasAccess($this);
         }
 
-        if ($this->organization_id && $patient->organization_id === $this->organization_id) {
+        if (
+            $this->organization_id &&
+            $patient->organization_id === $this->organization_id
+        ) {
             // Владелец организации имеет полный доступ
             if ($this->isOwner()) {
                 return true;
             }
 
             $org = $this->organization;
-            
+
             // Пансионат: все сотрудники видят все дневники
             if ($org->isBoardingHouse()) {
-                if ($diary->accessUsers()
-                    ->where('user_id', $this->id)
-                    ->wherePivot('status', 'revoked')
-                    ->exists()) {
+                if (
+                    $diary
+                        ->accessUsers()
+                        ->where("user_id", $this->id)
+                        ->wherePivot("status", "revoked")
+                        ->exists()
+                ) {
                     return false;
                 }
 
                 return true;
             }
-            
+
             // Патронажное агентство
             if ($org->isAgency()) {
                 // Owner и Admin имеют доступ ко всем дневникам организации
-                if ($this->hasAnyRole(['owner', 'admin'])) {
+                if ($this->hasAnyRole(["owner", "admin"])) {
                     return true;
                 }
-                
+
                 // Проверяем, назначен ли сотрудник к этому пациенту через patient_user
-                $isAssignedToPatient = $patient->assignedUsers()
-                    ->where('user_id', $this->id)
+                $isAssignedToPatient = $patient
+                    ->assignedUsers()
+                    ->where("user_id", $this->id)
                     ->exists();
-                
+
                 if ($isAssignedToPatient) {
                     return true;
                 }
-                
+
                 // Также проверяем явный доступ через diary_access
                 return $diary->hasAccess($this);
             }
@@ -288,57 +304,67 @@ class User extends Authenticatable
         // Сотрудник организации (приоритет выше чем type)
         if ($this->organization_id) {
             $org = Organization::find($this->organization_id);
-            
+
             if (!$org) {
-                return Diary::whereRaw('1 = 0');
+                return Diary::whereRaw("1 = 0");
             }
-            
+
             // Пансионат: все дневники организации
             if ($org->isBoardingHouse()) {
-                return Diary::whereHas('patient', function ($q) {
-                    $q->where('organization_id', $this->organization_id);
-                })->whereDoesntHave('accessUsers', function ($q) {
-                    $q->where('user_id', $this->id)
-                        ->where('diary_access.status', 'revoked');
+                return Diary::whereHas("patient", function ($q) {
+                    $q->where("organization_id", $this->organization_id);
+                })->whereDoesntHave("accessUsers", function ($q) {
+                    $q->where("user_id", $this->id)->where(
+                        "diary_access.status",
+                        "revoked",
+                    );
                 });
             }
-            
+
             // Патронажное агентство
             if ($org->isAgency()) {
                 // Owner и Admin видят все дневники организации
-                if ($this->hasAnyRole(['owner', 'admin'])) {
-                    return Diary::whereHas('patient', function ($q) {
-                        $q->where('organization_id', $this->organization_id);
+                if ($this->hasAnyRole(["owner", "admin"])) {
+                    return Diary::whereHas("patient", function ($q) {
+                        $q->where("organization_id", $this->organization_id);
                     });
                 }
-                
+
                 // Остальные сотрудники (врачи, сиделки) видят дневники назначенных пациентов
                 // Используем таблицу patient_user для назначений
-                $assignedPatientIds = $this->assignedPatients()->pluck('patients.id');
-                
-                return Diary::whereIn('patient_id', $assignedPatientIds)
-                    ->orWhereHas('accessUsers', function ($q) {
-                        $q->where('user_id', $this->id)
-                          ->where('diary_access.status', 'active');
-                    });
+                $assignedPatientIds = $this->assignedPatients()->pluck(
+                    "patients.id",
+                );
+
+                return Diary::whereIn(
+                    "patient_id",
+                    $assignedPatientIds,
+                )->orWhereHas("accessUsers", function ($q) {
+                    $q->where("user_id", $this->id)->where(
+                        "diary_access.status",
+                        "active",
+                    );
+                });
             }
         }
 
         // Клиент: только свои дневники
         if ($this->isClient()) {
-            return Diary::whereHas('patient', function ($q) {
-                $q->where('owner_id', $this->id);
+            return Diary::whereHas("patient", function ($q) {
+                $q->where("owner_id", $this->id);
             });
         }
 
         // Частная сиделка: только назначенные
         if ($this->isPrivateCaregiver()) {
-            return Diary::whereHas('accessUsers', function ($q) {
-                $q->where('user_id', $this->id)
-                  ->where('diary_access.status', 'active');
+            return Diary::whereHas("accessUsers", function ($q) {
+                $q->where("user_id", $this->id)->where(
+                    "diary_access.status",
+                    "active",
+                );
             });
         }
 
-        return Diary::whereRaw('1 = 0'); // Пустой результат
+        return Diary::whereRaw("1 = 0"); // Пустой результат
     }
 }
