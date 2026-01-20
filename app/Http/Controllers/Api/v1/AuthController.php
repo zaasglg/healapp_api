@@ -33,10 +33,13 @@ class AuthController extends Controller
      *     tags={"Authentication"},
      *     summary="Регистрация нового пользователя",
      *     description="Регистрация нового пользователя. Если передан invite_token, пользователь автоматически привязывается к организации и получает роль из приглашения.",
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"phone", "password", "password_confirmation"},
+     *
      *             @OA\Property(property="first_name", type="string", nullable=true),
      *             @OA\Property(property="last_name", type="string", nullable=true),
      *             @OA\Property(property="middle_name", type="string", nullable=true),
@@ -50,26 +53,35 @@ class AuthController extends Controller
      *             @OA\Property(property="address", type="string", nullable=true, description="Адрес организации (для pansionat/agency)")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="SMS отправлен",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="SMS sent"),
      *             @OA\Property(property="phone", type="string", example="79001234567"),
      *             @OA\Property(property="invitation_accepted", type="boolean", example=true, description="Было ли принято приглашение")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=404,
      *         description="Приглашение не найдено",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Приглашение не найдено")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=410,
      *         description="Приглашение истекло или уже использовано",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string"),
      *             @OA\Property(property="status", type="string")
      *         )
@@ -81,26 +93,38 @@ class AuthController extends Controller
         // Обработка приглашения (invite_token)
         $invitation = null;
         if ($request->has('invite_token') && $request->invite_token) {
-            $invitation = \App\Models\Invitation::where('token', $request->invite_token)->first();
+            $invitation = \App\Models\Invitation::where(
+                'token',
+                $request->invite_token,
+            )->first();
 
-            if (!$invitation) {
-                return response()->json([
-                    'message' => 'Приглашение не найдено',
-                ], 404);
+            if (! $invitation) {
+                return response()->json(
+                    [
+                        'message' => 'Приглашение не найдено',
+                    ],
+                    404,
+                );
             }
 
-            if (!$invitation->isValid()) {
-                return response()->json([
-                    'message' => 'Приглашение истекло или уже использовано',
-                    'status' => $invitation->status,
-                ], 410);
+            if (! $invitation->isValid()) {
+                return response()->json(
+                    [
+                        'message' => 'Приглашение истекло или уже использовано',
+                        'status' => $invitation->status,
+                    ],
+                    410,
+                );
             }
 
             // Проверяем, что приглашение для сотрудника (employee)
-            if (!$invitation->isEmployeeInvite()) {
-                return response()->json([
-                    'message' => 'Это приглашение не для регистрации сотрудника',
-                ], 400);
+            if (! $invitation->isEmployeeInvite()) {
+                return response()->json(
+                    [
+                        'message' => 'Это приглашение не для регистрации сотрудника',
+                    ],
+                    400,
+                );
             }
         }
 
@@ -115,12 +139,12 @@ class AuthController extends Controller
             $userType = UserType::CLIENT;
         } else {
             // Определяем user_type из account_type
-        $userType = match ($request->account_type) {
-            'client' => UserType::CLIENT,
-            'specialist' => UserType::PRIVATE_CAREGIVER,
-            'pansionat', 'agency' => UserType::ORGANIZATION,
-            default => UserType::CLIENT,
-        };
+            $userType = match ($request->account_type) {
+                'client' => UserType::CLIENT,
+                'specialist' => UserType::PRIVATE_CAREGIVER,
+                'pansionat', 'agency' => UserType::ORGANIZATION,
+                default => UserType::CLIENT,
+            };
         }
 
         // Создаём пользователя
@@ -149,10 +173,11 @@ class AuthController extends Controller
             // Отмечаем приглашение как принятое
             $invitation->markAsAccepted($user);
         } elseif (in_array($request->account_type, ['pansionat', 'agency'])) {
-        // Если это организация - создаём её и назначаем роль owner
-            $organizationType = $request->account_type === 'pansionat' 
-                ? OrganizationType::BOARDING_HOUSE 
-                : OrganizationType::AGENCY;
+            // Если это организация - создаём её и назначаем роль owner
+            $organizationType =
+                $request->account_type === 'pansionat'
+                    ? OrganizationType::BOARDING_HOUSE
+                    : OrganizationType::AGENCY;
 
             $organization = Organization::create([
                 'owner_id' => $user->id,
@@ -184,14 +209,18 @@ class AuthController extends Controller
      *     path="/api/v1/auth/verify-phone",
      *     tags={"Authentication"},
      *     summary="Подтверждение телефона",
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"phone", "code"},
+     *
      *             @OA\Property(property="phone", type="string"),
      *             @OA\Property(property="code", type="string")
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Телефон подтверждён")
      * )
      */
@@ -199,7 +228,7 @@ class AuthController extends Controller
     {
         $user = User::where('phone', $request->phone)->first();
 
-        if (!$user || $user->verification_code !== $request->code) {
+        if (! $user || $user->verification_code !== $request->code) {
             return response()->json(['message' => 'Неверный код'], 401);
         }
 
@@ -220,14 +249,18 @@ class AuthController extends Controller
      *     path="/api/v1/auth/login",
      *     tags={"Authentication"},
      *     summary="Вход в систему",
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"phone", "password"},
+     *
      *             @OA\Property(property="phone", type="string"),
      *             @OA\Property(property="password", type="string", format="password")
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Успешный вход")
      * )
      */
@@ -235,16 +268,95 @@ class AuthController extends Controller
     {
         $user = User::where('phone', $request->phone)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'phone' => ['Неверные учётные данные'],
             ]);
         }
 
-        if (!$user->phone_verified_at) {
-            return response()->json([
-                'message' => 'Телефон не подтверждён',
-            ], 401);
+        if (! $user->phone_verified_at) {
+            return response()->json(
+                [
+                    'message' => 'Телефон не подтверждён',
+                ],
+                401,
+            );
+        }
+
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        return response()->json([
+            'access_token' => $token,
+            'user' => $this->formatUser($user),
+        ]);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/v1/auth/login-client",
+     *     tags={"Authentication"},
+     *     summary="Вход в систему для клиентов",
+     *     description="Специальный эндпоинт для входа клиентов. Разрешает вход только пользователям с типом CLIENT.",
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *
+     *         @OA\JsonContent(
+     *             required={"phone", "password"},
+     *
+     *             @OA\Property(property="phone", type="string", example="79001234567"),
+     *             @OA\Property(property="password", type="string", format="password")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Успешный вход",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="access_token", type="string"),
+     *             @OA\Property(property="user", type="object")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Неверные учётные данные или телефон не подтверждён"
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Доступ запрещён. Пользователь не является клиентом"
+     *     )
+     * )
+     */
+    public function loginClient(LoginRequest $request): JsonResponse
+    {
+        $user = User::where('phone', $request->phone)->first();
+
+        if (! $user || ! Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'phone' => ['Неверные учётные данные'],
+            ]);
+        }
+
+        if (! $user->phone_verified_at) {
+            return response()->json(
+                [
+                    'message' => 'Телефон не подтверждён',
+                ],
+                401,
+            );
+        }
+
+        // Проверка, что пользователь является клиентом
+        if ($user->type !== UserType::CLIENT) {
+            return response()->json(
+                [
+                    'message' => 'Доступ запрещён. Этот эндпоинт доступен только для клиентов.',
+                ],
+                403,
+            );
         }
 
         $token = $user->createToken('auth-token')->plainTextToken;
@@ -261,6 +373,7 @@ class AuthController extends Controller
      *     tags={"Authentication"},
      *     summary="Выход из системы",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Response(response=200, description="Успешный выход")
      * )
      */
@@ -277,6 +390,7 @@ class AuthController extends Controller
      *     tags={"Authentication"},
      *     summary="Получить текущего пользователя",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Response(response=200, description="Данные пользователя")
      * )
      */
@@ -291,23 +405,29 @@ class AuthController extends Controller
      *     tags={"Authentication"},
      *     summary="Обновить профиль",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="first_name", type="string"),
      *             @OA\Property(property="last_name", type="string"),
      *             @OA\Property(property="middle_name", type="string"),
      *             @OA\Property(property="city", type="string", description="Город пользователя")
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Профиль обновлён")
      * )
      */
     public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
         $user = $request->user();
-        $user->fill($request->only(['first_name', 'last_name', 'middle_name', 'city']));
+        $user->fill(
+            $request->only(['first_name', 'last_name', 'middle_name', 'city']),
+        );
         $user->save();
-        
+
         return response()->json($this->formatUser($user));
     }
 
@@ -317,11 +437,15 @@ class AuthController extends Controller
      *     tags={"Authentication"},
      *     summary="Загрузить аватар",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\MediaType(
      *             mediaType="multipart/form-data",
+     *
      *             @OA\Schema(
+     *
      *                 @OA\Property(
      *                     property="avatar",
      *                     type="string",
@@ -331,6 +455,7 @@ class AuthController extends Controller
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Аватар загружен")
      * )
      */
@@ -344,12 +469,18 @@ class AuthController extends Controller
 
         // Удаляем старый аватар, если он существует
         if ($user->avatar) {
-            $oldPath = str_replace('/storage/', '', parse_url($user->avatar, PHP_URL_PATH));
+            $oldPath = str_replace(
+                '/storage/',
+                '',
+                parse_url($user->avatar, PHP_URL_PATH),
+            );
             Storage::disk('public')->delete($oldPath);
         }
 
         // Сохраняем новый аватар
-        $path = $request->file('avatar')->store('avatars/' . $user->id, 'public');
+        $path = $request
+            ->file('avatar')
+            ->store('avatars/'.$user->id, 'public');
         $avatarUrl = Storage::url($path);
 
         $user->avatar = $avatarUrl;
@@ -367,18 +498,23 @@ class AuthController extends Controller
      *     tags={"Authentication"},
      *     summary="Запрос на смену телефона",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"phone"},
+     *
      *             @OA\Property(property="phone", type="string")
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Код отправлен")
      * )
      */
-    public function changePhoneRequest(ChangePhoneRequest $request): JsonResponse
-    {
+    public function changePhoneRequest(
+        ChangePhoneRequest $request,
+    ): JsonResponse {
         $user = $request->user();
         // В тестовом режиме используем фиксированный код '1234'
         $verificationCode = app()->environment('production')
@@ -398,22 +534,30 @@ class AuthController extends Controller
      *     tags={"Authentication"},
      *     summary="Подтверждение смены телефона",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"code"},
+     *
      *             @OA\Property(property="code", type="string")
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Телефон изменён")
      * )
      */
-    public function confirmChangePhone(ConfirmChangePhoneRequest $request): JsonResponse
-    {
+    public function confirmChangePhone(
+        ConfirmChangePhoneRequest $request,
+    ): JsonResponse {
         $user = $request->user();
 
-        if (!$user->unverified_phone || !$user->verification_code) {
-            return response()->json(['message' => 'Нет запроса на смену номера'], 401);
+        if (! $user->unverified_phone || ! $user->verification_code) {
+            return response()->json(
+                ['message' => 'Нет запроса на смену номера'],
+                401,
+            );
         }
 
         if ($user->verification_code !== $request->code) {
