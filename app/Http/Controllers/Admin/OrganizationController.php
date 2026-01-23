@@ -29,6 +29,7 @@ class OrganizationController extends Controller
     public function show(Organization $organization)
     {
         $organization->load(['owner', 'employees', 'patients']);
+
         return view('admin.organizations.show', compact('organization'));
     }
 
@@ -53,6 +54,7 @@ class OrganizationController extends Controller
     public function destroy(Organization $organization)
     {
         $organization->delete();
+
         return redirect()->route('admin.organizations.index')
             ->with('success', 'Организация удалена');
     }

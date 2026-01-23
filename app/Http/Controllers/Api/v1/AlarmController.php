@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\v1;
 use App\Http\Controllers\Controller;
 use App\Models\Alarm;
 use App\Models\Diary;
-use App\Models\Patient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -24,19 +23,25 @@ class AlarmController extends Controller
      *     summary="Get all alarms for a diary",
      *     description="Retrieve all alarms for a specific diary. Access is restricted based on user permissions.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="diary_id",
      *         in="query",
      *         required=true,
      *         description="Diary ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Alarms retrieved successfully",
+     *
      *         @OA\JsonContent(
      *             type="array",
+     *
      *             @OA\Items(
+     *
      *                 @OA\Property(property="id", type="integer", example=1),
      *                 @OA\Property(property="diary_id", type="integer", example=1),
      *                 @OA\Property(property="creator_id", type="integer", example=1),
@@ -52,24 +57,33 @@ class AlarmController extends Controller
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have access to this diary.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=404,
      *         description="Diary not found",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Diary not found.")
      *         )
      *     )
@@ -84,13 +98,13 @@ class AlarmController extends Controller
         $user = $request->user();
         $diary = Diary::with('patient')->find($request->diary_id);
 
-        if (!$diary) {
+        if (! $diary) {
             return response()->json([
                 'message' => 'Дневник не найден.',
             ], 404);
         }
 
-        if (!$user->canAccessDiary($diary)) {
+        if (! $user->canAccessDiary($diary)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому дневнику.',
             ], 403);
@@ -110,17 +124,22 @@ class AlarmController extends Controller
      *     summary="Get a single alarm by ID",
      *     description="Retrieve a specific alarm. Access is restricted based on user permissions.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="Alarm ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Alarm retrieved successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="id", type="integer", example=1),
      *             @OA\Property(property="diary_id", type="integer", example=1),
      *             @OA\Property(property="creator_id", type="integer", example=1),
@@ -135,6 +154,7 @@ class AlarmController extends Controller
      *             @OA\Property(property="updated_at", type="string", format="date-time")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated"
@@ -154,13 +174,13 @@ class AlarmController extends Controller
         $user = $request->user();
         $alarm = Alarm::with('diary.patient')->find($id);
 
-        if (!$alarm) {
+        if (! $alarm) {
             return response()->json([
                 'message' => 'Напоминание не найдено.',
             ], 404);
         }
 
-        if (!$user->canAccessDiary($alarm->diary)) {
+        if (! $user->canAccessDiary($alarm->diary)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому напоминанию.',
             ], 403);
@@ -176,10 +196,13 @@ class AlarmController extends Controller
      *     summary="Create a new alarm",
      *     description="Create a new medication or vitamin alarm for a diary.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"diary_id", "name", "type", "days_of_week", "times"},
+     *
      *             @OA\Property(property="diary_id", type="integer", example=1, description="Diary ID"),
      *             @OA\Property(property="name", type="string", example="Парацетамол", description="Alarm name (medicine/vitamin name)"),
      *             @OA\Property(property="type", type="string", enum={"medicine", "vitamin"}, example="medicine", description="Alarm type"),
@@ -190,10 +213,13 @@ class AlarmController extends Controller
      *             @OA\Property(property="is_active", type="boolean", example=true, description="Whether the alarm is active")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=201,
      *         description="Alarm created successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="id", type="integer", example=1),
      *             @OA\Property(property="diary_id", type="integer", example=1),
      *             @OA\Property(property="creator_id", type="integer", example=1),
@@ -208,6 +234,7 @@ class AlarmController extends Controller
      *             @OA\Property(property="updated_at", type="string", format="date-time")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated"
@@ -240,7 +267,7 @@ class AlarmController extends Controller
         $user = $request->user();
         $diary = Diary::with('patient')->find($request->diary_id);
 
-        if (!$user->canAccessDiary($diary)) {
+        if (! $user->canAccessDiary($diary)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому дневнику.',
             ], 403);
@@ -268,16 +295,21 @@ class AlarmController extends Controller
      *     summary="Update an alarm",
      *     description="Update an existing alarm.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="Alarm ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="name", type="string", example="Парацетамол"),
      *             @OA\Property(property="type", type="string", enum={"medicine", "vitamin"}, example="medicine"),
      *             @OA\Property(property="days_of_week", type="array", @OA\Items(type="integer"), example={1,2,3,4,5,6,7}),
@@ -287,6 +319,7 @@ class AlarmController extends Controller
      *             @OA\Property(property="is_active", type="boolean", example=true)
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Alarm updated successfully"
@@ -314,13 +347,13 @@ class AlarmController extends Controller
         $user = $request->user();
         $alarm = Alarm::with('diary.patient')->find($id);
 
-        if (!$alarm) {
+        if (! $alarm) {
             return response()->json([
                 'message' => 'Напоминание не найдено.',
             ], 404);
         }
 
-        if (!$user->canAccessDiary($alarm->diary)) {
+        if (! $user->canAccessDiary($alarm->diary)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому напоминанию.',
             ], 403);
@@ -358,20 +391,26 @@ class AlarmController extends Controller
      *     summary="Delete an alarm",
      *     description="Delete an existing alarm.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="Alarm ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Alarm deleted successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Alarm deleted successfully.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated"
@@ -391,13 +430,13 @@ class AlarmController extends Controller
         $user = $request->user();
         $alarm = Alarm::with('diary.patient')->find($id);
 
-        if (!$alarm) {
+        if (! $alarm) {
             return response()->json([
                 'message' => 'Напоминание не найдено.',
             ], 404);
         }
 
-        if (!$user->canAccessDiary($alarm->diary)) {
+        if (! $user->canAccessDiary($alarm->diary)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому напоминанию.',
             ], 403);
@@ -417,22 +456,28 @@ class AlarmController extends Controller
      *     summary="Toggle alarm active status",
      *     description="Toggle the active status of an alarm.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="Alarm ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Alarm status toggled successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="id", type="integer", example=1),
      *             @OA\Property(property="is_active", type="boolean", example=false),
      *             @OA\Property(property="message", type="string", example="Alarm deactivated.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated"
@@ -452,20 +497,20 @@ class AlarmController extends Controller
         $user = $request->user();
         $alarm = Alarm::with('diary.patient')->find($id);
 
-        if (!$alarm) {
+        if (! $alarm) {
             return response()->json([
                 'message' => 'Напоминание не найдено.',
             ], 404);
         }
 
-        if (!$user->canAccessDiary($alarm->diary)) {
+        if (! $user->canAccessDiary($alarm->diary)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому напоминанию.',
             ], 403);
         }
 
         $alarm->update([
-            'is_active' => !$alarm->is_active,
+            'is_active' => ! $alarm->is_active,
         ]);
 
         return response()->json([
@@ -474,6 +519,4 @@ class AlarmController extends Controller
             'message' => $alarm->is_active ? 'Напоминание активировано.' : 'Напоминание деактивировано.',
         ], 200);
     }
-
-
 }

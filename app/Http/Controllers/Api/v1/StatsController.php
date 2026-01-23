@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
-use App\Models\DiaryEntry;
 use App\Models\Patient;
 use App\Models\Task;
 use Carbon\Carbon;
@@ -25,36 +24,47 @@ class StatsController extends Controller
      *     summary="Get diary chart data",
      *     description="Retrieve diary entries for a specific patient and key (e.g., temperature) over a time period. Returns data points for chart visualization.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="patient_id",
      *         in="query",
      *         required=true,
      *         description="Patient ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="key",
      *         in="query",
      *         required=true,
      *         description="Diary entry key (e.g., 'temperature', 'blood_pressure', 'mood')",
+     *
      *         @OA\Schema(type="string", example="temperature")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="period",
      *         in="query",
      *         required=false,
      *         description="Time period for data",
+     *
      *         @OA\Schema(type="string", enum={"7_days", "30_days"}, default="7_days")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Chart data retrieved successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="patient_id", type="integer", example=1),
      *             @OA\Property(property="key", type="string", example="temperature"),
      *             @OA\Property(property="period", type="string", example="7_days"),
      *             @OA\Property(property="data", type="array",
+     *
      *                 @OA\Items(
+     *
      *                     @OA\Property(property="id", type="integer", example=1),
      *                     @OA\Property(property="recorded_at", type="string", format="date-time", example="2024-01-01T08:00:00.000000Z"),
      *                     @OA\Property(property="value", type="object", description="JSON value from diary entry", example={"value": "36.6"}),
@@ -63,31 +73,43 @@ class StatsController extends Controller
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=400,
      *         description="Bad request - missing required parameters",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="patient_id and key parameters are required")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have permission to access this patient.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=404,
      *         description="Patient not found",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\Patient] {id}")
      *         )
      *     )
@@ -99,7 +121,7 @@ class StatsController extends Controller
         $key = $request->query('key');
         $period = $request->query('period', '7_days');
 
-        if (!$patientId || !$key) {
+        if (! $patientId || ! $key) {
             return response()->json([
                 'message' => 'Параметры patient_id и key обязательны',
             ], 400);
@@ -109,7 +131,7 @@ class StatsController extends Controller
         $user = $request->user();
 
         // Check access
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
@@ -122,8 +144,8 @@ class StatsController extends Controller
 
         // Fetch diary entries through diary relationship
         $diary = $patient->diary;
-        
-        if (!$diary) {
+
+        if (! $diary) {
             return response()->json([
                 'patient_id' => $patientId,
                 'key' => $key,
@@ -131,7 +153,7 @@ class StatsController extends Controller
                 'data' => [],
             ], 200);
         }
-        
+
         $entries = $diary->entries()
             ->where('key', $key)
             ->whereBetween('recorded_at', [$startDate, $endDate])
@@ -161,24 +183,31 @@ class StatsController extends Controller
      *     summary="Get task summary statistics",
      *     description="Retrieve task statistics for a patient on a specific date. Returns counts and completion rate.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="patient_id",
      *         in="query",
      *         required=true,
      *         description="Patient ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="date",
      *         in="query",
      *         required=false,
      *         description="Date for statistics (YYYY-MM-DD). Defaults to today.",
+     *
      *         @OA\Schema(type="string", format="date", example="2024-01-01")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Task summary retrieved successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="patient_id", type="integer", example=1),
      *             @OA\Property(property="date", type="string", format="date", example="2024-01-01"),
      *             @OA\Property(property="total", type="integer", example=10, description="Total number of tasks"),
@@ -188,31 +217,43 @@ class StatsController extends Controller
      *             @OA\Property(property="completion_rate", type="number", format="float", example=70.0, description="Completion rate as percentage (0-100)")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=400,
      *         description="Bad request - patient_id is required",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="patient_id parameter is required")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have permission to access this patient.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=404,
      *         description="Patient not found",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\Patient] {id}")
      *         )
      *     )
@@ -223,7 +264,7 @@ class StatsController extends Controller
         $patientId = $request->query('patient_id');
         $date = $request->query('date', Carbon::today()->format('Y-m-d'));
 
-        if (!$patientId) {
+        if (! $patientId) {
             return response()->json([
                 'message' => 'Параметр patient_id обязателен',
             ], 400);
@@ -233,7 +274,7 @@ class StatsController extends Controller
         $user = $request->user();
 
         // Check access
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);

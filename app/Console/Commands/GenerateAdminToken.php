@@ -17,13 +17,15 @@ class GenerateAdminToken extends Command
 
         if ($this->option('show')) {
             $this->info("Токен: {$token}");
+
             return self::SUCCESS;
         }
 
         $envPath = base_path('.env');
 
-        if (!file_exists($envPath)) {
+        if (! file_exists($envPath)) {
             $this->error('Файл .env не найден');
+
             return self::FAILURE;
         }
 
@@ -43,7 +45,7 @@ class GenerateAdminToken extends Command
         $this->newLine();
         $this->line("ADMIN_TOKEN={$token}");
         $this->newLine();
-        $this->info("URL админки: " . config('app.url') . "/admin?token={$token}");
+        $this->info('URL админки: '.config('app.url')."/admin?token={$token}");
 
         return self::SUCCESS;
     }

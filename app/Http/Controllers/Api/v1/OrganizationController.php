@@ -22,6 +22,7 @@ class OrganizationController extends Controller
      *     tags={"Organization"},
      *     summary="Получить информацию об организации",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Response(response=200, description="Success", @OA\JsonContent(ref="#/components/schemas/Organization"))
      * )
      */
@@ -30,7 +31,7 @@ class OrganizationController extends Controller
         $user = $request->user();
         $organization = $user->organization;
 
-        if (!$organization) {
+        if (! $organization) {
             return response()->json(['message' => 'Вы не принадлежите к организации'], 404);
         }
 
@@ -46,7 +47,9 @@ class OrganizationController extends Controller
      *     tags={"Organization"},
      *     summary="Список сотрудников организации",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="role", in="query", @OA\Schema(type="string", enum={"owner", "admin", "doctor", "caregiver"})),
+     *
      *     @OA\Response(response=200, description="Success")
      * )
      */
@@ -55,7 +58,7 @@ class OrganizationController extends Controller
         $user = $request->user();
         $organization = $user->organization;
 
-        if (!$organization) {
+        if (! $organization) {
             return response()->json(['message' => 'Вы не принадлежите к организации'], 404);
         }
 
@@ -86,14 +89,19 @@ class OrganizationController extends Controller
      *     tags={"Organization"},
      *     summary="Изменить роль сотрудника",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"role"},
+     *
      *             @OA\Property(property="role", type="string", enum={"admin", "doctor", "caregiver"})
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Роль изменена")
      * )
      */
@@ -106,7 +114,7 @@ class OrganizationController extends Controller
         $user = $request->user();
 
         // Только owner может менять роли
-        if (!$user->isOwner()) {
+        if (! $user->isOwner()) {
             return response()->json(['message' => 'Только владелец может менять роли'], 403);
         }
 
@@ -115,7 +123,7 @@ class OrganizationController extends Controller
             ->where('organization_id', $organization->id)
             ->first();
 
-        if (!$employee) {
+        if (! $employee) {
             return response()->json(['message' => 'Сотрудник не найден'], 404);
         }
 
@@ -141,7 +149,9 @@ class OrganizationController extends Controller
      *     tags={"Organization"},
      *     summary="Удалить сотрудника из организации",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="Сотрудник удалён")
      * )
      */
@@ -149,7 +159,7 @@ class OrganizationController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->canManageEmployees()) {
+        if (! $user->canManageEmployees()) {
             return response()->json(['message' => 'Недостаточно прав'], 403);
         }
 
@@ -158,7 +168,7 @@ class OrganizationController extends Controller
             ->where('organization_id', $organization->id)
             ->first();
 
-        if (!$employee) {
+        if (! $employee) {
             return response()->json(['message' => 'Сотрудник не найден'], 404);
         }
 
@@ -168,7 +178,7 @@ class OrganizationController extends Controller
         }
 
         // Admin не может удалить другого admin
-        if (!$user->isOwner() && $employee->hasRole('admin')) {
+        if (! $user->isOwner() && $employee->hasRole('admin')) {
             return response()->json(['message' => 'Только владелец может удалить администратора'], 403);
         }
 
@@ -183,15 +193,19 @@ class OrganizationController extends Controller
      *     tags={"Organization"},
      *     summary="Назначить доступ к дневнику (для агентств)",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"patient_id", "user_id"},
+     *
      *             @OA\Property(property="patient_id", type="integer"),
      *             @OA\Property(property="user_id", type="integer"),
      *             @OA\Property(property="permission", type="string", enum={"view", "edit", "full"}, default="edit")
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Доступ назначен")
      * )
      */
@@ -205,7 +219,7 @@ class OrganizationController extends Controller
 
         $user = $request->user();
 
-        if (!$user->canManageAccess()) {
+        if (! $user->canManageAccess()) {
             return response()->json(['message' => 'Недостаточно прав'], 403);
         }
 
@@ -222,7 +236,7 @@ class OrganizationController extends Controller
             return response()->json(['message' => 'Сотрудник не принадлежит вашей организации'], 422);
         }
 
-        if (!$patient->diary) {
+        if (! $patient->diary) {
             return response()->json(['message' => 'У подопечного нет дневника'], 422);
         }
 
@@ -243,14 +257,18 @@ class OrganizationController extends Controller
      *     tags={"Organization"},
      *     summary="Отозвать доступ к дневнику",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"patient_id", "user_id"},
+     *
      *             @OA\Property(property="patient_id", type="integer"),
      *             @OA\Property(property="user_id", type="integer")
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Доступ отозван")
      * )
      */
@@ -263,7 +281,7 @@ class OrganizationController extends Controller
 
         $user = $request->user();
 
-        if (!$user->canManageAccess()) {
+        if (! $user->canManageAccess()) {
             return response()->json(['message' => 'Недостаточно прав'], 403);
         }
 
@@ -283,14 +301,18 @@ class OrganizationController extends Controller
      *     tags={"Organization"},
      *     summary="Обновить информацию об организации",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="name", type="string"),
      *             @OA\Property(property="address", type="string"),
      *             @OA\Property(property="phone", type="string"),
      *             @OA\Property(property="description", type="string")
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Организация обновлена")
      * )
      */
@@ -298,13 +320,13 @@ class OrganizationController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             return response()->json(['message' => 'Недостаточно прав'], 403);
         }
 
         $organization = $user->organization;
 
-        if (!$organization) {
+        if (! $organization) {
             return response()->json(['message' => 'Организация не найдена'], 404);
         }
 

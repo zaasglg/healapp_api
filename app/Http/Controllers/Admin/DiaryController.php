@@ -15,7 +15,7 @@ class DiaryController extends Controller
         if ($search = $request->get('search')) {
             $query->whereHas('patient', function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%");
             });
         }
 
@@ -30,13 +30,14 @@ class DiaryController extends Controller
         $diary->load(['patient', 'entries' => function ($q) {
             $q->orderBy('created_at', 'desc')->limit(50);
         }, 'accessUsers']);
-        
+
         return view('admin.diaries.show', compact('diary'));
     }
 
     public function destroy(Diary $diary)
     {
         $diary->delete();
+
         return redirect()->route('admin.diaries.index')
             ->with('success', 'Дневник удалён');
     }

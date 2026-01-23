@@ -26,26 +26,34 @@ class DiaryController extends Controller
      *     summary="Get all diaries created by the authenticated user",
      *     description="Retrieve all diaries for patients created by the authenticated user. Access is restricted to user's own patients.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="from_date",
      *         in="query",
      *         required=false,
      *         description="Filter entries from this date (YYYY-MM-DD)",
+     *
      *         @OA\Schema(type="string", format="date")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="to_date",
      *         in="query",
      *         required=false,
      *         description="Filter entries to this date (YYYY-MM-DD)",
+     *
      *         @OA\Schema(type="string", format="date")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Diaries retrieved successfully",
+     *
      *         @OA\JsonContent(
      *             type="array",
+     *
      *             @OA\Items(
+     *
      *                 @OA\Property(property="id", type="integer", example=1),
      *                 @OA\Property(property="patient_id", type="integer", example=1),
      *                 @OA\Property(property="patient", type="object",
@@ -65,7 +73,9 @@ class DiaryController extends Controller
      *                 @OA\Property(property="pinned_parameters", type="array", @OA\Items(type="object")),
      *                 @OA\Property(property="settings", type="object", nullable=true),
      *                 @OA\Property(property="entries", type="array",
+     *
      *                     @OA\Items(
+     *
      *                         @OA\Property(property="id", type="integer", example=1),
      *                         @OA\Property(property="diary_id", type="integer", example=1),
      *                         @OA\Property(property="author_id", type="integer", example=1),
@@ -83,10 +93,13 @@ class DiaryController extends Controller
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     )
@@ -123,7 +136,7 @@ class DiaryController extends Controller
                     'first_name' => $diary->patient->first_name,
                     'last_name' => $diary->patient->last_name,
                     'middle_name' => $diary->patient->middle_name,
-                    'full_name' => trim($diary->patient->first_name . ' ' . ($diary->patient->middle_name ?? '') . ' ' . $diary->patient->last_name),
+                    'full_name' => trim($diary->patient->first_name.' '.($diary->patient->middle_name ?? '').' '.$diary->patient->last_name),
                     'birth_date' => $diary->patient->birth_date,
                     'gender' => $diary->patient->gender,
                     'weight' => $diary->patient->weight,
@@ -150,31 +163,40 @@ class DiaryController extends Controller
      *     summary="Get a single diary by ID",
      *     description="Retrieve a specific diary with patient info and entries. Access is restricted based on user permissions.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="Diary ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="from_date",
      *         in="query",
      *         required=false,
      *         description="Filter entries from this date (YYYY-MM-DD)",
+     *
      *         @OA\Schema(type="string", format="date")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="to_date",
      *         in="query",
      *         required=false,
      *         description="Filter entries to this date (YYYY-MM-DD)",
+     *
      *         @OA\Schema(type="string", format="date")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Diary retrieved successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="id", type="integer", example=1),
      *             @OA\Property(property="patient_id", type="integer", example=1),
      *             @OA\Property(property="patient", type="object",
@@ -194,7 +216,9 @@ class DiaryController extends Controller
      *             @OA\Property(property="pinned_parameters", type="array", @OA\Items(type="object")),
      *             @OA\Property(property="settings", type="object", nullable=true),
      *             @OA\Property(property="entries", type="array",
+     *
      *                 @OA\Items(
+     *
      *                     @OA\Property(property="id", type="integer", example=1),
      *                     @OA\Property(property="diary_id", type="integer", example=1),
      *                     @OA\Property(property="author_id", type="integer", example=1),
@@ -212,24 +236,33 @@ class DiaryController extends Controller
      *             @OA\Property(property="updated_at", type="string", format="date-time")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have access to this diary.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=404,
      *         description="Diary not found",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Diary not found.")
      *         )
      *     )
@@ -238,17 +271,17 @@ class DiaryController extends Controller
     public function show(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        
+
         $diary = Diary::with(['patient'])->find($id);
-        
-        if (!$diary) {
+
+        if (! $diary) {
             return response()->json([
                 'message' => 'Дневник не найден.',
             ], 404);
         }
 
         // Check access
-        if (!$this->canAccessPatient($user, $diary->patient)) {
+        if (! $this->canAccessPatient($user, $diary->patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому дневнику.',
             ], 403);
@@ -256,14 +289,14 @@ class DiaryController extends Controller
 
         // Load entries with optional date filtering
         $entriesQuery = $diary->entries();
-        
+
         if ($request->has('from_date')) {
             $entriesQuery->whereDate('recorded_at', '>=', $request->query('from_date'));
         }
         if ($request->has('to_date')) {
             $entriesQuery->whereDate('recorded_at', '<=', $request->query('to_date'));
         }
-        
+
         $entries = $entriesQuery->orderBy('recorded_at', 'desc')->get();
 
         return response()->json([
@@ -274,7 +307,7 @@ class DiaryController extends Controller
                 'first_name' => $diary->patient->first_name,
                 'last_name' => $diary->patient->last_name,
                 'middle_name' => $diary->patient->middle_name,
-                'full_name' => trim($diary->patient->first_name . ' ' . ($diary->patient->middle_name ?? '') . ' ' . $diary->patient->last_name),
+                'full_name' => trim($diary->patient->first_name.' '.($diary->patient->middle_name ?? '').' '.$diary->patient->last_name),
                 'birth_date' => $diary->patient->birth_date,
                 'gender' => $diary->patient->gender,
                 'weight' => $diary->patient->weight,
@@ -298,13 +331,18 @@ class DiaryController extends Controller
      *     summary="Create a new diary for a patient",
      *     description="Explicitly create a new diary for a patient with optional pinned parameters. Returns error if diary already exists.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"patient_id"},
+     *
      *             @OA\Property(property="patient_id", type="integer", example=1, description="Patient ID"),
      *             @OA\Property(property="pinned_parameters", type="array", description="Optional pinned parameters with timers",
+     *
      *                 @OA\Items(
+     *
      *                     @OA\Property(property="key", type="string", example="blood_pressure"),
      *                     @OA\Property(property="interval_minutes", type="integer", example=60)
      *                 )
@@ -312,10 +350,13 @@ class DiaryController extends Controller
      *             @OA\Property(property="settings", type="object", nullable=true, description="Optional diary settings")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=201,
      *         description="Diary created successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="id", type="integer", example=1),
      *             @OA\Property(property="patient_id", type="integer", example=1),
      *             @OA\Property(property="pinned_parameters", type="array", @OA\Items(type="object")),
@@ -325,32 +366,44 @@ class DiaryController extends Controller
      *             @OA\Property(property="updated_at", type="string", format="date-time")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=400,
      *         description="Bad request - patient_id is required",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="patient_id is required")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have access to this patient.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=409,
      *         description="Conflict - Diary already exists",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Diary already exists for this patient"),
      *             @OA\Property(property="diary_id", type="integer", example=1)
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=422,
      *         description="Validation error",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="The given data was invalid."),
      *             @OA\Property(property="errors", type="object")
      *         )
@@ -372,7 +425,7 @@ class DiaryController extends Controller
         $user = $request->user();
 
         // Check access
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
@@ -414,10 +467,13 @@ class DiaryController extends Controller
      *     summary="Create diary entry or create diary for patient",
      *     description="Create a new diary entry for a patient. If diary doesn't exist, it will be created. Access is restricted to users who have access to the patient.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"patient_id", "type", "key", "value", "recorded_at"},
+     *
      *             @OA\Property(property="patient_id", type="integer", example=1, description="Patient ID"),
      *             @OA\Property(property="type", type="string", example="physical", description="Entry type", enum={"care", "physical", "excretion", "symptom"}),
      *             @OA\Property(property="key", type="string", example="temperature", description="Entry key (e.g., 'temperature', 'blood_pressure', 'mood', 'diaper_change')"),
@@ -426,10 +482,13 @@ class DiaryController extends Controller
      *             @OA\Property(property="recorded_at", type="string", format="date-time", example="2024-01-01T10:00:00Z", description="When the event actually happened")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=201,
      *         description="Diary entry created successfully. Если есть pending задача с таким же related_diary_key на сегодня, она автоматически будет отмечена как выполненная.",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="id", type="integer", example=1),
      *             @OA\Property(property="diary_id", type="integer", example=1),
      *             @OA\Property(property="author_id", type="integer", example=1),
@@ -443,31 +502,43 @@ class DiaryController extends Controller
      *             @OA\Property(property="updated_at", type="string", format="date-time")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have access to this patient.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=404,
      *         description="Patient not found",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\Patient] {id}")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=422,
      *         description="Validation error",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="The given data was invalid."),
      *             @OA\Property(property="errors", type="object")
      *         )
@@ -480,7 +551,7 @@ class DiaryController extends Controller
         $patient = Patient::findOrFail($request->patient_id);
 
         // Check access
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
@@ -488,7 +559,7 @@ class DiaryController extends Controller
 
         // Get or create diary for patient
         $diary = $patient->diary;
-        if (!$diary) {
+        if (! $diary) {
             $diary = Diary::create([
                 'patient_id' => $patient->id,
             ]);
@@ -497,18 +568,18 @@ class DiaryController extends Controller
         }
 
         $data = $request->validated();
-        
+
         // Remove patient_id from data, we'll use diary_id instead
         unset($data['patient_id']);
         $data['diary_id'] = $diary->id;
-        
+
         // Автоопределение типа по ключу, если не указан
         if (empty($data['type'])) {
             $data['type'] = $this->getTypeByKey($data['key'] ?? '');
         }
-        
+
         // Ensure value is properly formatted as array/JSON
-        if (!is_array($data['value'])) {
+        if (! is_array($data['value'])) {
             // If value is a string, try to decode it as JSON
             $decoded = json_decode($data['value'], true);
             if (json_last_error() === JSON_ERROR_NONE) {
@@ -538,13 +609,18 @@ class DiaryController extends Controller
      *     summary="Update pinned parameters for diary",
      *     description="Update the pinned parameters with timers for a patient's diary. Also allows updating diary settings.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"patient_id", "pinned_parameters"},
+     *
      *             @OA\Property(property="patient_id", type="integer", example=1),
      *             @OA\Property(property="pinned_parameters", type="array",
+     *
      *                 @OA\Items(
+     *
      *                     @OA\Property(property="key", type="string", example="blood_pressure"),
      *                     @OA\Property(property="interval_minutes", type="integer", example=60),
      *                     @OA\Property(property="last_recorded_at", type="string", format="date-time", nullable=true)
@@ -555,6 +631,7 @@ class DiaryController extends Controller
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Pinned parameters updated successfully"
@@ -583,14 +660,14 @@ class DiaryController extends Controller
         $patient = Patient::findOrFail($request->patient_id);
         $user = $request->user();
 
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
 
         $diary = $patient->diary;
-        if (!$diary) {
+        if (! $diary) {
             $diary = Diary::create(['patient_id' => $patient->id]);
             // Grant full access to the creator
             $diary->grantAccess($user, 'full');
@@ -601,18 +678,18 @@ class DiaryController extends Controller
 
         // Подготавливаем данные для обновления
         $updateData = [];
-        
+
         // Если переданы pinned_parameters - обновляем их
         if ($request->has('pinned_parameters') && is_array($request->pinned_parameters)) {
             $updateData['pinned_parameters'] = $request->pinned_parameters;
         }
-        
+
         // Если переданы settings - обновляем их
         if ($request->has('settings')) {
             $updateData['settings'] = $request->settings;
         }
-        
-        if (!empty($updateData)) {
+
+        if (! empty($updateData)) {
             $diary->update($updateData);
         }
 
@@ -681,7 +758,7 @@ class DiaryController extends Controller
                 ->delete();
 
             // Генерируем новые задачи
-            $taskService = new \App\Services\TaskService();
+            $taskService = new \App\Services\TaskService;
             $taskService->generateForPatient($patient, 7);
         }
 
@@ -698,7 +775,7 @@ class DiaryController extends Controller
             // Удаляем будущие pending задачи
             \App\Models\Task::whereHas('template', function ($q) use ($patient, $removedKey) {
                 $q->where('patient_id', $patient->id)
-                  ->where('related_diary_key', $removedKey);
+                    ->where('related_diary_key', $removedKey);
             })
                 ->where('status', 'pending')
                 ->where('start_at', '>=', now())
@@ -713,16 +790,21 @@ class DiaryController extends Controller
      *     summary="Update a diary entry",
      *     description="Update an existing diary entry. Only the author or users with full diary access can update entries.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="Diary entry ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="type", type="string", example="physical", description="Entry type", enum={"care", "physical", "excretion", "symptom"}),
      *             @OA\Property(property="key", type="string", example="temperature", description="Entry key"),
      *             @OA\Property(property="value", type="object", description="Entry value as JSON object"),
@@ -730,10 +812,13 @@ class DiaryController extends Controller
      *             @OA\Property(property="recorded_at", type="string", format="date-time", example="2024-01-01T10:00:00Z")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Diary entry updated successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="id", type="integer", example=1),
      *             @OA\Property(property="diary_id", type="integer", example=1),
      *             @OA\Property(property="author_id", type="integer", example=1),
@@ -746,17 +831,23 @@ class DiaryController extends Controller
      *             @OA\Property(property="updated_at", type="string", format="date-time")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have permission to update this entry.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=404,
      *         description="Entry not found",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Diary entry not found.")
      *         )
      *     )
@@ -765,17 +856,17 @@ class DiaryController extends Controller
     public function updateEntry(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        
+
         $entry = DiaryEntry::with('diary.patient')->find($id);
-        
-        if (!$entry) {
+
+        if (! $entry) {
             return response()->json([
                 'message' => 'Запись не найдена.',
             ], 404);
         }
 
         // Check access to the diary's patient
-        if (!$this->canAccessPatient($user, $entry->diary->patient)) {
+        if (! $this->canAccessPatient($user, $entry->diary->patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этой записи.',
             ], 403);
@@ -792,7 +883,7 @@ class DiaryController extends Controller
 
         // Update only provided fields
         $updateData = [];
-        
+
         if ($request->has('type')) {
             $updateData['type'] = $request->type;
         }
@@ -821,31 +912,42 @@ class DiaryController extends Controller
      *     summary="Delete a diary entry",
      *     description="Delete an existing diary entry. Only the author or users with full diary access can delete entries.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="Diary entry ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Diary entry deleted successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Diary entry deleted successfully.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have permission to delete this entry.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=404,
      *         description="Entry not found",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Diary entry not found.")
      *         )
      *     )
@@ -854,17 +956,17 @@ class DiaryController extends Controller
     public function deleteEntry(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        
+
         $entry = DiaryEntry::with('diary.patient')->find($id);
-        
-        if (!$entry) {
+
+        if (! $entry) {
             return response()->json([
                 'message' => 'Запись не найдена.',
             ], 404);
         }
 
         // Check access to the diary's patient
-        if (!$this->canAccessPatient($user, $entry->diary->patient)) {
+        if (! $this->canAccessPatient($user, $entry->diary->patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этой записи.',
             ], 403);
@@ -884,19 +986,26 @@ class DiaryController extends Controller
      *     summary="Sync all diary entries",
      *     description="Bulk synchronize diary entries. Pass an array of entries - new ones will be created, existing ones updated, and missing ones deleted.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="Diary ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"entries"},
+     *
      *             @OA\Property(property="entries", type="array",
+     *
      *                 @OA\Items(
+     *
      *                     @OA\Property(property="id", type="integer", nullable=true, description="Entry ID (for updates)"),
      *                     @OA\Property(property="type", type="string", example="physical"),
      *                     @OA\Property(property="key", type="string", example="temperature"),
@@ -909,10 +1018,13 @@ class DiaryController extends Controller
      *             @OA\Property(property="delete_missing", type="boolean", default=false, description="If true, entries not in the array will be deleted")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Entries synced successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string"),
      *             @OA\Property(property="created", type="integer"),
      *             @OA\Property(property="updated", type="integer"),
@@ -920,6 +1032,7 @@ class DiaryController extends Controller
      *             @OA\Property(property="entries", type="array", @OA\Items(type="object"))
      *         )
      *     ),
+     *
      *     @OA\Response(response=403, description="Access denied"),
      *     @OA\Response(response=404, description="Diary not found")
      * )
@@ -927,17 +1040,17 @@ class DiaryController extends Controller
     public function syncEntries(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        
+
         $diary = Diary::with('patient')->find($id);
-        
-        if (!$diary) {
+
+        if (! $diary) {
             return response()->json([
                 'message' => 'Дневник не найден.',
             ], 404);
         }
 
         // Check access
-        if (!$this->canAccessPatient($user, $diary->patient)) {
+        if (! $this->canAccessPatient($user, $diary->patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому дневнику.',
             ], 403);
@@ -957,7 +1070,7 @@ class DiaryController extends Controller
 
         $entries = $request->entries;
         $deleteMissing = $request->boolean('delete_missing', false);
-        
+
         $createdCount = 0;
         $updatedCount = 0;
         $deletedCount = 0;
@@ -966,15 +1079,16 @@ class DiaryController extends Controller
 
         foreach ($entries as $entryData) {
             // Если помечена на удаление
-            if (!empty($entryData['_delete']) && !empty($entryData['id'])) {
+            if (! empty($entryData['_delete']) && ! empty($entryData['id'])) {
                 $entry = DiaryEntry::where('diary_id', $diary->id)
                     ->where('id', $entryData['id'])
                     ->first();
-                    
+
                 if ($entry) {
                     $entry->delete();
                     $deletedCount++;
                 }
+
                 continue;
             }
 
@@ -982,23 +1096,32 @@ class DiaryController extends Controller
             $type = $entryData['type'] ?? $this->getTypeByKey($entryData['key'] ?? '');
 
             // Обновление существующей записи
-            if (!empty($entryData['id'])) {
+            if (! empty($entryData['id'])) {
                 $entry = DiaryEntry::where('diary_id', $diary->id)
                     ->where('id', $entryData['id'])
                     ->first();
-                    
+
                 if ($entry) {
                     $updateData = [];
                     $updateData['type'] = $type;
-                    if (isset($entryData['key'])) $updateData['key'] = $entryData['key'];
-                    if (isset($entryData['value'])) $updateData['value'] = $entryData['value'];
-                    if (array_key_exists('notes', $entryData)) $updateData['notes'] = $entryData['notes'];
-                    if (isset($entryData['recorded_at'])) $updateData['recorded_at'] = $entryData['recorded_at'];
-                    
+                    if (isset($entryData['key'])) {
+                        $updateData['key'] = $entryData['key'];
+                    }
+                    if (isset($entryData['value'])) {
+                        $updateData['value'] = $entryData['value'];
+                    }
+                    if (array_key_exists('notes', $entryData)) {
+                        $updateData['notes'] = $entryData['notes'];
+                    }
+                    if (isset($entryData['recorded_at'])) {
+                        $updateData['recorded_at'] = $entryData['recorded_at'];
+                    }
+
                     $entry->update($updateData);
                     $updatedCount++;
                     $processedIds[] = $entry->id;
                     $resultEntries[] = $entry->fresh();
+
                     continue;
                 }
             }
@@ -1013,14 +1136,14 @@ class DiaryController extends Controller
                 'notes' => $entryData['notes'] ?? null,
                 'recorded_at' => $entryData['recorded_at'],
             ]);
-            
+
             $createdCount++;
             $processedIds[] = $entry->id;
             $resultEntries[] = $entry;
         }
 
         // Удаляем записи, которые не были в массиве (если включена опция)
-        if ($deleteMissing && !empty($processedIds)) {
+        if ($deleteMissing && ! empty($processedIds)) {
             $deletedCount += DiaryEntry::where('diary_id', $diary->id)
                 ->whereNotIn('id', $processedIds)
                 ->delete();
@@ -1042,24 +1165,31 @@ class DiaryController extends Controller
      *     summary="Update pinned parameters by diary ID",
      *     description="Update the pinned parameters for a diary using diary ID in URL.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="Diary ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             type="array",
+     *
      *             @OA\Items(
+     *
      *                 @OA\Property(property="key", type="string", example="blood_pressure"),
      *                 @OA\Property(property="interval_minutes", type="integer", example=60),
      *                 @OA\Property(property="times", type="array", @OA\Items(type="string"))
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Parameters updated successfully"),
      *     @OA\Response(response=403, description="Access denied"),
      *     @OA\Response(response=404, description="Diary not found")
@@ -1068,17 +1198,17 @@ class DiaryController extends Controller
     public function updateParameters(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        
+
         $diary = Diary::with('patient')->find($id);
-        
-        if (!$diary) {
+
+        if (! $diary) {
             return response()->json([
                 'message' => 'Дневник не найден.',
             ], 404);
         }
 
         // Check access
-        if (!$this->canAccessPatient($user, $diary->patient)) {
+        if (! $this->canAccessPatient($user, $diary->patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому дневнику.',
             ], 403);
@@ -1086,7 +1216,7 @@ class DiaryController extends Controller
 
         // Тело запроса — это массив параметров напрямую
         $parameters = $request->all();
-        
+
         // Валидация массива параметров
         $request->validate([
             '*.key' => 'required|string',
@@ -1119,19 +1249,25 @@ class DiaryController extends Controller
      *     summary="Get users with access to diary",
      *     description="Retrieve list of users who have access to a specific diary. Only owner/admin of organization or diary creator can view this.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="Diary ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Access list retrieved successfully",
+     *
      *         @OA\JsonContent(
      *             type="array",
+     *
      *             @OA\Items(
+     *
      *                 @OA\Property(property="id", type="integer", example=1),
      *                 @OA\Property(property="first_name", type="string", example="Иван"),
      *                 @OA\Property(property="last_name", type="string", example="Иванов"),
@@ -1142,6 +1278,7 @@ class DiaryController extends Controller
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied"
@@ -1155,10 +1292,10 @@ class DiaryController extends Controller
     public function getAccess(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        
+
         $diary = Diary::find($id);
-        
-        if (!$diary) {
+
+        if (! $diary) {
             return response()->json([
                 'message' => 'Дневник не найден.',
             ], 404);
@@ -1169,7 +1306,7 @@ class DiaryController extends Controller
         // А также клиент у которого есть роль admin
         $isClientAdmin = $user->isClient() && $user->hasRole('admin');
 
-        if (!$diary->hasAccess($user) && !$isClientAdmin) {
+        if (! $diary->hasAccess($user) && ! $isClientAdmin) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому дневнику.',
             ], 403);
@@ -1203,8 +1340,8 @@ class DiaryController extends Controller
         // Сотрудник организации (приоритет выше, чем type)
         if ($user->organization_id) {
             $organization = Organization::find($user->organization_id);
-            
-            if (!$organization) {
+
+            if (! $organization) {
                 return false;
             }
 
@@ -1236,18 +1373,19 @@ class DiaryController extends Controller
                 if ($user->hasAnyRole(['admin', 'manager'])) {
                     return true;
                 }
-                
+
                 // Проверяем назначение через patient_user
                 $isAssigned = $patient->assignedUsers()->where('user_id', $user->id)->exists();
                 if ($isAssigned) {
                     return true;
                 }
-                
+
                 // Проверяем доступ через diary_access
                 $hasDiaryAccess = $patient->diary && $patient->diary->hasAccess($user);
+
                 return $hasDiaryAccess;
             }
-            
+
             return true;
         }
 
@@ -1259,18 +1397,18 @@ class DiaryController extends Controller
             if ($isAssigned) {
                 return true;
             }
-            
+
             // Проверяем доступ через дневник
             $hasDiaryAccess = $patient->diary && $patient->diary->hasAccess($user);
             if ($hasDiaryAccess) {
                 return true;
             }
-            
+
             // Частная сиделка (без организации) - только назначенные
             if ($user->isPrivateCaregiver()) {
                 return $isAssigned || $hasDiaryAccess;
             }
-            
+
             return false;
         }
 
@@ -1280,18 +1418,18 @@ class DiaryController extends Controller
             if ($patient->owner_id === $user->id) {
                 return true;
             }
-            
+
             // Создатель пациента
             if ($patient->creator_id === $user->id) {
                 return true;
             }
-            
+
             return false;
         }
 
         return false;
     }
-    
+
     /**
      * Определяет тип записи по ключу показателя
      */
@@ -1308,7 +1446,7 @@ class DiaryController extends Controller
             'blood_sugar' => 'physical',
             'respiratory_rate' => 'physical',
             'weight' => 'physical',
-            
+
             // Care - Уход
             'meal' => 'care',
             'medicine' => 'care',
@@ -1323,12 +1461,12 @@ class DiaryController extends Controller
             'sleep' => 'care',
             'care_procedure' => 'care',
             'task_completion' => 'care',
-            
+
             // Excretion - Выделения
             'urination' => 'excretion',
             'urine' => 'excretion',
             'defecation' => 'excretion',
-            
+
             // Symptom - Симптомы
             'pain_level' => 'symptom',
             'nausea' => 'symptom',
@@ -1340,7 +1478,7 @@ class DiaryController extends Controller
             'hiccups' => 'symptom',
             'taste_disorder' => 'symptom',
         ];
-        
+
         return $keyToType[$key] ?? 'care'; // По умолчанию 'care'
     }
 }

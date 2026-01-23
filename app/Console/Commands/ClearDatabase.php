@@ -31,9 +31,10 @@ class ClearDatabase extends Command
      */
     public function handle()
     {
-        if (!$this->option('force')) {
-            if (!$this->confirm('⚠️  This will delete ALL data from the database. Are you sure?')) {
+        if (! $this->option('force')) {
+            if (! $this->confirm('⚠️  This will delete ALL data from the database. Are you sure?')) {
                 $this->info('Operation cancelled.');
+
                 return 0;
             }
         }
@@ -57,12 +58,12 @@ class ClearDatabase extends Command
             'cache_locks',
             'jobs',
             'job_batches',
-            
+
             // Связанные таблицы
             'diary_access',
             'patient_user',
             'invitations',
-            
+
             // Основные данные приложения
             'alarms',
             'diary_entries',
@@ -74,18 +75,18 @@ class ClearDatabase extends Command
         ];
 
         // Добавляем пользователей и организации если не исключены
-        if (!$exceptOrganizations) {
+        if (! $exceptOrganizations) {
             $tables[] = 'organizations';
         }
 
-        if (!$exceptUsers) {
+        if (! $exceptUsers) {
             $tables[] = 'users';
             $tables[] = 'model_has_permissions';
             $tables[] = 'model_has_roles';
         }
 
         // Добавляем роли и права если не исключены
-        if (!$exceptRoles) {
+        if (! $exceptRoles) {
             $tables[] = 'role_has_permissions';
             $tables[] = 'permissions';
             $tables[] = 'roles';
@@ -114,15 +115,15 @@ class ClearDatabase extends Command
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         $this->newLine();
-        $this->info("✅ Database cleanup completed!");
+        $this->info('✅ Database cleanup completed!');
         $this->info("   Cleared: {$cleared} tables");
-        
+
         if ($skipped > 0) {
             $this->warn("   Skipped: {$skipped} tables");
         }
 
         $this->newLine();
-        
+
         // Если были исключения, показываем что сохранилось
         $kept = [];
         if ($exceptUsers) {
@@ -135,8 +136,8 @@ class ClearDatabase extends Command
             $kept[] = 'roles & permissions';
         }
 
-        if (!empty($kept)) {
-            $this->info('🔒 Kept data: ' . implode(', ', $kept));
+        if (! empty($kept)) {
+            $this->info('🔒 Kept data: '.implode(', ', $kept));
         }
 
         $this->newLine();

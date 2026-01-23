@@ -15,7 +15,7 @@ return new class extends Migration
             // Remove email columns
             $table->dropUnique(['email']);
             $table->dropColumn(['email', 'email_verified_at']);
-            
+
             // Add phone columns
             $table->string('phone')->unique()->after('middle_name');
             $table->timestamp('phone_verified_at')->nullable()->after('phone');
@@ -32,7 +32,7 @@ return new class extends Migration
             // Remove phone columns
             $table->dropUnique(['phone']);
             $table->dropColumn(['phone', 'phone_verified_at', 'verification_code']);
-            
+
             // Restore email columns
             $table->string('email')->unique()->after('middle_name');
             $table->timestamp('email_verified_at')->nullable()->after('email');

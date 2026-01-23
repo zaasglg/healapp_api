@@ -16,7 +16,7 @@ class AdminTokenAuth
         $token = $request->query('token') ?? $request->session()->get('admin_token');
         $validToken = config('app.admin_token');
 
-        if (!$token || !$validToken || $token !== $validToken) {
+        if (! $token || ! $validToken || $token !== $validToken) {
             abort(403, 'Доступ запрещён');
         }
 

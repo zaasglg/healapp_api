@@ -33,13 +33,17 @@ class Invitation extends Model
     }
 
     // ===== CONSTANTS =====
-    
+
     public const TYPE_EMPLOYEE = 'employee';
+
     public const TYPE_CLIENT = 'client';
-    
+
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_ACCEPTED = 'accepted';
+
     public const STATUS_EXPIRED = 'expired';
+
     public const STATUS_REVOKED = 'revoked';
 
     public const ALLOWED_ROLES = ['admin', 'doctor', 'caregiver'];
@@ -71,7 +75,7 @@ class Invitation extends Model
     public function scopePending($query)
     {
         return $query->where('status', self::STATUS_PENDING)
-                     ->where('expires_at', '>', now());
+            ->where('expires_at', '>', now());
     }
 
     public function scopeForOrganization($query, int $organizationId)
@@ -88,7 +92,7 @@ class Invitation extends Model
 
     public function isValid(): bool
     {
-        return $this->status === self::STATUS_PENDING 
+        return $this->status === self::STATUS_PENDING
             && $this->expires_at->isFuture();
     }
 
@@ -118,7 +122,8 @@ class Invitation extends Model
             self::TYPE_CLIENT => '/client-invite/',
             default => '/invite/',
         };
-        return config('app.frontend_url', config('app.url')) . $path . $this->token;
+
+        return config('app.frontend_url', config('app.url')).$path.$this->token;
     }
 
     public function isEmployeeInvite(): bool

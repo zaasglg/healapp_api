@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Adds source_task_id to link diary entries with tasks.
      * This enables bidirectional synchronization between:
      * - Route Sheet tasks (маршрутный лист)
@@ -22,7 +22,7 @@ return new class extends Migration
                 ->after('author_id')
                 ->constrained('tasks')
                 ->onDelete('set null');
-            
+
             // Index for quick lookups by task
             $table->index('source_task_id');
         });

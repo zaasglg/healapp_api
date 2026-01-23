@@ -20,10 +20,10 @@ return new class extends Migration
         // Добавляем owner_id в patients (владелец карточки - клиент)
         Schema::table('patients', function (Blueprint $table) {
             $table->foreignId('owner_id')
-                  ->nullable()
-                  ->after('id')
-                  ->constrained('users')
-                  ->nullOnDelete();
+                ->nullable()
+                ->after('id')
+                ->constrained('users')
+                ->nullOnDelete();
         });
     }
 

@@ -28,33 +28,43 @@ class TaskController extends Controller
      *     summary="Get tasks for a patient",
      *     description="Retrieve tasks for a specific patient within a date range. Access is restricted based on user role.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="patient_id",
      *         in="query",
      *         required=true,
      *         description="Patient ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="from_date",
      *         in="query",
      *         required=false,
      *         description="Filter tasks from this date (YYYY-MM-DD). Defaults to today.",
+     *
      *         @OA\Schema(type="string", format="date")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="to_date",
      *         in="query",
      *         required=false,
      *         description="Filter tasks to this date (YYYY-MM-DD). Defaults to today.",
+     *
      *         @OA\Schema(type="string", format="date")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Tasks retrieved successfully",
+     *
      *         @OA\JsonContent(
      *             type="array",
+     *
      *             @OA\Items(
+     *
      *                 @OA\Property(property="id", type="integer", example=1),
      *                 @OA\Property(property="patient_id", type="integer", example=1),
      *                 @OA\Property(property="template_id", type="integer", nullable=true, example=1),
@@ -70,24 +80,33 @@ class TaskController extends Controller
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=400,
      *         description="Bad request - patient_id is required",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="patient_id parameter is required")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have permission to access this patient.")
      *         )
      *     )
@@ -98,7 +117,7 @@ class TaskController extends Controller
         $user = $request->user();
         $patientId = $request->query('patient_id');
 
-        if (!$patientId) {
+        if (! $patientId) {
             return response()->json([
                 'message' => 'Параметр patient_id обязателен',
             ], 400);
@@ -107,7 +126,7 @@ class TaskController extends Controller
         $patient = Patient::findOrFail($patientId);
 
         // Check access
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
@@ -132,30 +151,38 @@ class TaskController extends Controller
      *     summary="Update task status",
      *     description="Update the status of a task. Caregivers can mark tasks as completed or missed. Comment is required when marking as missed. When completing a task with a measurement value, provide 'value' (JSON) and optionally 'completed_at' (actual completion time). If the task has a related_diary_key, a diary entry will be automatically created.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="Task ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"status"},
+     *
      *             @OA\Property(property="status", type="string", example="completed", description="New status", enum={"completed", "missed", "cancelled"}),
      *             @OA\Property(property="comment", type="string", nullable=true, example="Patient refused", description="Required if status is 'missed'"),
-     *             @OA\Property(property="value", type="object", nullable=true, description="Measurement value (JSON). Required if task has related_diary_key and status is 'completed'. For blood_pressure: systolic and diastolic. For temperature: value field.", 
+     *             @OA\Property(property="value", type="object", nullable=true, description="Measurement value (JSON). Required if task has related_diary_key and status is 'completed'. For blood_pressure: systolic and diastolic. For temperature: value field.",
      *                 @OA\Property(property="systolic", type="integer", example=120),
      *                 @OA\Property(property="diastolic", type="integer", example=80)
      *             ),
      *             @OA\Property(property="completed_at", type="string", format="date-time", nullable=true, example="2024-01-01 14:30:00", description="Actual time when the task was completed (format: Y-m-d H:i:s). If not provided, uses current time.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Task status updated successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="id", type="integer", example=1),
      *             @OA\Property(property="patient_id", type="integer", example=1),
      *             @OA\Property(property="template_id", type="integer", nullable=true, example=1),
@@ -170,31 +197,43 @@ class TaskController extends Controller
      *             @OA\Property(property="updated_at", type="string", format="date-time")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have permission to update this task.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=404,
      *         description="Task not found",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\Task] {id}")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=422,
      *         description="Validation error",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="The given data was invalid."),
      *             @OA\Property(property="errors", type="object")
      *         )
@@ -207,7 +246,7 @@ class TaskController extends Controller
         $patient = $task->patient;
 
         // Check access - caregivers, managers, clients, and admins can update
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет прав на обновление этой задачи.',
             ], 403);
@@ -221,12 +260,12 @@ class TaskController extends Controller
         }
 
         $data = $request->validated();
-        
+
         // Set completed_by and completed_at if status is completed or missed
         if (in_array($data['status'], ['completed', 'missed'])) {
             $data['completed_by'] = $user->id;
             // Use provided completed_at or default to now()
-            $data['completed_at'] = $request->input('completed_at') 
+            $data['completed_at'] = $request->input('completed_at')
                 ? \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $request->input('completed_at'))
                 : now();
         }
@@ -256,15 +295,15 @@ class TaskController extends Controller
     private function createDiaryEntryFromTask(Task $task, $user, array $value): void
     {
         $patient = $task->patient;
-        
+
         // Get or create diary for patient
         $diary = $patient->diary;
-        if (!$diary) {
+        if (! $diary) {
             $diary = \App\Models\Diary::create([
                 'patient_id' => $patient->id,
             ]);
         }
-        
+
         // Determine diary type based on key
         $physicalKeys = ['temperature', 'blood_pressure', 'pulse', 'weight', 'height', 'blood_sugar'];
         $diaryType = in_array($task->related_diary_key, $physicalKeys) ? 'physical' : 'care';
@@ -277,7 +316,7 @@ class TaskController extends Controller
             'key' => $task->related_diary_key,
             'value' => $value,
             'recorded_at' => $task->completed_at,
-            'notes' => 'Created from Task: ' . $task->title,
+            'notes' => 'Created from Task: '.$task->title,
         ]);
     }
 

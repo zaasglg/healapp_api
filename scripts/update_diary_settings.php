@@ -1,4 +1,5 @@
 <?php
+
 // Пример скрипта для обновления только settings.all_indicators дневника через API
 
 $apiUrl = 'https://your-api-url.com/api/v1/diary/pinned'; // Замените на ваш URL
@@ -17,16 +18,16 @@ $payload = [
             'sleep',
             'pain_level',
             'oxygen_saturation',
-            'defecation'
-        ]
-    ]
+            'defecation',
+        ],
+    ],
 ];
 
 $ch = curl_init($apiUrl);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Authorization: Bearer ' . $token,
+    'Authorization: Bearer '.$token,
     'Content-Type: application/json',
 ]);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
@@ -39,5 +40,5 @@ curl_close($ch);
 header('Content-Type: application/json');
 echo json_encode([
     'http_code' => $httpCode,
-    'response' => json_decode($response, true)
+    'response' => json_decode($response, true),
 ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);

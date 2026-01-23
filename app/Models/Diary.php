@@ -113,7 +113,7 @@ class Diary extends Model
             $user->id => [
                 'permission' => $permission,
                 'status' => 'active',
-            ]
+            ],
         ]);
     }
 

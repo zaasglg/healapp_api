@@ -25,11 +25,14 @@ class InvitationController extends Controller
      *     tags={"Invitations"},
      *     summary="Список приглашений организации",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="status",
      *         in="query",
+     *
      *         @OA\Schema(type="string", enum={"pending", "accepted", "expired", "revoked"})
      *     ),
+     *
      *     @OA\Response(response=200, description="Success")
      * )
      */
@@ -37,7 +40,7 @@ class InvitationController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->canManageEmployees()) {
+        if (! $user->canManageEmployees()) {
             return response()->json(['message' => 'Недостаточно прав'], 403);
         }
 
@@ -61,17 +64,23 @@ class InvitationController extends Controller
      *     summary="Создать приглашение для сотрудника",
      *     description="Создает приглашение для сотрудника организации. Возвращает deeplink URL в формате /invite/{token}.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"role"},
+     *
      *             @OA\Property(property="role", type="string", enum={"admin", "manager", "doctor", "caregiver"}, example="caregiver", description="Роль сотрудника в организации")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=201,
      *         description="Приглашение создано",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Приглашение создано"),
      *             @OA\Property(property="invitation", type="object",
      *                 @OA\Property(property="id", type="integer"),
@@ -83,6 +92,7 @@ class InvitationController extends Controller
      *             @OA\Property(property="invite_url", type="string", example="https://app.com/invite/abc123...")
      *         )
      *     ),
+     *
      *     @OA\Response(response=403, description="Недостаточно прав"),
      *     @OA\Response(response=404, description="У пользователя нет организации")
      * )
@@ -95,11 +105,11 @@ class InvitationController extends Controller
 
         $user = $request->user();
 
-        if (!$user->canManageEmployees()) {
+        if (! $user->canManageEmployees()) {
             return response()->json(['message' => 'Недостаточно прав'], 403);
         }
 
-        if (!$user->organization_id) {
+        if (! $user->organization_id) {
             return response()->json(['message' => 'У вас нет организации'], 404);
         }
 
@@ -142,17 +152,23 @@ class InvitationController extends Controller
      *     summary="Создать приглашение для клиента",
      *     description="Создает приглашение для клиента. Возвращает deeplink URL в формате /client-invite/{token}.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"patient_id"},
+     *
      *             @OA\Property(property="patient_id", type="integer", example=1)
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=201,
      *         description="Приглашение создано",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="invitation", type="object"),
      *             @OA\Property(property="invite_url", type="string", example="https://app.com/client-invite/abc123...")
      *         )
@@ -167,7 +183,7 @@ class InvitationController extends Controller
 
         $user = $request->user();
 
-        if (!$user->canManageAccess()) {
+        if (! $user->canManageAccess()) {
             return response()->json(['message' => 'Недостаточно прав'], 403);
         }
 
@@ -192,11 +208,15 @@ class InvitationController extends Controller
      *     path="/api/v1/invitations/{token}",
      *     tags={"Invitations"},
      *     summary="Получить информацию о приглашении по токену",
+     *
      *     @OA\Parameter(name="token", in="path", required=true, @OA\Schema(type="string")),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Информация о приглашении",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="organization_name", type="string"),
      *             @OA\Property(property="type", type="string"),
      *             @OA\Property(property="role", type="string", nullable=true),
@@ -211,11 +231,11 @@ class InvitationController extends Controller
             ->with(['organization:id,name,type'])
             ->first();
 
-        if (!$invitation) {
+        if (! $invitation) {
             return response()->json(['message' => 'Приглашение не найдено'], 404);
         }
 
-        if (!$invitation->isValid()) {
+        if (! $invitation->isValid()) {
             return response()->json([
                 'message' => 'Приглашение истекло или уже использовано',
                 'status' => $invitation->status,
@@ -236,11 +256,15 @@ class InvitationController extends Controller
      *     path="/api/v1/invitations/{token}/accept",
      *     tags={"Invitations"},
      *     summary="Принять приглашение (регистрация или привязка)",
+     *
      *     @OA\Parameter(name="token", in="path", required=true, @OA\Schema(type="string")),
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"phone", "password"},
+     *
      *             @OA\Property(property="phone", type="string", example="79001234567"),
      *             @OA\Property(property="password", type="string", format="password"),
      *             @OA\Property(property="password_confirmation", type="string", format="password"),
@@ -248,10 +272,13 @@ class InvitationController extends Controller
      *             @OA\Property(property="last_name", type="string", nullable=true)
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Приглашение принято",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="access_token", type="string"),
      *             @OA\Property(property="user", type="object")
      *         )
@@ -262,11 +289,11 @@ class InvitationController extends Controller
     {
         $invitation = Invitation::where('token', $token)->first();
 
-        if (!$invitation) {
+        if (! $invitation) {
             return response()->json(['message' => 'Приглашение не найдено'], 404);
         }
 
-        if (!$invitation->isValid()) {
+        if (! $invitation->isValid()) {
             return response()->json([
                 'message' => 'Приглашение истекло или уже использовано',
             ], 410);
@@ -282,7 +309,7 @@ class InvitationController extends Controller
                 'password' => 'required|string',
             ]);
 
-            if (!Hash::check($request->password, $existingUser->password)) {
+            if (! Hash::check($request->password, $existingUser->password)) {
                 return response()->json(['message' => 'Неверный пароль'], 401);
             }
 
@@ -296,8 +323,8 @@ class InvitationController extends Controller
                 'last_name' => 'nullable|string|max:255',
             ]);
 
-            $userType = $invitation->isClientInvite() 
-                ? UserType::CLIENT 
+            $userType = $invitation->isClientInvite()
+                ? UserType::CLIENT
                 : UserType::ORGANIZATION;
 
             $user = User::create([
@@ -320,7 +347,7 @@ class InvitationController extends Controller
         } elseif ($invitation->isClientInvite() && $invitation->patient_id) {
             // Привязываем клиента к карточке подопечного
             $invitation->patient->update(['owner_id' => $user->id]);
-            
+
             // Даём доступ к дневнику, если есть
             if ($invitation->patient->diary) {
                 $invitation->patient->diary->grantAccess($user, 'view');
@@ -346,7 +373,9 @@ class InvitationController extends Controller
      *     tags={"Invitations"},
      *     summary="Отозвать приглашение",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="Приглашение отозвано")
      * )
      */
@@ -354,7 +383,7 @@ class InvitationController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->canManageEmployees()) {
+        if (! $user->canManageEmployees()) {
             return response()->json(['message' => 'Недостаточно прав'], 403);
         }
 
@@ -362,7 +391,7 @@ class InvitationController extends Controller
             ->where('organization_id', $user->organization_id)
             ->first();
 
-        if (!$invitation) {
+        if (! $invitation) {
             return response()->json(['message' => 'Приглашение не найдено'], 404);
         }
 

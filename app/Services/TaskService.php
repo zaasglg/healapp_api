@@ -12,8 +12,7 @@ class TaskService
     /**
      * Generate tasks for a patient based on active templates.
      *
-     * @param Patient $patient
-     * @param int $days Number of days to generate tasks for (default: 7)
+     * @param  int  $days  Number of days to generate tasks for (default: 7)
      * @return int Number of tasks generated
      */
     public function generateForPatient(Patient $patient, int $days = 7): int
@@ -36,38 +35,38 @@ class TaskService
                 continue;
             }
 
-            $startDate = $template->start_date->isAfter($today) 
-                ? $template->start_date 
+            $startDate = $template->start_date->isAfter($today)
+                ? $template->start_date
                 : $today;
 
-            $effectiveEndDate = $template->end_date 
-                ? min($template->end_date, $endDate) 
+            $effectiveEndDate = $template->end_date
+                ? min($template->end_date, $endDate)
                 : $endDate;
 
             // Get days of week to generate tasks for
             $daysOfWeek = $template->days_of_week ?? [0, 1, 2, 3, 4, 5, 6]; // If null, every day
 
             $currentDate = $startDate->copy();
-            
+
             while ($currentDate->lte($effectiveEndDate)) {
                 $dayOfWeek = $currentDate->dayOfWeek; // 0 = Sunday, 6 = Saturday
 
                 if (in_array($dayOfWeek, $daysOfWeek)) {
                     // Generate tasks for each time range
                     foreach ($template->time_ranges as $timeRange) {
-                        $startTime = Carbon::parse($currentDate->format('Y-m-d') . ' ' . $timeRange['start']);
-                        $endTime = Carbon::parse($currentDate->format('Y-m-d') . ' ' . $timeRange['end']);
+                        $startTime = Carbon::parse($currentDate->format('Y-m-d').' '.$timeRange['start']);
+                        $endTime = Carbon::parse($currentDate->format('Y-m-d').' '.$timeRange['end']);
 
                         // Check if task already exists (either at current time or was rescheduled from this time)
                         $exists = Task::where('patient_id', $patient->id)
                             ->where('template_id', $template->id)
                             ->where(function ($q) use ($startTime) {
                                 $q->where('start_at', $startTime)
-                                  ->orWhere('original_start_at', $startTime);
+                                    ->orWhere('original_start_at', $startTime);
                             })
                             ->exists();
 
-                        if (!$exists) {
+                        if (! $exists) {
                             Task::create([
                                 'patient_id' => $patient->id,
                                 'template_id' => $template->id,
@@ -95,7 +94,7 @@ class TaskService
      * Generate tasks for all patients with active templates.
      * This should be run daily via scheduler.
      *
-     * @param int $days Number of days to generate tasks for
+     * @param  int  $days  Number of days to generate tasks for
      * @return int Total number of tasks generated
      */
     public function generateForAllPatients(int $days = 7): int
@@ -129,5 +128,3 @@ class TaskService
             ]);
     }
 }
-
-

@@ -37,7 +37,7 @@ return new class extends Migration
         Schema::table('diary_entries', function (Blueprint $table) {
             // Make diary_id required after migration
             $table->foreignId('diary_id')->nullable(false)->change();
-            
+
             // Drop patient_id column as it's now accessed through diary
             $table->dropForeign(['patient_id']);
             $table->dropColumn('patient_id');

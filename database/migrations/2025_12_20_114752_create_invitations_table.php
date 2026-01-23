@@ -16,17 +16,17 @@ return new class extends Migration
             $table->foreignId('organization_id')->constrained()->onDelete('cascade');
             $table->foreignId('inviter_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('invitee_id')->nullable()->constrained('users')->nullOnDelete();
-            
+
             $table->string('token', 64)->unique();
             $table->string('type'); // employee, client
             $table->string('role')->nullable(); // admin, doctor, caregiver (for employee type)
             $table->foreignId('patient_id')->nullable()->constrained()->nullOnDelete(); // for client invitations
-            
+
             $table->string('status')->default('pending'); // pending, accepted, expired, revoked
             $table->timestamp('expires_at');
             $table->timestamp('accepted_at')->nullable();
             $table->timestamps();
-            
+
             $table->index(['token', 'status']);
             $table->index(['organization_id', 'status']);
         });

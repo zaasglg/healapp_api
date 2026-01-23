@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Добавляет колонку type в таблицу users для хранения типа пользователя:
      * - organization: владелец/сотрудник организации
      * - private_caregiver: частная сиделка

@@ -20,7 +20,7 @@ class EnsureOrganizationRole
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             abort(401, 'Требуется авторизация');
         }
 
@@ -32,25 +32,25 @@ class EnsureOrganizationRole
             $organization = Organization::find($organization);
         }
 
-        if (!$organization) {
+        if (! $organization) {
             abort(404, 'Организация не найдена');
         }
 
         // Получаем роль пользователя в организации
         $userRole = $user->roleInOrganization($organization);
 
-        if (!$userRole) {
+        if (! $userRole) {
             abort(403, 'Вы не являетесь сотрудником этой организации');
         }
 
         // Преобразуем строковые роли в enum
         $allowedRoles = array_map(
-            fn($role) => OrganizationRole::tryFrom($role),
+            fn ($role) => OrganizationRole::tryFrom($role),
             $roles
         );
 
         // Проверяем, есть ли роль пользователя в разрешённых
-        if (!in_array($userRole, $allowedRoles, true)) {
+        if (! in_array($userRole, $allowedRoles, true)) {
             abort(403, 'Недостаточно прав для выполнения этого действия');
         }
 

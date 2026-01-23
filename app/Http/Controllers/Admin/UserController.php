@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -15,8 +16,8 @@ class UserController extends Controller
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -33,6 +34,7 @@ class UserController extends Controller
     public function show(User $user)
     {
         $user->load(['organization', 'roles', 'patients', 'ownedPatients']);
+
         return view('admin.users.show', compact('user'));
     }
 
@@ -60,7 +62,49 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         $user->delete();
+
         return redirect()->route('admin.users.index')
             ->with('success', 'Пользователь удалён');
+    }
+
+    public function destroyAll(User $user)
+    {
+        DB::transaction(function () use ($user) {
+            // Удаляем созданных/владеемых пациентов и их данные
+            foreach ($user->ownedPatients as $patient) {
+                // Удаляем дневник
+                if ($patient->diary) {
+                    $patient->diary->entries()->delete();
+                    $patient->diary->alarms()->delete();
+                    // Удаляем доступы к дневнику
+                    $patient->diary->accessUsers()->detach();
+
+                    $patient->diary->delete();
+                }
+
+                // Удаляем задачи и шаблоны
+                $patient->tasks()->delete();
+                $patient->taskTemplates()->delete();
+
+                $patient->delete();
+            }
+
+            // Удаляем организации, где пользователь владелец
+            foreach ($user->ownedOrganizations as $org) {
+                $org->delete();
+            }
+
+            // Отвязываем от пациентов (где сиделка/врач)
+            $user->assignedPatients()->detach();
+
+            // Удаляем приглашения
+            $user->sentInvitations()->delete();
+
+            // Удаляем самого пользователя
+            $user->delete();
+        });
+
+        return redirect()->route('admin.users.index')
+            ->with('success', 'Пользователь и ВСЕ его данные полностью удалены');
     }
 }

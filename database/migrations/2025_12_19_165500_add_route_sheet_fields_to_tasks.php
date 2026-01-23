@@ -18,7 +18,7 @@ return new class extends Migration
                 ->after('patient_id')
                 ->constrained('users')
                 ->onDelete('set null');
-            
+
             // Reschedule fields
             $table->dateTime('original_start_at')->nullable()->after('end_at');
             $table->dateTime('original_end_at')->nullable()->after('original_start_at');
@@ -29,14 +29,14 @@ return new class extends Migration
                 ->constrained('users')
                 ->onDelete('set null');
             $table->dateTime('rescheduled_at')->nullable()->after('rescheduled_by');
-            
+
             // Photo attachments (JSON array of URLs)
             $table->json('photos')->nullable()->after('comment');
-            
+
             // Priority (for sorting)
             $table->tinyInteger('priority')->default(0)->after('status');
         });
-        
+
         // Add assigned_to to task_templates for default assignment
         Schema::table('task_templates', function (Blueprint $table) {
             $table->foreignId('assigned_to')
@@ -44,7 +44,7 @@ return new class extends Migration
                 ->after('creator_id')
                 ->constrained('users')
                 ->onDelete('set null');
-            
+
             // Related diary key (e.g., blood_pressure, temperature)
             $table->string('related_diary_key')->nullable()->after('is_active');
         });
@@ -67,7 +67,7 @@ return new class extends Migration
             $table->dropColumn('photos');
             $table->dropColumn('priority');
         });
-        
+
         Schema::table('task_templates', function (Blueprint $table) {
             $table->dropForeign(['assigned_to']);
             $table->dropColumn('assigned_to');

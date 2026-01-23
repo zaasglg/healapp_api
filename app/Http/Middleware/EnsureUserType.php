@@ -18,13 +18,13 @@ class EnsureUserType
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             abort(401, 'Требуется авторизация');
         }
 
         $userType = $user->type?->value;
 
-        if (!$userType || !in_array($userType, $types)) {
+        if (! $userType || ! in_array($userType, $types)) {
             abort(403, 'Этот функционал недоступен для вашего типа аккаунта');
         }
 

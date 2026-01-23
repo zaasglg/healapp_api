@@ -29,7 +29,7 @@ class TaskPolicy
 
     /**
      * Создание задач
-     * 
+     *
      * Правила:
      * - Doctor: МОЖЕТ создавать задачи
      * - Caregiver: НЕ МОЖЕТ создавать задачи
@@ -43,11 +43,11 @@ class TaskPolicy
             $organization = $user->organization;
             if ($organization && $organization->isBoardingHouse()) {
                 if ($user->hasRole('caregiver')) {
-        return false;
-    }
+                    return false;
+                }
             }
         }
-        
+
         // Doctor, Admin, Owner, Manager, Client могут создавать задачи
         return $user->hasAnyRole(['client', 'manager', 'doctor', 'admin', 'owner']);
     }
@@ -62,11 +62,11 @@ class TaskPolicy
             $organization = $user->organization;
             if ($organization && $organization->isBoardingHouse()) {
                 if ($user->hasRole('caregiver')) {
-        return false;
-    }
+                    return false;
+                }
             }
         }
-        
+
         // Doctor, Admin, Owner, Manager, Client могут обновлять задачи
         return $user->hasAnyRole(['client', 'manager', 'doctor', 'admin', 'owner']);
     }
@@ -81,11 +81,11 @@ class TaskPolicy
             $organization = $user->organization;
             if ($organization && $organization->isBoardingHouse()) {
                 if ($user->hasAnyRole(['caregiver', 'doctor'])) {
-        return false;
-    }
+                    return false;
+                }
             }
         }
-        
+
         // Только Admin, Owner, Manager, Client могут удалять задачи
         return $user->hasAnyRole(['client', 'manager', 'admin', 'owner']);
     }

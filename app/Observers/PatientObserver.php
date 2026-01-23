@@ -2,7 +2,6 @@
 
 namespace App\Observers;
 
-use App\Models\Diary;
 use App\Models\Patient;
 
 class PatientObserver

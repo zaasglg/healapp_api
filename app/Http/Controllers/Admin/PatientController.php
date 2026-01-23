@@ -15,7 +15,7 @@ class PatientController extends Controller
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%");
             });
         }
 
@@ -28,12 +28,14 @@ class PatientController extends Controller
     public function show(Patient $patient)
     {
         $patient->load(['owner', 'organization', 'creator', 'diaries']);
+
         return view('admin.patients.show', compact('patient'));
     }
 
     public function destroy(Patient $patient)
     {
         $patient->delete();
+
         return redirect()->route('admin.patients.index')
             ->with('success', 'Подопечный удалён');
     }

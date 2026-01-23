@@ -13,17 +13,17 @@ class DiaryObserver
     public function created(Diary $diary): void
     {
         $patient = $diary->patient;
-        
-        if (!$patient || !$patient->organization_id) {
+
+        if (! $patient || ! $patient->organization_id) {
             return;
         }
-        
+
         $organization = $patient->organization;
-        
-        if (!$organization || !$organization->isBoardingHouse()) {
+
+        if (! $organization || ! $organization->isBoardingHouse()) {
             return;
         }
-        
+
         // Даём доступ всем сотрудникам организации
         $employees = $organization->employees()->get();
         foreach ($employees as $employee) {

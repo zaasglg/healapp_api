@@ -20,36 +20,36 @@ class PermissionsSeeder extends Seeder
         // ========================================
         // PERMISSIONS
         // ========================================
-        
+
         $permissions = [
             // Пациенты
             'patients.create',
             'patients.view',
             'patients.edit',
             'patients.delete',
-            
+
             // Дневники
             'diaries.create',
             'diaries.view',
             'diaries.edit',
             'diaries.fill',
-            
+
             // Маршрутные листы
             'tasks.create',
             'tasks.view',
             'tasks.edit',
             'tasks.complete',
-            
+
             // Управление доступом
             'access.manage',
-            
+
             // Сотрудники
             'employees.invite',
             'employees.manage',
-            
+
             // Клиенты
             'clients.invite',
-            
+
             // Организация
             'organization.edit',
         ];
@@ -100,7 +100,7 @@ class PermissionsSeeder extends Seeder
         // ========================================
         // SYSTEM ROLES
         // ========================================
-        
+
         // Super admin (для внутреннего использования)
         $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
         $superAdmin->syncPermissions(Permission::all());

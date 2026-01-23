@@ -26,4 +26,3 @@ class ConfirmChangePhoneRequest extends FormRequest
         ];
     }
 }
-

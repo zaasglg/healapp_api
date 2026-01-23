@@ -9,7 +9,7 @@ use Carbon\Carbon;
 /**
  * DiaryEntryObserver handles synchronization between
  * Pinned Indicators (закрепленные показатели) and Route Sheet tasks (маршрутный лист).
- * 
+ *
  * Sync behavior:
  * 1. When a diary entry is created → updates pinned_parameters.last_recorded_at
  * 2. When a diary entry is created directly (not from task) → marks matching pending tasks as completed
@@ -22,17 +22,17 @@ class DiaryEntryObserver
     public function created(DiaryEntry $entry): void
     {
         $diary = $entry->diary;
-        
-        if (!$diary) {
+
+        if (! $diary) {
             return;
         }
 
         // 1. Update pinned_parameters if this entry matches a pinned indicator
         $this->updatePinnedParameters($entry, $diary);
-        
+
         // 2. Sync with Route Sheet tasks if entry was NOT created from a task
         // This handles the case when user records a measurement directly in the diary
-        if (!$entry->source_task_id) {
+        if (! $entry->source_task_id) {
             $this->syncWithPendingTasks($entry, $diary);
         }
     }
@@ -72,8 +72,8 @@ class DiaryEntryObserver
     private function syncWithPendingTasks(DiaryEntry $entry, $diary): void
     {
         $patient = $diary->patient;
-        
-        if (!$patient) {
+
+        if (! $patient) {
             return;
         }
 
@@ -94,7 +94,7 @@ class DiaryEntryObserver
                 'completed_by' => $entry->author_id,
                 'comment' => $entry->notes ?? 'Выполнено через дневник',
             ]);
-            
+
             // Link the diary entry to the task
             $entry->update([
                 'source_task_id' => $matchingTask->id,

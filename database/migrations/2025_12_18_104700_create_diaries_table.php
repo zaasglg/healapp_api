@@ -17,7 +17,7 @@ return new class extends Migration
             $table->json('pinned_parameters')->nullable()->comment('Array of pinned parameters with timers');
             $table->json('settings')->nullable()->comment('Diary settings (notifications, etc.)');
             $table->timestamps();
-            
+
             // One diary per patient
             $table->unique('patient_id');
         });

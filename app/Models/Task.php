@@ -15,8 +15,11 @@ class Task extends Model
      * Task statuses.
      */
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_COMPLETED = 'completed';
+
     public const STATUS_MISSED = 'missed';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     /**
@@ -134,7 +137,7 @@ class Task extends Model
      */
     public function isOverdue(): bool
     {
-        return $this->status === self::STATUS_PENDING 
+        return $this->status === self::STATUS_PENDING
             && $this->end_at->isPast();
     }
 

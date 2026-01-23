@@ -38,4 +38,3 @@ class RegisterRequest extends FormRequest
         return $rules;
     }
 }
-

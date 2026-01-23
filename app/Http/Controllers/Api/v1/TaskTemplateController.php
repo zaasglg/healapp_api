@@ -25,19 +25,25 @@ class TaskTemplateController extends Controller
      *     summary="Get task templates for a patient",
      *     description="Retrieve task templates for a specific patient. Only clients and managers can access.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="patient_id",
      *         in="query",
      *         required=true,
      *         description="Patient ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Task templates retrieved successfully",
+     *
      *         @OA\JsonContent(
      *             type="array",
+     *
      *             @OA\Items(
+     *
      *                 @OA\Property(property="id", type="integer", example=1),
      *                 @OA\Property(property="patient_id", type="integer", example=1),
      *                 @OA\Property(property="creator_id", type="integer", example=1),
@@ -52,24 +58,33 @@ class TaskTemplateController extends Controller
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=400,
      *         description="Bad request - patient_id is required",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="patient_id parameter is required")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have permission to access this patient.")
      *         )
      *     )
@@ -80,7 +95,7 @@ class TaskTemplateController extends Controller
         $user = $request->user();
 
         // Only clients, managers, admins, owners can access templates
-        if (!$user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
+        if (! $user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на доступ к шаблонам задач.',
             ], 403);
@@ -88,7 +103,7 @@ class TaskTemplateController extends Controller
 
         $patientId = $request->query('patient_id');
 
-        if (!$patientId) {
+        if (! $patientId) {
             return response()->json([
                 'message' => 'Параметр patient_id обязателен',
             ], 400);
@@ -97,7 +112,7 @@ class TaskTemplateController extends Controller
         $patient = Patient::findOrFail($patientId);
 
         // Check access
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
@@ -115,10 +130,13 @@ class TaskTemplateController extends Controller
      *     summary="Create a new task template",
      *     description="Create a new task template and generate initial tasks. Only clients and managers can create templates.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"patient_id", "title", "time_ranges", "start_date"},
+     *
      *             @OA\Property(property="patient_id", type="integer", example=1, description="Patient ID"),
      *             @OA\Property(property="title", type="string", example="Give medicine", description="Task name"),
      *             @OA\Property(property="days_of_week", type="array", nullable=true, @OA\Items(type="integer"), example={1, 3, 5}, description="Array of day numbers (0=Sunday, 6=Saturday). Null = every day"),
@@ -131,10 +149,13 @@ class TaskTemplateController extends Controller
      *             @OA\Property(property="is_active", type="boolean", example=true, description="Whether the template is active")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=201,
      *         description="Task template created successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="id", type="integer", example=1),
      *             @OA\Property(property="patient_id", type="integer", example=1),
      *             @OA\Property(property="creator_id", type="integer", example=1),
@@ -148,24 +169,33 @@ class TaskTemplateController extends Controller
      *             @OA\Property(property="updated_at", type="string", format="date-time")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have permission to create task templates.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=422,
      *         description="Validation error",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="The given data was invalid."),
      *             @OA\Property(property="errors", type="object")
      *         )
@@ -177,7 +207,7 @@ class TaskTemplateController extends Controller
         $user = $request->user();
 
         // Only clients, managers, admins, owners can create templates
-        if (!$user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
+        if (! $user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на создание шаблонов задач.',
             ], 403);
@@ -186,7 +216,7 @@ class TaskTemplateController extends Controller
         $patient = Patient::findOrFail($request->patient_id);
 
         // Check access
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
@@ -198,7 +228,7 @@ class TaskTemplateController extends Controller
         $template = TaskTemplate::create($data);
 
         // Generate tasks for the first week
-        $taskService = new TaskService();
+        $taskService = new TaskService;
         $taskService->generateForPatient($patient, 7);
 
         return response()->json($template, 201);
@@ -210,7 +240,9 @@ class TaskTemplateController extends Controller
      *     tags={"Task Templates"},
      *     summary="Get a specific task template",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="Template retrieved successfully"),
      *     @OA\Response(response=403, description="Access denied"),
      *     @OA\Response(response=404, description="Template not found")
@@ -221,7 +253,7 @@ class TaskTemplateController extends Controller
         $user = $request->user();
         $patient = $taskTemplate->patient;
 
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому шаблону.',
             ], 403);
@@ -238,9 +270,13 @@ class TaskTemplateController extends Controller
      *     tags={"Task Templates"},
      *     summary="Update a task template",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\RequestBody(
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="title", type="string"),
      *             @OA\Property(property="assigned_to", type="integer", nullable=true),
      *             @OA\Property(property="days_of_week", type="array", @OA\Items(type="integer")),
@@ -251,6 +287,7 @@ class TaskTemplateController extends Controller
      *             @OA\Property(property="related_diary_key", type="string", nullable=true)
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Template updated successfully"),
      *     @OA\Response(response=403, description="Access denied")
      * )
@@ -259,7 +296,7 @@ class TaskTemplateController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
+        if (! $user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на обновление шаблонов задач.',
             ], 403);
@@ -267,7 +304,7 @@ class TaskTemplateController extends Controller
 
         $patient = $taskTemplate->patient;
 
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
@@ -307,7 +344,7 @@ class TaskTemplateController extends Controller
                 ->delete();
 
             // Regenerate tasks
-            $taskService = new TaskService();
+            $taskService = new TaskService;
             $taskService->generateForPatient($patient, 7);
         }
 
@@ -322,7 +359,9 @@ class TaskTemplateController extends Controller
      *     tags={"Task Templates"},
      *     summary="Toggle template active status",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="Template status toggled")
      * )
      */
@@ -330,7 +369,7 @@ class TaskTemplateController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
+        if (! $user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на обновление шаблонов задач.',
             ], 403);
@@ -338,24 +377,24 @@ class TaskTemplateController extends Controller
 
         $patient = $taskTemplate->patient;
 
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
         }
 
-        $taskTemplate->is_active = !$taskTemplate->is_active;
+        $taskTemplate->is_active = ! $taskTemplate->is_active;
         $taskTemplate->save();
 
         // If deactivated, optionally delete future pending tasks
-        if (!$taskTemplate->is_active) {
+        if (! $taskTemplate->is_active) {
             $taskTemplate->tasks()
                 ->where('status', 'pending')
                 ->where('start_at', '>', now())
                 ->delete();
         } else {
             // If activated, generate new tasks
-            $taskService = new TaskService();
+            $taskService = new TaskService;
             $taskService->generateForPatient($patient, 7);
         }
 
@@ -372,38 +411,52 @@ class TaskTemplateController extends Controller
      *     summary="Delete a task template",
      *     description="Delete a task template and all future pending tasks linked to it. Only clients and managers can delete templates.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="Task Template ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Task template deleted successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Task template deleted successfully")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Unauthenticated.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Access denied",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="You do not have permission to delete this template.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=404,
      *         description="Template not found",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\TaskTemplate] {id}")
      *         )
      *     )
@@ -414,7 +467,7 @@ class TaskTemplateController extends Controller
         $user = $request->user();
 
         // Only clients, managers, admins, owners can delete templates
-        if (!$user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
+        if (! $user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на удаление шаблонов задач.',
             ], 403);
@@ -423,7 +476,7 @@ class TaskTemplateController extends Controller
         $patient = $taskTemplate->patient;
 
         // Check access
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);

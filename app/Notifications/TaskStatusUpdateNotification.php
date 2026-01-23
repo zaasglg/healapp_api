@@ -4,7 +4,6 @@ namespace App\Notifications;
 
 use App\Models\Task;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
 class TaskStatusUpdateNotification extends Notification
@@ -45,12 +44,12 @@ class TaskStatusUpdateNotification extends Notification
             'task_id' => $this->task->id,
             'task_title' => $this->task->title,
             'patient_id' => $patient->id,
-            'patient_name' => trim($patient->first_name . ' ' . ($patient->middle_name ?? '') . ' ' . $patient->last_name),
+            'patient_name' => trim($patient->first_name.' '.($patient->middle_name ?? '').' '.$patient->last_name),
             'status' => $this->task->status,
             'comment' => $this->task->comment,
             'completed_by' => $completedBy ? [
                 'id' => $completedBy->id,
-                'name' => trim($completedBy->first_name . ' ' . ($completedBy->middle_name ?? '') . ' ' . $completedBy->last_name),
+                'name' => trim($completedBy->first_name.' '.($completedBy->middle_name ?? '').' '.$completedBy->last_name),
             ] : null,
             'completed_at' => $this->task->completed_at?->toIso8601String(),
             'task_start_at' => $this->task->start_at->toIso8601String(),

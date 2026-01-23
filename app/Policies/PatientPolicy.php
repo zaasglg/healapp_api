@@ -30,12 +30,12 @@ class PatientPolicy
         // Сотрудник организации пациента
         if ($patient->organization_id && $patient->organization_id === $user->organization_id) {
             $org = $user->organization;
-            
+
             // Пансионат: все видят всех
             if ($org->isBoardingHouse()) {
                 return true;
             }
-            
+
             // Агентство: нужен доступ к дневнику
             if ($org->isAgency()) {
                 return $patient->diary && $patient->diary->hasAccess($user);
@@ -61,7 +61,7 @@ class PatientPolicy
                 }
             }
         }
-        
+
         return $user->canCreatePatients();
     }
 
@@ -83,7 +83,7 @@ class PatientPolicy
         // Сотрудник организации
         if ($patient->organization_id && $patient->organization_id === $user->organization_id) {
             $organization = $user->organization;
-            
+
             // В Пансионате: только admin, owner и manager могут редактировать
             // Doctor и Caregiver имеют только read-only доступ
             if ($organization && $organization->isBoardingHouse()) {
@@ -91,9 +91,9 @@ class PatientPolicy
                     return false;
                 }
             }
-            
+
             // Только admin/owner/manager организации могут редактировать
-            return $user->hasAnyRole(['owner', 'admin', 'manager']) 
+            return $user->hasAnyRole(['owner', 'admin', 'manager'])
                 && $patient->organization_id === $user->organization_id;
         }
 

@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Diary;
 use App\Models\Patient;
 use App\Models\Task;
 use App\Models\TaskTemplate;
@@ -29,21 +28,22 @@ class SyncPinnedParametersTasks extends Command
 
         $this->info("Found {$patients->count()} patients with pinned parameters");
 
-        $taskService = new TaskService();
+        $taskService = new TaskService;
         $totalTasks = 0;
 
         foreach ($patients as $patient) {
             $diary = $patient->diary;
-            if (!$diary || empty($diary->pinned_parameters)) {
+            if (! $diary || empty($diary->pinned_parameters)) {
                 continue;
             }
 
             $this->info("\nProcessing patient: {$patient->first_name} {$patient->last_name} (ID: {$patient->id})");
-            $this->info("Pinned parameters: " . json_encode($diary->pinned_parameters, JSON_UNESCAPED_UNICODE));
+            $this->info('Pinned parameters: '.json_encode($diary->pinned_parameters, JSON_UNESCAPED_UNICODE));
 
             foreach ($diary->pinned_parameters as $param) {
                 if (empty($param['times'])) {
                     $this->warn("  - {$param['key']}: no times set, skipping");
+
                     continue;
                 }
 
@@ -51,7 +51,7 @@ class SyncPinnedParametersTasks extends Command
                 $label = $param['label'] ?? $param['key'];
 
                 $this->info("  - Creating/updating template for: {$label}");
-                $this->info("    Times: " . implode(', ', $param['times']));
+                $this->info('    Times: '.implode(', ', $param['times']));
 
                 // Находим или создаём шаблон задачи
                 $template = TaskTemplate::firstOrCreate(

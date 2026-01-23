@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\DiaryEntry;
 use App\Models\Patient;
 use App\Models\Task;
-use App\Models\TaskTemplate;
 use App\Notifications\TaskMissedNotification;
 use App\Notifications\TaskStatusUpdateNotification;
 use App\Services\TaskService;
@@ -39,46 +38,59 @@ class RouteSheetController extends Controller
      *     summary="Get route sheet (tasks) for a patient or current user",
      *     description="Get all tasks for a specific date. For caregivers in nursing homes, returns only tasks assigned to them.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="patient_id",
      *         in="query",
      *         required=false,
      *         description="Patient ID (optional for caregivers who see only their assigned tasks)",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="date",
      *         in="query",
      *         required=false,
      *         description="Date to get tasks for (YYYY-MM-DD). Defaults to today.",
+     *
      *         @OA\Schema(type="string", format="date")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="from_date",
      *         in="query",
      *         required=false,
      *         description="Start date for range (YYYY-MM-DD)",
+     *
      *         @OA\Schema(type="string", format="date")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="to_date",
      *         in="query",
      *         required=false,
      *         description="End date for range (YYYY-MM-DD)",
+     *
      *         @OA\Schema(type="string", format="date")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="status",
      *         in="query",
      *         required=false,
      *         description="Filter by status",
+     *
      *         @OA\Schema(type="string", enum={"pending", "completed", "missed", "cancelled"})
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Route sheet retrieved successfully",
+     *
      *         @OA\JsonContent(
      *             type="object",
+     *
      *             @OA\Property(property="date", type="string", format="date"),
      *             @OA\Property(property="tasks", type="array", @OA\Items(
      *                 @OA\Property(property="id", type="integer"),
@@ -127,7 +139,7 @@ class RouteSheetController extends Controller
         if ($request->has('patient_id')) {
             $patient = Patient::findOrFail($request->query('patient_id'));
 
-            if (!$this->canAccessPatient($user, $patient)) {
+            if (! $this->canAccessPatient($user, $patient)) {
                 return response()->json([
                     'message' => 'У вас нет доступа к этому пациенту.',
                 ], 403);
@@ -149,7 +161,7 @@ class RouteSheetController extends Controller
                     // В Агентстве: все задачи пациентов, к которым есть доступ
                     // Если указан patient_id, проверка доступа уже выполнена выше (строки 130-134)
                     // Если не указан, фильтруем по доступным пациентам
-                    if (!$request->has('patient_id')) {
+                    if (! $request->has('patient_id')) {
                         // Получаем ID пациентов, к которым сотрудник имеет доступ
                         $accessiblePatientIds = \App\Models\Patient::where('organization_id', $organization->id)
                             ->whereHas('assignedUsers', function ($q) use ($user) {
@@ -170,7 +182,7 @@ class RouteSheetController extends Controller
                         // Объединяем оба массива
                         $allAccessiblePatientIds = array_unique(array_merge($accessiblePatientIds, $diaryAccessPatientIds));
 
-                        if (!empty($allAccessiblePatientIds)) {
+                        if (! empty($allAccessiblePatientIds)) {
                             $query->whereIn('patient_id', $allAccessiblePatientIds);
                         } else {
                             // Если нет доступа ни к одному пациенту, возвращаем пустой результат
@@ -189,7 +201,7 @@ class RouteSheetController extends Controller
                         ->orWhereNull('assigned_to');
                 });
 
-                if (!$request->has('patient_id')) {
+                if (! $request->has('patient_id')) {
                     $assignedPatientIds = $user->assignedPatients()->pluck('patients.id');
                     $query->whereIn('patient_id', $assignedPatientIds);
                 }
@@ -197,7 +209,7 @@ class RouteSheetController extends Controller
         }
 
         // Если patient_id не указан, фильтруем по доступу пользователя
-        if (!$request->has('patient_id')) {
+        if (! $request->has('patient_id')) {
             // Клиент: только свои пациенты
             if ($user->isClient()) {
                 $query->whereHas('patient', function ($q) use ($user) {
@@ -274,12 +286,15 @@ class RouteSheetController extends Controller
      *     tags={"Route Sheet"},
      *     summary="Get a specific task",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Response(response=200, description="Task retrieved successfully"),
      *     @OA\Response(response=403, description="Access denied"),
      *     @OA\Response(response=404, description="Task not found")
@@ -290,7 +305,7 @@ class RouteSheetController extends Controller
         $user = $request->user();
         $patient = $task->patient;
 
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этой задаче.',
             ], 403);
@@ -313,10 +328,13 @@ class RouteSheetController extends Controller
      *     summary="Create a single task (without template)",
      *     description="Create a one-time task directly to the route sheet. При выполнении задачи автоматически создаётся запись в дневнике.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"patient_id", "title", "start_at", "end_at"},
+     *
      *             @OA\Property(property="patient_id", type="integer", description="ID пациента"),
      *             @OA\Property(property="title", type="string", description="Название задачи (например: Приём пищи, Измерение давления)"),
      *             @OA\Property(property="start_at", type="string", format="date-time", example="2024-01-01 09:00:00"),
@@ -326,10 +344,13 @@ class RouteSheetController extends Controller
      *             @OA\Property(property="related_diary_key", type="string", nullable=true, example="blood_pressure", description="Ключ показателя дневника: temperature, blood_pressure, pulse, blood_sugar, saturation, breathing_rate, pain_level, weight, height, hygiene, diaper_change, meal, medication, walk")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=201,
      *         description="Task created successfully. При выполнении создаст DiaryEntry с указанным related_diary_key",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="id", type="integer"),
      *             @OA\Property(property="patient_id", type="integer"),
      *             @OA\Property(property="title", type="string"),
@@ -339,6 +360,7 @@ class RouteSheetController extends Controller
      *             @OA\Property(property="related_diary_key", type="string", nullable=true)
      *         )
      *     ),
+     *
      *     @OA\Response(response=403, description="Access denied"),
      *     @OA\Response(response=422, description="Validation error")
      * )
@@ -360,7 +382,7 @@ class RouteSheetController extends Controller
         }
 
         // Only clients, managers, doctors, admins, owners can create tasks
-        if (!$user->hasAnyRole(['client', 'manager', 'doctor', 'admin', 'owner'])) {
+        if (! $user->hasAnyRole(['client', 'manager', 'doctor', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на создание задач.',
             ], 403);
@@ -385,7 +407,7 @@ class RouteSheetController extends Controller
 
         $patient = Patient::findOrFail($request->patient_id);
 
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
@@ -393,7 +415,7 @@ class RouteSheetController extends Controller
 
         // Check if assigned user is valid (belongs to organization or is assigned to patient)
         if ($request->assigned_to) {
-            if (!$this->canAssignUser($user, $patient, $request->assigned_to)) {
+            if (! $this->canAssignUser($user, $patient, $request->assigned_to)) {
                 return response()->json([
                     'message' => 'Невозможно назначить задачу этому пользователю.',
                 ], 422);
@@ -422,9 +444,13 @@ class RouteSheetController extends Controller
      *     tags={"Route Sheet"},
      *     summary="Update a task",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\RequestBody(
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="title", type="string"),
      *             @OA\Property(property="start_at", type="string", format="date-time"),
      *             @OA\Property(property="end_at", type="string", format="date-time"),
@@ -432,6 +458,7 @@ class RouteSheetController extends Controller
      *             @OA\Property(property="priority", type="integer")
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Task updated successfully"),
      *     @OA\Response(response=403, description="Access denied")
      * )
@@ -454,13 +481,13 @@ class RouteSheetController extends Controller
         }
 
         // Only clients, managers, doctors, admins, owners can update tasks
-        if (!$user->hasAnyRole(['client', 'manager', 'doctor', 'admin', 'owner'])) {
+        if (! $user->hasAnyRole(['client', 'manager', 'doctor', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на обновление задач.',
             ], 403);
         }
 
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этой задаче.',
             ], 403);
@@ -510,16 +537,21 @@ class RouteSheetController extends Controller
      *     summary="Reschedule a task",
      *     description="Move a task to a different time. Original time is preserved for history.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"start_at", "end_at", "reason"},
+     *
      *             @OA\Property(property="start_at", type="string", format="date-time", example="2024-01-01 14:00:00"),
      *             @OA\Property(property="end_at", type="string", format="date-time", example="2024-01-01 14:30:00"),
      *             @OA\Property(property="reason", type="string", example="Patient was sleeping")
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Task rescheduled successfully")
      * )
      */
@@ -528,7 +560,7 @@ class RouteSheetController extends Controller
         $user = $request->user();
         $patient = $task->patient;
 
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет прав на перенос этой задачи.',
             ], 403);
@@ -555,7 +587,7 @@ class RouteSheetController extends Controller
         }
 
         // Save original time if not already rescheduled
-        if (!$task->isRescheduled()) {
+        if (! $task->isRescheduled()) {
             $task->original_start_at = $task->start_at;
             $task->original_end_at = $task->end_at;
         }
@@ -582,19 +614,26 @@ class RouteSheetController extends Controller
      *     summary="Mark task as completed",
      *     description="Complete a task with optional comment, photos, and measurement value. При выполнении автоматически создаётся запись в дневнике (DiaryEntry) с привязкой к этой задаче. Закреплённые показатели (pinned_parameters) автоматически обновляются.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\RequestBody(
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="comment", type="string", nullable=true, description="Комментарий к выполнению"),
      *             @OA\Property(property="photos", type="array", @OA\Items(type="string", format="binary"), description="Массив фотографий (max 5)"),
      *             @OA\Property(property="value", type="object", nullable=true, description="Значение показателя для записи в дневник"),
      *             @OA\Property(property="completed_at", type="string", format="date-time", nullable=true, description="Время выполнения (по умолчанию текущее)")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Task completed successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="id", type="integer"),
      *             @OA\Property(property="status", type="string", example="completed"),
      *             @OA\Property(property="completed_at", type="string", format="date-time"),
@@ -603,6 +642,7 @@ class RouteSheetController extends Controller
      *             @OA\Property(property="message", type="string", example="Задача успешно выполнена")
      *         )
      *     ),
+     *
      *     @OA\Response(response=403, description="Access denied"),
      *     @OA\Response(response=422, description="Validation error or task not pending")
      * )
@@ -612,7 +652,7 @@ class RouteSheetController extends Controller
         $user = $request->user();
         $patient = $task->patient;
 
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет прав на выполнение этой задачи.',
             ], 403);
@@ -643,7 +683,7 @@ class RouteSheetController extends Controller
         $photoUrls = [];
         if ($request->hasFile('photos')) {
             foreach ($request->file('photos') as $photo) {
-                $path = $photo->store('task-photos/' . $task->id, 'public');
+                $path = $photo->store('task-photos/'.$task->id, 'public');
                 $photoUrls[] = Storage::url($path);
             }
         }
@@ -657,13 +697,13 @@ class RouteSheetController extends Controller
             'completed_at' => $completedAt,
             'completed_by' => $user->id,
             'comment' => $request->comment,
-            'photos' => !empty($photoUrls) ? $photoUrls : $task->photos,
+            'photos' => ! empty($photoUrls) ? $photoUrls : $task->photos,
         ]);
 
         // Create diary entry for the completed task (always, to show in history)
         $this->createDiaryEntryFromTask($task, $user, $request->value ?? []);
 
-        /* 
+        /*
         if ($task->related_diary_key && $request->value) {
             $this->createDiaryEntryFromTask($task, $user, $request->value);
         }
@@ -685,14 +725,19 @@ class RouteSheetController extends Controller
      *     tags={"Route Sheet"},
      *     summary="Mark task as missed (not completed)",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"reason"},
+     *
      *             @OA\Property(property="reason", type="string", example="Patient refused")
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Task marked as missed")
      * )
      */
@@ -701,7 +746,7 @@ class RouteSheetController extends Controller
         $user = $request->user();
         $patient = $task->patient;
 
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет прав на обновление этой задачи.',
             ], 403);
@@ -747,7 +792,9 @@ class RouteSheetController extends Controller
      *     tags={"Route Sheet"},
      *     summary="Delete a task",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="Task deleted successfully"),
      *     @OA\Response(response=403, description="Access denied")
      * )
@@ -758,20 +805,20 @@ class RouteSheetController extends Controller
         $patient = $task->patient;
 
         // Only clients, managers, admins, owners can delete tasks
-        if (!$user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
+        if (! $user->hasAnyRole(['client', 'manager', 'admin', 'owner'])) {
             return response()->json([
                 'message' => 'У вас нет прав на удаление задач.',
             ], 403);
         }
 
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет прав на удаление этой задачи.',
             ], 403);
         }
 
         // Only pending or cancelled tasks can be deleted
-        if (!in_array($task->status, [Task::STATUS_PENDING, Task::STATUS_CANCELLED])) {
+        if (! in_array($task->status, [Task::STATUS_PENDING, Task::STATUS_CANCELLED])) {
             return response()->json([
                 'message' => 'Удалять можно только задачи со статусом "ожидает" или "отменена".',
             ], 422);
@@ -790,7 +837,9 @@ class RouteSheetController extends Controller
      *     tags={"Route Sheet"},
      *     summary="Get current user's assigned tasks (for caregivers)",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="date", in="query", @OA\Schema(type="string", format="date")),
+     *
      *     @OA\Response(response=200, description="Tasks retrieved successfully")
      * )
      */
@@ -832,7 +881,7 @@ class RouteSheetController extends Controller
                     // Объединяем оба массива
                     $allAccessiblePatientIds = array_unique(array_merge($accessiblePatientIds, $diaryAccessPatientIds));
 
-                    if (!empty($allAccessiblePatientIds)) {
+                    if (! empty($allAccessiblePatientIds)) {
                         $query->whereIn('patient_id', $allAccessiblePatientIds);
                     } else {
                         // Если нет доступа ни к одному пациенту, возвращаем пустой результат
@@ -886,7 +935,7 @@ class RouteSheetController extends Controller
                     // Объединяем оба массива
                     $allAccessiblePatientIds = array_unique(array_merge($accessiblePatientIds, $diaryAccessPatientIds));
 
-                    if (!empty($allAccessiblePatientIds)) {
+                    if (! empty($allAccessiblePatientIds)) {
                         $query->whereIn('patient_id', $allAccessiblePatientIds);
                     } else {
                         // Если нет доступа ни к одному пациенту, возвращаем пустой результат
@@ -932,7 +981,7 @@ class RouteSheetController extends Controller
         $timeSlots = [];
         foreach ($tasks as $task) {
             $hour = Carbon::parse($task['start_at'])->format('H:00');
-            if (!isset($timeSlots[$hour])) {
+            if (! isset($timeSlots[$hour])) {
                 $timeSlots[$hour] = [];
             }
             $timeSlots[$hour][] = $task;
@@ -958,9 +1007,11 @@ class RouteSheetController extends Controller
      *     summary="Get available employees for task assignment",
      *     description="Returns employees with their availability status for a specific time slot",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="patient_id", in="query", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="start_at", in="query", required=true, @OA\Schema(type="string", format="date-time")),
      *     @OA\Parameter(name="end_at", in="query", required=true, @OA\Schema(type="string", format="date-time")),
+     *
      *     @OA\Response(response=200, description="Available employees retrieved")
      * )
      */
@@ -983,7 +1034,7 @@ class RouteSheetController extends Controller
 
         $patient = Patient::findOrFail($request->patient_id);
 
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json([
                 'message' => 'У вас нет доступа к этому пациенту.',
             ], 403);
@@ -1054,7 +1105,7 @@ class RouteSheetController extends Controller
 
         // Get or create diary for patient
         $diary = $patient->diary;
-        if (!$diary) {
+        if (! $diary) {
             $diary = \App\Models\Diary::create([
                 'patient_id' => $patient->id,
             ]);
@@ -1071,7 +1122,7 @@ class RouteSheetController extends Controller
             // Mapping Russian task titles to standard English keys
             $key = $this->mapTaskTitleToKey($task->title);
 
-            if (!empty($value)) {
+            if (! empty($value)) {
                 $entryValue = $value;
             } else {
                 $entryValue = ['value' => $task->title]; // Save title as value so it displays nicely
@@ -1088,7 +1139,7 @@ class RouteSheetController extends Controller
             'key' => $key,
             'value' => $entryValue,
             'recorded_at' => $task->completed_at,
-            'notes' => $task->comment ?? 'Created from Task: ' . $task->title,
+            'notes' => $task->comment ?? 'Created from Task: '.$task->title,
         ]);
     }
 
@@ -1191,7 +1242,6 @@ class RouteSheetController extends Controller
             'уровень сахара в крови' => 'blood_sugar',
             'выпито/выделено и цвет мочи' => 'urine',
 
-
             // === COGNITIVE (Когнитивные) ===
             'когнитивные игры' => 'cognitive_games',
             'увлажнение кожи' => 'skin_moisturizing',
@@ -1270,7 +1320,7 @@ class RouteSheetController extends Controller
         if ($user->organization_id) {
             $organization = $user->organization;
 
-            if (!$organization) {
+            if (! $organization) {
                 return false;
             }
 
@@ -1293,10 +1343,12 @@ class RouteSheetController extends Controller
                         ->exists()
                 ) {
                     \Log::info('canAccessPatient: boarding house - access revoked');
+
                     return false;
                 }
 
                 \Log::info('canAccessPatient: boarding house - all access');
+
                 return true;
             }
 
@@ -1305,6 +1357,7 @@ class RouteSheetController extends Controller
                 // Admin и Manager видят всех
                 if ($user->hasAnyRole(['admin', 'manager'])) {
                     \Log::info('canAccessPatient: agency admin/manager');
+
                     return true;
                 }
 
@@ -1373,12 +1426,12 @@ class RouteSheetController extends Controller
     private function canAssignUser($currentUser, Patient $patient, int $assigneeId): bool
     {
         $assignee = \App\Models\User::find($assigneeId);
-        if (!$assignee) {
+        if (! $assignee) {
             return false;
         }
 
         // Assignee must be a caregiver or doctor
-        if (!$assignee->hasAnyRole(['caregiver', 'doctor'])) {
+        if (! $assignee->hasAnyRole(['caregiver', 'doctor'])) {
             return false;
         }
 

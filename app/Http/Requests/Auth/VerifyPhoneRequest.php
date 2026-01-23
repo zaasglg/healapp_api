@@ -27,4 +27,3 @@ class VerifyPhoneRequest extends FormRequest
         ];
     }
 }
-

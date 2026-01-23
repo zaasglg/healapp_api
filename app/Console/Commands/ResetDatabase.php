@@ -27,9 +27,10 @@ class ResetDatabase extends Command
      */
     public function handle()
     {
-        if (!$this->option('force')) {
-            if (!$this->confirm('⚠️  This will DROP and RECREATE all tables. Are you sure?')) {
+        if (! $this->option('force')) {
+            if (! $this->confirm('⚠️  This will DROP and RECREATE all tables. Are you sure?')) {
                 $this->info('Operation cancelled.');
+
                 return 0;
             }
         }
@@ -55,7 +56,7 @@ class ResetDatabase extends Command
 
         $this->newLine();
         $this->info('✅ Database reset completed successfully!');
-        
+
         if ($this->option('seed')) {
             $this->info('   • Tables recreated');
             $this->info('   • Seed data inserted');
