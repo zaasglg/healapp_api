@@ -70,41 +70,64 @@ class UserController extends Controller
     public function destroyAll(User $user)
     {
         DB::transaction(function () use ($user) {
-            // Удаляем созданных/владеемых пациентов и их данные
-            foreach ($user->ownedPatients as $patient) {
-                // Удаляем дневник
-                if ($patient->diary) {
-                    $patient->diary->entries()->delete();
-                    $patient->diary->alarms()->delete();
-                    // Удаляем доступы к дневнику
-                    $patient->diary->accessUsers()->detach();
-
-                    $patient->diary->delete();
-                }
-
-                // Удаляем задачи и шаблоны
-                $patient->tasks()->delete();
-                $patient->taskTemplates()->delete();
-
-                $patient->delete();
-            }
-
-            // Удаляем организации, где пользователь владелец
-            foreach ($user->ownedOrganizations as $org) {
-                $org->delete();
-            }
-
-            // Отвязываем от пациентов (где сиделка/врач)
-            $user->assignedPatients()->detach();
-
-            // Удаляем приглашения
-            $user->sentInvitations()->delete();
-
-            // Удаляем самого пользователя
-            $user->delete();
+            $this->deleteUserFully($user);
         });
 
         return redirect()->route('admin.users.index')
             ->with('success', 'Пользователь и ВСЕ его данные полностью удалены');
+    }
+
+    public function destroyAllUsers()
+    {
+        $currentUserId = auth()->id();
+
+        // Получаем всех пользователей, кроме текущего
+        $users = User::where('id', '!=', $currentUserId)->get();
+        $count = $users->count();
+
+        DB::transaction(function () use ($users) {
+            foreach ($users as $user) {
+                $this->deleteUserFully($user);
+            }
+        });
+
+        return redirect()->route('admin.users.index')
+            ->with('success', "Удалено пользователей: {$count}");
+    }
+
+    private function deleteUserFully(User $user)
+    {
+        // Удаляем созданных/владеемых пациентов и их данные
+        foreach ($user->ownedPatients as $patient) {
+            // Удаляем дневник
+            if ($patient->diary) {
+                $patient->diary->entries()->delete();
+                $patient->diary->alarms()->delete();
+                // Удаляем доступы к дневнику
+                $patient->diary->accessUsers()->detach();
+
+                $patient->diary->delete();
+            }
+
+            // Удаляем задачи и шаблоны
+            $patient->tasks()->delete();
+            $patient->taskTemplates()->delete();
+
+            $patient->delete();
+        }
+
+        // Удаляем организации, где пользователь владелец
+        foreach ($user->ownedOrganizations as $org) {
+            $org->delete();
+        }
+
+        // Отвязываем от пациентов (где сиделка/врач)
+        $user->assignedPatients()->detach();
+
+        // Удаляем приглашения
+        $user->sentInvitations()->delete();
+
+        // Удаляем самого пользователя
+        $user->delete();
     }
 }

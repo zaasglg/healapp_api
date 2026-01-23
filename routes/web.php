@@ -25,6 +25,7 @@ Route::prefix('admin')->middleware(['web', AdminTokenAuth::class])->name('admin.
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::delete('/users/delete-all', [UserController::class, 'destroyAllUsers'])->name('users.destroy-all-users');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
     Route::delete('/users/{user}/all', [UserController::class, 'destroyAll'])->name('users.destroy-all');
 
