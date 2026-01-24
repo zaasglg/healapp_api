@@ -79,10 +79,10 @@
                                 <div class="flex items-center gap-3">
                                     @if($user->avatar)
                                         <img src="{{ asset('storage/' . $user->avatar) }}" alt=""
-                                            class="w-10 h-10 rounded-full object-cover">
+                                            class="w-10 h-10 rounded-full object-cover shrink-0" style="border-radius: 50%;">
                                     @else
-                                        <div
-                                            class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-200 to-primary-400 flex items-center justify-center text-white font-medium text-sm">
+                                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-200 to-primary-400 flex items-center justify-center text-white font-medium text-sm shrink-0"
+                                            style="border-radius: 50%;">
                                             {{ mb_substr($user->first_name, 0, 1) }}{{ mb_substr($user->last_name, 0, 1) }}
                                         </div>
                                     @endif
