@@ -50,8 +50,10 @@ class AuthController extends Controller
      *             @OA\Property(property="invite_token", type="string", nullable=true, description="Токен приглашения для регистрации сотрудника организации"),
      *             @OA\Property(property="account_type", type="string", nullable=true, description="Тип аккаунта (обязателен, если не передан invite_token)", enum={"client", "specialist", "pansionat", "agency"}),
      *             @OA\Property(property="organization_name", type="string", nullable=true, description="Название организации (для pansionat/agency)"),
-     *             @OA\Property(property="address", type="string", nullable=true, description="Адрес организации (для pansionat/agency)")
-     *         )
+ *             @OA\Property(property="address", type="string", nullable=true, description="Адрес организации (для pansionat/agency)"),
+ *             @OA\Property(property="is_agree", type="boolean", nullable=true, description="Согласие с пользовательскими соглашениями")
+ *         )
+
      *     ),
      *
      *     @OA\Response(
@@ -157,6 +159,7 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'verification_code' => $verificationCode,
             'type' => $userType->value,
+            'is_agree' => $request->boolean('is_agree'),
         ]);
 
         // Если есть приглашение - привязываем к организации и назначаем роль
@@ -597,6 +600,7 @@ class AuthController extends Controller
             'phone_verified_at' => $user->phone_verified_at,
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
+            'is_agree' => $user->is_agree,
         ];
 
         // Добавляем роль, если есть

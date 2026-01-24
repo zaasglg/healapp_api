@@ -33,6 +33,7 @@ class RegisterRequest extends FormRequest
             'account_type' => ['required_without:invite_token', 'string', 'in:client,specialist,pansionat,agency'],
             'organization_name' => ['nullable', 'string'],
             'address' => ['nullable', 'string'],
+            'is_agree' => ['nullable', 'boolean'],
         ];
 
         return $rules;

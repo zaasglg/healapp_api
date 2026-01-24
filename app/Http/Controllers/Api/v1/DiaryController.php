@@ -593,11 +593,7 @@ class DiaryController extends Controller
         // Set author_id to authenticated user
         $data['author_id'] = $user->id;
 
-        \Log::info('DiaryEntry store data before create:', $data);
-
         $entry = DiaryEntry::create($data);
-
-        \Log::info('DiaryEntry created:', $entry->toArray());
 
         return response()->json($entry, 201);
     }

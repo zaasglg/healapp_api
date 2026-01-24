@@ -32,6 +32,7 @@ class UserFactory extends Factory
             'phone_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'type' => UserType::CLIENT->value,
+            'is_agree' => false,
             'remember_token' => Str::random(10),
         ];
     }

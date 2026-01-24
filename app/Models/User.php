@@ -30,6 +30,7 @@ class User extends Authenticatable
         "city",
         "type",
         "organization_id",
+        "is_agree",
     ];
 
     protected $hidden = ["password", "remember_token", "verification_code"];
@@ -40,6 +41,7 @@ class User extends Authenticatable
             "phone_verified_at" => "datetime",
             "password" => "hashed",
             "type" => UserType::class,
+            "is_agree" => "boolean",
         ];
     }
 
