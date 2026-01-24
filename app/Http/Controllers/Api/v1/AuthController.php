@@ -88,7 +88,7 @@ class AuthController extends Controller
      *     )
      * )
      */
-    public function register(RegisterRequest $request): JsonResponse
+    public function register(RegisterRequest $request, \App\Services\SmsRuService $smsService): JsonResponse
     {
         // Обработка приглашения (invite_token)
         $invitation = null;
@@ -98,7 +98,7 @@ class AuthController extends Controller
                 $request->invite_token,
             )->first();
 
-            if (! $invitation) {
+            if (!$invitation) {
                 return response()->json(
                     [
                         'message' => 'Приглашение не найдено',
@@ -107,7 +107,7 @@ class AuthController extends Controller
                 );
             }
 
-            if (! $invitation->isValid()) {
+            if (!$invitation->isValid()) {
                 return response()->json(
                     [
                         'message' => 'Приглашение истекло или уже использовано',
@@ -118,7 +118,7 @@ class AuthController extends Controller
             }
 
             // Проверяем, что приглашение для сотрудника (employee)
-            if (! $invitation->isEmployeeInvite()) {
+            if (!$invitation->isEmployeeInvite()) {
                 return response()->json(
                     [
                         'message' => 'Это приглашение не для регистрации сотрудника',
@@ -176,8 +176,8 @@ class AuthController extends Controller
             // Если это организация - создаём её и назначаем роль owner
             $organizationType =
                 $request->account_type === 'pansionat'
-                    ? OrganizationType::BOARDING_HOUSE
-                    : OrganizationType::AGENCY;
+                ? OrganizationType::BOARDING_HOUSE
+                : OrganizationType::AGENCY;
 
             $organization = Organization::create([
                 'owner_id' => $user->id,
@@ -195,7 +195,8 @@ class AuthController extends Controller
             $user->assignRole('owner');
         }
 
-        // TODO: Реальная отправка SMS
+        // Отправка SMS
+        $smsService->send($user->phone, "Ваш код подтверждения: {$verificationCode}");
 
         return response()->json([
             'message' => 'SMS sent',
@@ -228,7 +229,7 @@ class AuthController extends Controller
     {
         $user = User::where('phone', $request->phone)->first();
 
-        if (! $user || $user->verification_code !== $request->code) {
+        if (!$user || $user->verification_code !== $request->code) {
             return response()->json(['message' => 'Неверный код'], 401);
         }
 
@@ -268,13 +269,13 @@ class AuthController extends Controller
     {
         $user = User::where('phone', $request->phone)->first();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'phone' => ['Неверные учётные данные'],
             ]);
         }
 
-        if (! $user->phone_verified_at) {
+        if (!$user->phone_verified_at) {
             return response()->json(
                 [
                     'message' => 'Телефон не подтверждён',
@@ -334,13 +335,13 @@ class AuthController extends Controller
     {
         $user = User::where('phone', $request->phone)->first();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'phone' => ['Неверные учётные данные'],
             ]);
         }
 
-        if (! $user->phone_verified_at) {
+        if (!$user->phone_verified_at) {
             return response()->json(
                 [
                     'message' => 'Телефон не подтверждён',
@@ -480,7 +481,7 @@ class AuthController extends Controller
         // Сохраняем новый аватар
         $path = $request
             ->file('avatar')
-            ->store('avatars/'.$user->id, 'public');
+            ->store('avatars/' . $user->id, 'public');
         $avatarUrl = Storage::url($path);
 
         $user->avatar = $avatarUrl;
@@ -553,7 +554,7 @@ class AuthController extends Controller
     ): JsonResponse {
         $user = $request->user();
 
-        if (! $user->unverified_phone || ! $user->verification_code) {
+        if (!$user->unverified_phone || !$user->verification_code) {
             return response()->json(
                 ['message' => 'Нет запроса на смену номера'],
                 401,
