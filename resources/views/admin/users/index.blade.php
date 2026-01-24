@@ -63,6 +63,8 @@
                         </th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                             Организация</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            Согласие</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Дата
                         </th>
                         <th class="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -111,6 +113,12 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-slate-600">{{ $user->organization?->name ?? '-' }}</td>
+                            <td class="px-6 py-4">
+                                <span
+                                    class="inline-flex px-2.5 py-1 rounded-lg text-xs font-medium {{ $user->is_agree ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600' }}">
+                                    {{ $user->is_agree ? 'Да' : 'Нет' }}
+                                </span>
+                            </td>
                             <td class="px-6 py-4 text-sm text-slate-500">{{ $user->created_at->format('d.m.Y') }}</td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center justify-end gap-2">
@@ -151,7 +159,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-12 text-center">
+                            <td colspan="8" class="px-6 py-12 text-center">
                                 <div class="text-slate-400">
                                     <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">

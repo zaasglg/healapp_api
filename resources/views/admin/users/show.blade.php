@@ -100,6 +100,10 @@
                     <div class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Создан</div>
                     <div class="text-slate-800 font-medium">{{ $user->created_at->format('d.m.Y H:i') }}</div>
                 </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <div class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Согласие</div>
+                    <div class="text-slate-800 font-medium">{{ $user->is_agree ? 'Да' : 'Нет' }}</div>
+                </div>
             </div>
         </div>
     </div>
