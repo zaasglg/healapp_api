@@ -35,11 +35,13 @@ class SmsRuService
                 'to' => $phone,
                 'msg' => $message,
                 'json' => 1,
+                'test' => 1
             ]);
 
             $result = $response->json();
 
             if (isset($result['status']) && $result['status'] === 'OK') {
+                Log::info("SMS sent successfully to {$phone}. Content: {$message}");
                 return $result;
             } else {
                 Log::error('SMS.ru error', ['response' => $result]);
