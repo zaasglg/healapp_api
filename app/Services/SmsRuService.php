@@ -30,12 +30,11 @@ class SmsRuService
         }
 
         try {
-            $response = Http::get($this->baseUrl, [
+            $response = Http::timeout(10)->get($this->baseUrl, [
                 'api_id' => $this->apiId,
                 'to' => $phone,
                 'msg' => $message,
                 'json' => 1,
-                'test' => 1
             ]);
 
             $result = $response->json();
