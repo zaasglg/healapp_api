@@ -210,6 +210,10 @@ Route::prefix('v1')->group(function () {
                 InvitationController::class,
                 'createClientInvite',
             ]);
+            Route::post('/diary', [
+                InvitationController::class,
+                'createDiaryInvite',
+            ]);
             Route::delete('/{id}', [InvitationController::class, 'revoke']);
         });
 

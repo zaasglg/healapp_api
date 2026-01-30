@@ -38,6 +38,8 @@ class Invitation extends Model
 
     public const TYPE_CLIENT = 'client';
 
+    public const TYPE_DIARY_ACCESS = 'diary_access';
+
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_ACCEPTED = 'accepted';
@@ -120,10 +122,11 @@ class Invitation extends Model
         $path = match ($this->type) {
             self::TYPE_EMPLOYEE => '/invite/',
             self::TYPE_CLIENT => '/client-invite/',
+            self::TYPE_DIARY_ACCESS => '/diary-invite/',
             default => '/invite/',
         };
 
-        return config('app.frontend_url', config('app.url')).$path.$this->token;
+        return config('app.frontend_url', config('app.url')) . $path . $this->token;
     }
 
     public function isEmployeeInvite(): bool
@@ -134,5 +137,10 @@ class Invitation extends Model
     public function isClientInvite(): bool
     {
         return $this->type === self::TYPE_CLIENT;
+    }
+
+    public function isDiaryAccessInvite(): bool
+    {
+        return $this->type === self::TYPE_DIARY_ACCESS;
     }
 }

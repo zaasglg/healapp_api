@@ -40,7 +40,7 @@ class InvitationController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->canManageEmployees()) {
+        if (!$user->canManageEmployees()) {
             return response()->json(['message' => 'Недостаточно прав'], 403);
         }
 
@@ -105,11 +105,11 @@ class InvitationController extends Controller
 
         $user = $request->user();
 
-        if (! $user->canManageEmployees()) {
+        if (!$user->canManageEmployees()) {
             return response()->json(['message' => 'Недостаточно прав'], 403);
         }
 
-        if (! $user->organization_id) {
+        if (!$user->organization_id) {
             return response()->json(['message' => 'У вас нет организации'], 404);
         }
 
@@ -183,7 +183,7 @@ class InvitationController extends Controller
 
         $user = $request->user();
 
-        if (! $user->canManageAccess()) {
+        if (!$user->canManageAccess()) {
             return response()->json(['message' => 'Недостаточно прав'], 403);
         }
 
@@ -200,6 +200,63 @@ class InvitationController extends Controller
         return response()->json([
             'invitation' => $invitation,
             'invite_url' => $invitation->getInviteUrl(),
+        ], 201);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/v1/invitations/diary",
+     *     tags={"Invitations"},
+     *     summary="Создать ссылку-приглашение в дневник",
+     *     description="Клиент создает ссылку, по которой организация или частный специалист могут получить доступ к дневнику.",
+     *     security={{"sanctum": {}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *
+     *         @OA\JsonContent(
+     *             required={"patient_id"},
+     *             @OA\Property(property="patient_id", type="integer", example=1)
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=201,
+     *         description="Приглашение создано",
+     *
+     *         @OA\JsonContent(
+     *             @OA\Property(property="invite_url", type="string", example="https://app.com/diary-invite/abc123...")
+     *         )
+     *     )
+     * )
+     */
+    public function createDiaryInvite(Request $request): JsonResponse
+    {
+        $request->validate([
+            'patient_id' => 'required|exists:patients,id',
+        ]);
+
+        $user = $request->user();
+        $patient = \App\Models\Patient::find($request->patient_id);
+
+        // Только владелец (клиент) или создатель может создавать приглашение
+        if ($patient->owner_id !== $user->id && $patient->creator_id !== $user->id) {
+            return response()->json(['message' => 'Недостаточно прав'], 403);
+        }
+
+        // Создаем приглашение
+        $invitation = Invitation::create([
+            'inviter_id' => $user->id,
+            'token' => Invitation::generateToken(),
+            'type' => Invitation::TYPE_DIARY_ACCESS,
+            'patient_id' => $patient->id,
+            'status' => Invitation::STATUS_PENDING,
+            'expires_at' => now()->addDays(7), // Ссылка действительна 7 дней
+        ]);
+
+        return response()->json([
+            'message' => 'Ссылка создана',
+            'invite_url' => $invitation->getInviteUrl(), // Нужно убедиться, что Invitation::getInviteUrl поддерживает новый тип
         ], 201);
     }
 
@@ -231,11 +288,11 @@ class InvitationController extends Controller
             ->with(['organization:id,name,type'])
             ->first();
 
-        if (! $invitation) {
+        if (!$invitation) {
             return response()->json(['message' => 'Приглашение не найдено'], 404);
         }
 
-        if (! $invitation->isValid()) {
+        if (!$invitation->isValid()) {
             return response()->json([
                 'message' => 'Приглашение истекло или уже использовано',
                 'status' => $invitation->status,
@@ -289,11 +346,11 @@ class InvitationController extends Controller
     {
         $invitation = Invitation::where('token', $token)->first();
 
-        if (! $invitation) {
+        if (!$invitation) {
             return response()->json(['message' => 'Приглашение не найдено'], 404);
         }
 
-        if (! $invitation->isValid()) {
+        if (!$invitation->isValid()) {
             return response()->json([
                 'message' => 'Приглашение истекло или уже использовано',
             ], 410);
@@ -309,7 +366,7 @@ class InvitationController extends Controller
                 'password' => 'required|string',
             ]);
 
-            if (! Hash::check($request->password, $existingUser->password)) {
+            if (!Hash::check($request->password, $existingUser->password)) {
                 return response()->json(['message' => 'Неверный пароль'], 401);
             }
 
@@ -321,11 +378,20 @@ class InvitationController extends Controller
                 'password' => 'required|string|min:6|confirmed',
                 'first_name' => 'nullable|string|max:255',
                 'last_name' => 'nullable|string|max:255',
+                'type' => 'nullable|string|in:client,organization,private_caregiver', // Allow type selection
             ]);
 
-            $userType = $invitation->isClientInvite()
-                ? UserType::CLIENT
-                : UserType::ORGANIZATION;
+            // Determine user type
+            if ($invitation->isClientInvite()) {
+                $userType = UserType::CLIENT;
+            } elseif ($invitation->isDiaryAccessInvite()) {
+                // For diary invite, use provided type or default to private_caregiver if not specified? 
+                // Better to require it or default to something safe. 
+                // If not provided, let's look at the request 'type' or default to PRIVATE_CAREGIVER as it's the simplest individual unit.
+                $userType = $request->type ? UserType::from($request->type) : UserType::PRIVATE_CAREGIVER;
+            } else {
+                $userType = UserType::ORGANIZATION;
+            }
 
             $user = User::create([
                 'phone' => $request->phone,
@@ -350,7 +416,22 @@ class InvitationController extends Controller
 
             // Даём доступ к дневнику, если есть
             if ($invitation->patient->diary) {
-                $invitation->patient->diary->grantAccess($user, 'view');
+                $invitation->patient->diary->grantAccess($user, 'view'); // Or 'full'? Usually clients have full access.
+                // Clients usually are owners, so they have implicit access. 
+                // But explicit access doesn't hurt.
+            }
+        } elseif ($invitation->isDiaryAccessInvite() && $invitation->patient_id) {
+            // For diary invite:
+            // 1. Grant explicit access
+            if ($invitation->patient->diary) {
+                // Grant 'full' access to the specialist/agency rep
+                $invitation->patient->diary->grantAccess($user, 'full');
+            }
+
+            // 2. If User belongs to Organization, link patient to Organization
+            // This allows the Organization logic (Access Policies) to work better.
+            if ($user->organization_id) {
+                $invitation->patient->update(['organization_id' => $user->organization_id]);
             }
         }
 
@@ -383,7 +464,7 @@ class InvitationController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->canManageEmployees()) {
+        if (!$user->canManageEmployees()) {
             return response()->json(['message' => 'Недостаточно прав'], 403);
         }
 
@@ -391,7 +472,7 @@ class InvitationController extends Controller
             ->where('organization_id', $user->organization_id)
             ->first();
 
-        if (! $invitation) {
+        if (!$invitation) {
             return response()->json(['message' => 'Приглашение не найдено'], 404);
         }
 
