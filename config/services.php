@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'smsru' => [
+        'api_id' => env('SMSRU_API_ID'),
+    ],
+
 ];

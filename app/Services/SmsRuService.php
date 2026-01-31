@@ -12,7 +12,7 @@ class SmsRuService
 
     public function __construct()
     {
-        $this->apiId = env('SMSRU_API_ID');
+        $this->apiId = (string) config('services.smsru.api_id');
     }
 
     /**
@@ -27,6 +27,12 @@ class SmsRuService
         if (app()->environment('local', 'testing') && !config('app.sms_enabled', false)) {
             Log::info("SMS Mock: To {$phone}, Msg: {$message}");
             return ['status' => 'OK', 'status_code' => 100, 'mock' => true];
+        }
+
+
+        if (empty($this->apiId)) {
+            Log::error('SMS.ru API ID is not configured.');
+            return ['status' => 'ERROR', 'message' => 'SMS gateway not configured'];
         }
 
         try {
