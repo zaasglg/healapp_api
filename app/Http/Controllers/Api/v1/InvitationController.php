@@ -326,7 +326,8 @@ class InvitationController extends Controller
      *             @OA\Property(property="password", type="string", format="password"),
      *             @OA\Property(property="password_confirmation", type="string", format="password"),
      *             @OA\Property(property="first_name", type="string", nullable=true),
-     *             @OA\Property(property="last_name", type="string", nullable=true)
+     *             @OA\Property(property="last_name", type="string", nullable=true),
+     *             @OA\Property(property="type", type="string", nullable=true, enum={"client", "private_caregiver", "organization", "pansionat", "agency"})
      *         )
      *     ),
      *
@@ -378,17 +379,20 @@ class InvitationController extends Controller
                 'password' => 'required|string|min:6|confirmed',
                 'first_name' => 'nullable|string|max:255',
                 'last_name' => 'nullable|string|max:255',
-                'type' => 'nullable|string|in:client,organization,private_caregiver', // Allow type selection
+                'type' => 'nullable|string|in:client,organization,private_caregiver,pansionat,agency',
             ]);
 
             // Determine user type
             if ($invitation->isClientInvite()) {
                 $userType = UserType::CLIENT;
             } elseif ($invitation->isDiaryAccessInvite()) {
-                // For diary invite, use provided type or default to private_caregiver if not specified? 
-                // Better to require it or default to something safe. 
-                // If not provided, let's look at the request 'type' or default to PRIVATE_CAREGIVER as it's the simplest individual unit.
-                $userType = $request->type ? UserType::from($request->type) : UserType::PRIVATE_CAREGIVER;
+                $userType = match ($request->type) {
+                    'client' => UserType::CLIENT,
+                    'organization', 'pansionat', 'agency' => UserType::ORGANIZATION,
+                    'private_caregiver' => UserType::PRIVATE_CAREGIVER,
+                    null => UserType::PRIVATE_CAREGIVER,
+                    default => UserType::PRIVATE_CAREGIVER,
+                };
             } else {
                 $userType = UserType::ORGANIZATION;
             }

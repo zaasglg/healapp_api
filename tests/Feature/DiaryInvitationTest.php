@@ -81,6 +81,46 @@ class DiaryInvitationTest extends TestCase
         $this->assertTrue($diary->hasAccess($newUser, 'full'));
     }
 
+    public function test_accept_diary_invite_allows_pansionat_or_agency_type()
+    {
+        $owner = User::factory()->create(['type' => 'client']);
+        $patient = Patient::create([
+            'owner_id' => $owner->id,
+            'creator_id' => $owner->id,
+            'first_name' => 'John',
+            'last_name' => 'Doe',
+            'gender' => 'male',
+            'birth_date' => '1950-01-01',
+            'mobility' => 'walking',
+        ]);
+        $diary = Diary::create(['patient_id' => $patient->id]);
+
+        $invitation = Invitation::create([
+            'inviter_id' => $owner->id,
+            'token' => Invitation::generateToken(),
+            'type' => Invitation::TYPE_DIARY_ACCESS,
+            'patient_id' => $patient->id,
+            'status' => Invitation::STATUS_PENDING,
+            'expires_at' => now()->addDays(7),
+        ]);
+
+        $response = $this->postJson("/api/v1/invitations/{$invitation->token}/accept", [
+            'phone' => '79001113344',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'first_name' => 'Org',
+            'last_name' => 'User',
+            'type' => 'pansionat',
+        ]);
+
+        $response->assertStatus(200);
+
+        $newUser = User::where('phone', '79001113344')->first();
+        $this->assertNotNull($newUser);
+        $this->assertEquals('organization', $newUser->type->value);
+        $this->assertTrue($diary->hasAccess($newUser, 'full'));
+    }
+
     public function test_accept_diary_invite_links_organization()
     {
         $owner = User::factory()->create(['type' => 'client']);
