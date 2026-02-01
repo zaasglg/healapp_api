@@ -1242,6 +1242,78 @@ class DiaryController extends Controller
 
     /**
      * @OA\Get(
+     *     path="/api/v1/diary/clients",
+     *     tags={"Diary"},
+     *     summary="Get list of clients with accessible diaries",
+     *     description="Returns clients (account type client) whose diaries are accessible to the authenticated user. Only organization staff or private caregivers can access.",
+     *     security={{"sanctum": {}}},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Clients retrieved successfully",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(
+     *
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="first_name", type="string", example="Иван"),
+     *                 @OA\Property(property="last_name", type="string", example="Иванов"),
+     *                 @OA\Property(property="phone", type="string", example="+79001234567"),
+     *                 @OA\Property(property="type", type="string", example="client", enum={"client"}),
+     *                 @OA\Property(property="account_type", type="string", nullable=true, example="client")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=403,
+     *         description="Access denied"
+     *     )
+     * )
+     */
+    public function getClients(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user->organization_id && ! $user->isPrivateCaregiver()) {
+            return response()->json([
+                'message' => 'Недостаточно прав.',
+            ], 403);
+        }
+
+        $clients = $user->accessibleDiaries()
+            ->with(['patient.owner:id,first_name,last_name,phone,avatar,city,type'])
+            ->get()
+            ->map(function ($diary) {
+                $owner = $diary->patient?->owner;
+
+                if (! $owner || ! $owner->isClient()) {
+                    return null;
+                }
+
+                return $owner;
+            })
+            ->filter()
+            ->unique('id')
+            ->values()
+            ->map(function ($client) {
+                return [
+                    'id' => $client->id,
+                    'first_name' => $client->first_name,
+                    'last_name' => $client->last_name,
+                    'phone' => $client->phone,
+                    'type' => $client->type->value,
+                    'account_type' => $client->account_type,
+                ];
+            });
+
+        return response()->json($clients, 200);
+    }
+
+    /**
+     * @OA\Get(
      *     path="/api/v1/diary/{id}/access",
      *     tags={"Diary"},
      *     summary="Get users with access to diary",
