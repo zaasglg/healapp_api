@@ -8,6 +8,7 @@ use App\Models\Patient;
 use App\Models\Diary;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class DiaryInvitationTest extends TestCase
@@ -104,6 +105,8 @@ class DiaryInvitationTest extends TestCase
             'expires_at' => now()->addDays(7),
         ]);
 
+        Role::create(['name' => 'owner']);
+
         $response = $this->postJson("/api/v1/invitations/{$invitation->token}/accept", [
             'phone' => '79001113344',
             'password' => 'password',
@@ -111,6 +114,7 @@ class DiaryInvitationTest extends TestCase
             'first_name' => 'Org',
             'last_name' => 'User',
             'type' => 'pansionat',
+            'organization_name' => 'Test Pansionat',
         ]);
 
         $response->assertStatus(200);
@@ -118,6 +122,7 @@ class DiaryInvitationTest extends TestCase
         $newUser = User::where('phone', '79001113344')->first();
         $this->assertNotNull($newUser);
         $this->assertEquals('organization', $newUser->type->value);
+        $this->assertNotNull($newUser->organization_id);
         $this->assertTrue($diary->hasAccess($newUser, 'full'));
     }
 

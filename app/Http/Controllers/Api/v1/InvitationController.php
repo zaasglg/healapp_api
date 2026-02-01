@@ -327,7 +327,9 @@ class InvitationController extends Controller
      *             @OA\Property(property="password_confirmation", type="string", format="password"),
      *             @OA\Property(property="first_name", type="string", nullable=true),
      *             @OA\Property(property="last_name", type="string", nullable=true),
-     *             @OA\Property(property="type", type="string", nullable=true, enum={"client", "private_caregiver", "organization", "pansionat", "agency"})
+     *             @OA\Property(property="type", type="string", nullable=true, enum={"client", "private_caregiver", "organization", "pansionat", "agency"}),
+     *             @OA\Property(property="organization_name", type="string", nullable=true),
+     *             @OA\Property(property="address", type="string", nullable=true)
      *         )
      *     ),
      *
@@ -380,6 +382,8 @@ class InvitationController extends Controller
                 'first_name' => 'nullable|string|max:255',
                 'last_name' => 'nullable|string|max:255',
                 'type' => 'nullable|string|in:client,organization,private_caregiver,pansionat,agency',
+                'organization_name' => 'nullable|string|max:255',
+                'address' => 'nullable|string|max:500',
             ]);
 
             // Determine user type
@@ -425,6 +429,24 @@ class InvitationController extends Controller
                 // But explicit access doesn't hurt.
             }
         } elseif ($invitation->isDiaryAccessInvite() && $invitation->patient_id) {
+            if ($user->organization_id === null && in_array($request->type, ['pansionat', 'agency'], true)) {
+                $organizationType = $request->type === 'pansionat'
+                    ? \App\Enums\OrganizationType::BOARDING_HOUSE
+                    : \App\Enums\OrganizationType::AGENCY;
+
+                $organization = Organization::create([
+                    'owner_id' => $user->id,
+                    'name' => $request->organization_name,
+                    'type' => $organizationType->value,
+                    'phone' => $user->phone,
+                    'address' => $request->address,
+                ]);
+
+                $user->organization_id = $organization->id;
+                $user->save();
+                $user->assignRole('owner');
+            }
+
             // For diary invite:
             // 1. Grant explicit access
             if ($invitation->patient->diary) {
