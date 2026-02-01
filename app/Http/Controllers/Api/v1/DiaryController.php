@@ -1242,11 +1242,20 @@ class DiaryController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/v1/diary/clients",
+     *     path="/api/v1/diary/{id}/clients",
      *     tags={"Diary"},
-     *     summary="Get list of clients with accessible diaries",
-     *     description="Returns clients (account type client) whose diaries are accessible to the authenticated user. Only organization staff or private caregivers can access.",
+     *     summary="Get clients for a specific diary",
+     *     description="Returns client владельца дневника. Доступ имеют пользователи с доступом к дневнику.",
      *     security={{"sanctum": {}}},
+     *
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Diary ID",
+     *
+     *         @OA\Schema(type="integer")
+     *     ),
      *
      *     @OA\Response(
      *         response=200,
@@ -1270,44 +1279,47 @@ class DiaryController extends Controller
      *     @OA\Response(
      *         response=403,
      *         description="Access denied"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Diary not found"
      *     )
      * )
      */
-    public function getClients(Request $request): JsonResponse
+    public function getClientsByDiary(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
 
-        if (! $user->organization_id && ! $user->isPrivateCaregiver()) {
+        $diary = Diary::with('patient.owner')->find($id);
+
+        if (! $diary) {
             return response()->json([
-                'message' => 'Недостаточно прав.',
+                'message' => 'Дневник не найден.',
+            ], 404);
+        }
+
+        $isClientAdmin = $user->isClient() && $user->hasRole('admin');
+
+        if (! $diary->hasAccess($user) && ! $isClientAdmin) {
+            return response()->json([
+                'message' => 'У вас нет доступа к этому дневнику.',
             ], 403);
         }
 
-        $clients = $user->accessibleDiaries()
-            ->with(['patient.owner:id,first_name,last_name,phone,avatar,city,type'])
-            ->get()
-            ->map(function ($diary) {
-                $owner = $diary->patient?->owner;
+        $owner = $diary->patient?->owner;
 
-                if (! $owner || ! $owner->isClient()) {
-                    return null;
-                }
+        if (! $owner || ! $owner->isClient()) {
+            return response()->json([], 200);
+        }
 
-                return $owner;
-            })
-            ->filter()
-            ->unique('id')
-            ->values()
-            ->map(function ($client) {
-                return [
-                    'id' => $client->id,
-                    'first_name' => $client->first_name,
-                    'last_name' => $client->last_name,
-                    'phone' => $client->phone,
-                    'type' => $client->type->value,
-                    'account_type' => $client->account_type,
-                ];
-            });
+        $clients = [[
+            'id' => $owner->id,
+            'first_name' => $owner->first_name,
+            'last_name' => $owner->last_name,
+            'phone' => $owner->phone,
+            'type' => $owner->type->value,
+            'account_type' => $owner->account_type,
+        ]];
 
         return response()->json($clients, 200);
     }

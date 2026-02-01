@@ -60,9 +60,9 @@ Route::prefix('v1')->group(function () {
             \App\Http\Controllers\Api\v1\DiaryController::class,
             'index',
         ]);
-        Route::get('/diary/clients', [
+        Route::get('/diary/{id}/clients', [
             \App\Http\Controllers\Api\v1\DiaryController::class,
-            'getClients',
+            'getClientsByDiary',
         ]);
         Route::get('/diary/{id}/access', [
             \App\Http\Controllers\Api\v1\DiaryController::class,
