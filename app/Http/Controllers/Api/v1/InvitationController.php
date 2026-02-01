@@ -6,6 +6,7 @@ use App\Enums\UserType;
 use App\Http\Controllers\Controller;
 use App\Models\Invitation;
 use App\Models\Organization;
+use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -205,6 +206,84 @@ class InvitationController extends Controller
 
     /**
      * @OA\Post(
+     *     path="/api/v1/invitations/diary-client",
+     *     tags={"Invitations"},
+     *     summary="Создать приглашение для клиента в дневник",
+     *     description="Организация создает ссылку, по которой клиент сможет принять приглашение и получить доступ к дневнику.",
+     *     security={{"sanctum": {}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *
+     *         @OA\JsonContent(
+     *             required={"patient_id"},
+     *
+     *             @OA\Property(property="patient_id", type="integer", example=1)
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=201,
+     *         description="Приглашение создано",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="invitation", type="object"),
+     *             @OA\Property(property="invite_url", type="string", example="https://клиент.системыздоровья.рф/diary-client-invite/abc123...")
+     *         )
+     *     ),
+     *     @OA\Response(response=403, description="Недостаточно прав"),
+     *     @OA\Response(response=409, description="Дневник не создан или клиент уже привязан")
+     * )
+     */
+    public function createDiaryClientInvite(Request $request): JsonResponse
+    {
+        $request->validate([
+            'patient_id' => 'required|exists:patients,id',
+        ]);
+
+        $user = $request->user();
+
+        if (! $user->organization_id || ! $user->hasAnyRole(['owner', 'admin', 'doctor'])) {
+            return response()->json(['message' => 'Недостаточно прав'], 403);
+        }
+
+        $patient = Patient::with('diary')->find($request->patient_id);
+
+        if (! $patient || $patient->organization_id !== $user->organization_id) {
+            return response()->json(['message' => 'Недостаточно прав'], 403);
+        }
+
+        if (! $patient->diary) {
+            return response()->json([
+                'message' => 'Дневник еще не создан.',
+            ], 409);
+        }
+
+        if ($patient->owner_id) {
+            return response()->json([
+                'message' => 'Клиент уже привязан.',
+            ], 409);
+        }
+
+        $invitation = Invitation::create([
+            'organization_id' => $user->organization_id,
+            'inviter_id' => $user->id,
+            'token' => Invitation::generateToken(),
+            'type' => Invitation::TYPE_DIARY_CLIENT,
+            'patient_id' => $patient->id,
+            'status' => Invitation::STATUS_PENDING,
+            'expires_at' => now()->addDays(7),
+        ]);
+
+        return response()->json([
+            'invitation' => $invitation,
+            'invite_url' => $invitation->getInviteUrl(),
+        ], 201);
+    }
+
+    /**
+     * @OA\Post(
      *     path="/api/v1/invitations/diary",
      *     tags={"Invitations"},
      *     summary="Создать ссылку-приглашение в дневник",
@@ -387,7 +466,7 @@ class InvitationController extends Controller
             ]);
 
             // Determine user type
-            if ($invitation->isClientInvite()) {
+            if ($invitation->isClientInvite() || $invitation->isDiaryClientInvite()) {
                 $userType = UserType::CLIENT;
             } elseif ($invitation->isDiaryAccessInvite()) {
                 $userType = match ($request->type) {
@@ -418,13 +497,29 @@ class InvitationController extends Controller
             if ($organization) {
                 $organization->addEmployee($user, $invitation->role);
             }
-        } elseif ($invitation->isClientInvite() && $invitation->patient_id) {
+        } elseif (
+            ($invitation->isClientInvite() || $invitation->isDiaryClientInvite()) &&
+            $invitation->patient_id
+        ) {
+            if (! $user->isClient()) {
+                return response()->json([
+                    'message' => 'Только клиент может принять приглашение.',
+                ], 403);
+            }
+
             // Привязываем клиента к карточке подопечного
+            if ($invitation->patient->owner_id && $invitation->patient->owner_id !== $user->id) {
+                return response()->json([
+                    'message' => 'Клиент уже привязан.',
+                ], 409);
+            }
+
             $invitation->patient->update(['owner_id' => $user->id]);
 
             // Даём доступ к дневнику, если есть
             if ($invitation->patient->diary) {
-                $invitation->patient->diary->grantAccess($user, 'view'); // Or 'full'? Usually clients have full access.
+                $permission = $invitation->isDiaryClientInvite() ? 'full' : 'view';
+                $invitation->patient->diary->grantAccess($user, $permission);
                 // Clients usually are owners, so they have implicit access. 
                 // But explicit access doesn't hurt.
             }
