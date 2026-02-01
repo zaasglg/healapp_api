@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Diary\RevokeDiaryAccessRequest;
 use App\Http\Requests\StoreDiaryEntryRequest;
 use App\Models\Diary;
 use App\Models\DiaryEntry;
 use App\Models\Organization;
 use App\Models\Patient;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -1329,6 +1331,81 @@ class DiaryController extends Controller
             });
 
         return response()->json($accessUsers, 200);
+    }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/v1/diary/{id}/access",
+     *     tags={"Diary"},
+     *     summary="Revoke user access to diary",
+     *     description="Revoke access for a user. Only diary owner or creator can revoke access.",
+     *     security={{"sanctum": {}}},
+     *
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Diary ID",
+     *
+     *         @OA\Schema(type="integer")
+     *     ),
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *
+     *         @OA\JsonContent(
+     *             required={"user_id"},
+     *
+     *             @OA\Property(property="user_id", type="integer")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Access revoked"
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Access denied"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Diary not found"
+     *     )
+     * )
+     */
+    public function revokeAccess(RevokeDiaryAccessRequest $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        $diary = Diary::find($id);
+
+        if (! $diary) {
+            return response()->json([
+                'message' => 'Дневник не найден.',
+            ], 404);
+        }
+
+        $patient = $diary->patient;
+        if (! $patient || ($patient->owner_id !== $user->id && $patient->creator_id !== $user->id)) {
+            return response()->json([
+                'message' => 'Недостаточно прав.',
+            ], 403);
+        }
+
+        $targetUser = User::find($request->user_id);
+
+        if (! $targetUser) {
+            return response()->json([
+                'message' => 'Пользователь не найден.',
+            ], 404);
+        }
+
+        $diary->revokeAccess($targetUser);
+
+        return response()->json([
+            'message' => 'Доступ к дневнику отозван.',
+        ], 200);
     }
 
     /**

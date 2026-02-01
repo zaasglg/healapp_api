@@ -64,6 +64,10 @@ Route::prefix('v1')->group(function () {
             \App\Http\Controllers\Api\v1\DiaryController::class,
             'getAccess',
         ]);
+        Route::delete('/diary/{id}/access', [
+            \App\Http\Controllers\Api\v1\DiaryController::class,
+            'revokeAccess',
+        ]);
         Route::get('/diary/{id}', [
             \App\Http\Controllers\Api\v1\DiaryController::class,
             'show',
