@@ -1268,6 +1268,8 @@ class DiaryController extends Controller
      *                 @OA\Property(property="first_name", type="string", example="Иван"),
      *                 @OA\Property(property="last_name", type="string", example="Иванов"),
      *                 @OA\Property(property="phone", type="string", example="+79001234567"),
+     *                 @OA\Property(property="type", type="string", example="organization", enum={"client", "organization", "private_caregiver"}),
+     *                 @OA\Property(property="account_type", type="string", nullable=true, example="pansionat"),
      *                 @OA\Property(property="permission", type="string", example="edit", enum={"view", "edit", "full"}),
      *                 @OA\Property(property="status", type="string", example="active", enum={"active", "revoked"}),
      *                 @OA\Property(property="granted_at", type="string", format="date-time")
@@ -1310,7 +1312,7 @@ class DiaryController extends Controller
 
         $accessUsers = $diary->accessUsers()
             ->wherePivot('status', 'active')
-            ->select('users.id', 'users.first_name', 'users.last_name', 'users.phone')
+            ->select('users.id', 'users.first_name', 'users.last_name', 'users.phone', 'users.type', 'users.organization_id')
             ->get()
             ->map(function ($accessUser) {
                 return [
@@ -1318,6 +1320,8 @@ class DiaryController extends Controller
                     'first_name' => $accessUser->first_name,
                     'last_name' => $accessUser->last_name,
                     'phone' => $accessUser->phone,
+                    'type' => $accessUser->type->value,
+                    'account_type' => $accessUser->account_type,
                     'permission' => $accessUser->pivot->permission,
                     'status' => $accessUser->pivot->status,
                     'granted_at' => $accessUser->pivot->created_at,
