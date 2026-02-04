@@ -96,13 +96,16 @@ class Invitation extends Model
 
     public function isValid(): bool
     {
-        return $this->status === self::STATUS_PENDING
-            && $this->expires_at->isFuture();
+        if ($this->status !== self::STATUS_PENDING) {
+            return false;
+        }
+
+        return $this->expires_at?->isFuture() ?? false;
     }
 
     public function isExpired(): bool
     {
-        return $this->expires_at->isPast();
+        return $this->expires_at?->isPast() ?? false;
     }
 
     public function markAsAccepted(User $user): void

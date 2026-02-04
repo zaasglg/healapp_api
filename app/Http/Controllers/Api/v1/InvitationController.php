@@ -353,7 +353,8 @@ class InvitationController extends Controller
      *
      *         @OA\JsonContent(
      *
-     *             @OA\Property(property="organization_name", type="string"),
+     *             @OA\Property(property="organization_name", type="string", nullable=true),
+     *             @OA\Property(property="organization_type", type="string", nullable=true),
      *             @OA\Property(property="type", type="string"),
      *             @OA\Property(property="role", type="string", nullable=true),
      *             @OA\Property(property="expires_at", type="string", format="date-time")
@@ -364,7 +365,7 @@ class InvitationController extends Controller
     public function show(string $token): JsonResponse
     {
         $invitation = Invitation::where('token', $token)
-            ->with(['organization:id,name,type'])
+            ->with(['organization:id,name,type', 'patient.organization:id,name,type'])
             ->first();
 
         if (!$invitation) {
@@ -378,9 +379,11 @@ class InvitationController extends Controller
             ], 410);
         }
 
+        $organization = $invitation->organization ?? $invitation->patient?->organization;
+
         return response()->json([
-            'organization_name' => $invitation->organization->name,
-            'organization_type' => $invitation->organization->type,
+            'organization_name' => $organization?->name,
+            'organization_type' => $organization?->type,
             'type' => $invitation->type,
             'role' => $invitation->role,
             'expires_at' => $invitation->expires_at,
