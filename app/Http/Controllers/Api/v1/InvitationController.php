@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Services\SmsRuService;
 
 /**
  * @OA\Tag(
@@ -394,7 +395,7 @@ class InvitationController extends Controller
      * @OA\Post(
      *     path="/api/v1/invitations/{token}/accept",
      *     tags={"Invitations"},
-     *     summary="Принять приглашение (регистрация или привязка)",
+     *     summary="Принять приглашение (отправляет SMS код для подтверждения)",
      *
      *     @OA\Parameter(name="token", in="path", required=true, @OA\Schema(type="string")),
      *
@@ -417,17 +418,17 @@ class InvitationController extends Controller
      *
      *     @OA\Response(
      *         response=200,
-     *         description="Приглашение принято",
+     *         description="SMS отправлен",
      *
      *         @OA\JsonContent(
      *
-     *             @OA\Property(property="access_token", type="string"),
-     *             @OA\Property(property="user", type="object")
+     *             @OA\Property(property="message", type="string", example="SMS sent"),
+     *             @OA\Property(property="phone", type="string", example="79001234567")
      *         )
      *     )
      * )
      */
-    public function accept(Request $request, string $token): JsonResponse
+    public function accept(Request $request, string $token, SmsRuService $smsService): JsonResponse
     {
         $invitation = Invitation::where('token', $token)->first();
 
@@ -440,6 +441,11 @@ class InvitationController extends Controller
                 'message' => 'Приглашение истекло или уже использовано',
             ], 410);
         }
+
+        // Генерируем код подтверждения
+        $verificationCode = app()->environment('production')
+            ? str_pad((string) rand(0, 9999), 4, '0', STR_PAD_LEFT)
+            : '1234';
 
         // Проверяем, существует ли пользователь
         $existingUser = User::where('phone', $request->phone)->first();
@@ -456,6 +462,10 @@ class InvitationController extends Controller
             }
 
             $user = $existingUser;
+
+            // Обновляем код подтверждения и отправляем SMS
+            $user->verification_code = $verificationCode;
+            $user->save();
         } else {
             // Новая регистрация
             $request->validate([
@@ -489,7 +499,7 @@ class InvitationController extends Controller
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
                 'type' => $userType->value,
-                'phone_verified_at' => now(), // Авто-верификация при приглашении
+                'verification_code' => $verificationCode,
             ]);
         }
 
@@ -559,16 +569,15 @@ class InvitationController extends Controller
             }
         }
 
-        // Отмечаем приглашение как принятое
+        // Отправляем SMS с кодом подтверждения
+        $smsService->send($user->phone, "Ваш код подтверждения: {$verificationCode}");
+
+        // Отмечаем приглашение как принятое (ПОСЛЕ отправки SMS)
         $invitation->markAsAccepted($user);
 
-        // Создаём токен
-        $accessToken = $user->createToken('auth-token')->plainTextToken;
-
         return response()->json([
-            'message' => 'Приглашение принято',
-            'access_token' => $accessToken,
-            'user' => $user->fresh(['organization']),
+            'message' => 'SMS sent',
+            'phone' => $user->phone,
         ]);
     }
 
