@@ -92,6 +92,24 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($users as $user)
+                        @php
+                            $hasFirstName = filled($user->first_name);
+                            $hasLastName = filled($user->last_name);
+                            $shouldUseOrganizationName = ! $hasFirstName || ! $hasLastName;
+                            $displayName = $shouldUseOrganizationName
+                                ? ($user->organization?->name ?? '-')
+                                : $user->full_name;
+
+                            $avatarInitials = mb_strtoupper(mb_substr((string) $user->first_name, 0, 1).mb_substr((string) $user->last_name, 0, 1));
+
+                            if ($avatarInitials === '' && filled($user->organization?->name)) {
+                                $avatarInitials = mb_strtoupper(mb_substr($user->organization->name, 0, 2));
+                            }
+
+                            if ($avatarInitials === '') {
+                                $avatarInitials = '?';
+                            }
+                        @endphp
                         <tr class="table-row hover:bg-slate-50/50">
                             <td class="px-6 py-4 text-sm text-slate-500">#{{ $user->id }}</td>
                             <td class="px-6 py-4">
@@ -102,11 +120,11 @@
                                     @else
                                         <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-200 to-primary-400 flex items-center justify-center text-white font-medium text-sm shrink-0"
                                             style="border-radius: 50%;">
-                                            {{ mb_substr($user->first_name, 0, 1) }}{{ mb_substr($user->last_name, 0, 1) }}
+                                            {{ $avatarInitials }}
                                         </div>
                                     @endif
                                     <div>
-                                        <div class="font-medium text-slate-800">{{ $user->full_name }}</div>
+                                        <div class="font-medium text-slate-800">{{ $displayName }}</div>
                                         <div class="text-xs text-slate-400">{{ $user->city ?? 'Город не указан' }}</div>
                                     </div>
                                 </div>

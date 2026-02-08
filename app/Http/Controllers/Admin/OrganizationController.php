@@ -11,6 +11,20 @@ class OrganizationController extends Controller
     public function index(Request $request)
     {
         $query = Organization::with(['owner']);
+        $tab = $request->get('tab');
+
+        if (! in_array($tab, ['normal', 'test'], true)) {
+            $tab = 'normal';
+        }
+
+        if ($tab === 'test') {
+            $query->where('name', 'like', '0%');
+        } else {
+            $query->where(function ($q) {
+                $q->whereNull('name')
+                    ->orWhere('name', 'not like', '0%');
+            });
+        }
 
         if ($search = $request->get('search')) {
             $query->where('name', 'like', "%{$search}%");
@@ -23,7 +37,7 @@ class OrganizationController extends Controller
         $organizations = $query->orderBy('created_at', 'desc')->paginate(20);
         $organizations->appends($request->query());
 
-        return view('admin.organizations.index', compact('organizations'));
+        return view('admin.organizations.index', compact('organizations', 'tab'));
     }
 
     public function show(Organization $organization)
