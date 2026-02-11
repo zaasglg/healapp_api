@@ -86,6 +86,22 @@ class UserController extends Controller
             ->with('success', 'Пользователь обновлён');
     }
 
+    public function resetPassword(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+        ]);
+
+        $user->update([
+            'password' => $validated['password'],
+        ]);
+
+        return redirect()->route('admin.users.show', [
+            'user' => $user,
+            'token' => session('admin_token'),
+        ])->with('success', 'Пароль пользователя успешно сброшен');
+    }
+
     public function destroy(User $user)
     {
         $user->delete();

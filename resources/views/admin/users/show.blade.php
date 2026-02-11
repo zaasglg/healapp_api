@@ -105,6 +105,39 @@
                     <div class="text-slate-800 font-medium">{{ $user->is_agree ? 'Да' : 'Нет' }}</div>
                 </div>
             </div>
+
+            <div class="mt-8 pt-6 border-t border-slate-100">
+                <h2 class="text-lg font-semibold text-slate-800">Сброс пароля</h2>
+                <p class="text-sm text-slate-500 mt-1">Укажите новый пароль для этого пользователя.</p>
+
+                <form method="POST"
+                    action="{{ route('admin.users.reset-password', ['user' => $user, 'token' => session('admin_token')]) }}"
+                    class="mt-4 max-w-xl">
+                    @csrf
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-slate-700 mb-2">Новый пароль</label>
+                            <input id="password" type="password" name="password"
+                                class="w-full rounded-xl border-slate-200 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50 px-4 py-2.5">
+                            @error('password')
+                                <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="password_confirmation"
+                                class="block text-sm font-medium text-slate-700 mb-2">Повторите пароль</label>
+                            <input id="password_confirmation" type="password" name="password_confirmation"
+                                class="w-full rounded-xl border-slate-200 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50 px-4 py-2.5">
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                        class="mt-4 inline-flex items-center gap-2 px-4 py-2.5 bg-primary-50 text-primary-700 rounded-xl text-sm font-medium hover:bg-primary-100 transition">
+                        Сбросить пароль
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 @endsection
