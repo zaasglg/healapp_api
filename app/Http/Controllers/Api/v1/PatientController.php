@@ -70,7 +70,7 @@ class PatientController extends Controller
 
         // Клиент видит только своих пациентов (где owner_id = user.id)
         if ($user->isClient()) {
-            $patients = Patient::where("owner_id", $user->id)->get();
+            $patients = Patient::where('owner_id', $user->id)->get();
         }
         // Частная сиделка видит пациентов, к которым назначена
         elseif ($user->isPrivateCaregiver()) {
@@ -80,43 +80,48 @@ class PatientController extends Controller
         elseif ($user->organization_id) {
             $organization = $user->organization;
 
-            if (!$organization) {
+            if (! $organization) {
                 return response()->json([], 200);
             }
 
             // Пансионат: все сотрудники видят всех пациентов организации
             if ($organization->isBoardingHouse()) {
                 $patients = Patient::where(
-                    "organization_id",
+                    'organization_id',
                     $organization->id,
                 )->get();
             }
             // Агентство: только назначенные пациенты
             elseif ($organization->isAgency()) {
                 // Владельцы и админы видят всех пациентов организации
-                if ($user->hasAnyRole(["owner", "admin"])) {
+                if ($user->hasAnyRole(['owner', 'admin'])) {
                     $patients = Patient::where(
-                        "organization_id",
+                        'organization_id',
                         $organization->id,
                     )->get();
                 } else {
                     // Остальные сотрудники видят только назначенных пациентов
                     $patients = $user
                         ->assignedPatients()
-                        ->where("organization_id", $organization->id)
+                        ->where('organization_id', $organization->id)
                         ->get();
                 }
             } else {
                 // Fallback: все пациенты организации для владельцев/админов
-                if ($user->hasAnyRole(["owner", "admin"])) {
+                if ($user->hasAnyRole(['owner', 'admin'])) {
                     $patients = Patient::where(
-                        "organization_id",
+                        'organization_id',
                         $organization->id,
                     )->get();
                 } else {
                     $patients = collect();
                 }
             }
+        }
+        // Пользователь с type=organization, но без organization_id (ещё не создал/не вступил в организацию)
+        // Видит пациентов, которых сам создал
+        elseif ($user->isOrganizationOwner()) {
+            $patients = Patient::where('creator_id', $user->id)->get();
         }
         // Если пользователь не принадлежит ни к одной категории
         else {
@@ -210,11 +215,10 @@ class PatientController extends Controller
         if ($user->organization_id) {
             $organization = $user->organization;
             if ($organization && $organization->isBoardingHouse()) {
-                if ($user->hasAnyRole(["doctor", "caregiver"])) {
+                if ($user->hasAnyRole(['doctor', 'caregiver'])) {
                     return response()->json(
                         [
-                            "message" =>
-                                "У вас нет прав на создание пациентов. Доступ только для чтения.",
+                            'message' => 'У вас нет прав на создание пациентов. Доступ только для чтения.',
                         ],
                         403,
                     );
@@ -225,14 +229,14 @@ class PatientController extends Controller
         $data = $request->validated();
 
         // Set creator_id to authenticated user
-        $data["creator_id"] = $user->id;
+        $data['creator_id'] = $user->id;
 
         // For CLIENT users: automatically set owner_id to current user
         // Clients create patients for themselves (their relatives)
         if ($user->isClient()) {
-            $data["owner_id"] = $user->id;
+            $data['owner_id'] = $user->id;
             // Clients don't belong to organizations
-            $data["organization_id"] = null;
+            $data['organization_id'] = null;
         }
         // For organization members and private caregivers
         else {
@@ -241,21 +245,20 @@ class PatientController extends Controller
             // 2. If user belongs to an organization, use their organization
             // 3. Otherwise, leave as null (for private caregivers)
             if (
-                !isset($data["organization_id"]) ||
-                $data["organization_id"] === null
+                ! isset($data['organization_id']) ||
+                $data['organization_id'] === null
             ) {
                 if ($user->organization_id) {
-                    $data["organization_id"] = $user->organization_id;
+                    $data['organization_id'] = $user->organization_id;
                 }
             } else {
                 // If organization_id is provided, validate user has access to it
                 // Only allow setting organization_id if user belongs to that organization
                 // or is the owner of that organization
-                if ($user->organization_id !== $data["organization_id"]) {
+                if ($user->organization_id !== $data['organization_id']) {
                     return response()->json(
                         [
-                            "message" =>
-                                "Вы не можете создавать пациентов для другой организации",
+                            'message' => 'Вы не можете создавать пациентов для другой организации',
                         ],
                         403,
                     );
@@ -345,10 +348,10 @@ class PatientController extends Controller
         $user = $request->user();
 
         // Check access
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json(
                 [
-                    "message" => "У вас нет доступа к этому пациенту.",
+                    'message' => 'У вас нет доступа к этому пациенту.',
                 ],
                 403,
             );
@@ -466,10 +469,10 @@ class PatientController extends Controller
         $user = $request->user();
 
         // Check access
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json(
                 [
-                    "message" => "У вас нет доступа к этому пациенту.",
+                    'message' => 'У вас нет доступа к этому пациенту.',
                 ],
                 403,
             );
@@ -483,11 +486,10 @@ class PatientController extends Controller
         ) {
             $organization = $user->organization;
             if ($organization && $organization->isBoardingHouse()) {
-                if ($user->hasAnyRole(["doctor", "caregiver"])) {
+                if ($user->hasAnyRole(['doctor', 'caregiver'])) {
                     return response()->json(
                         [
-                            "message" =>
-                                "У вас нет прав на редактирование пациентов. Доступ только для чтения.",
+                            'message' => 'У вас нет прав на редактирование пациентов. Доступ только для чтения.',
                         ],
                         403,
                     );
@@ -563,10 +565,10 @@ class PatientController extends Controller
         $user = $request->user();
 
         // Check access
-        if (!$this->canAccessPatient($user, $patient)) {
+        if (! $this->canAccessPatient($user, $patient)) {
             return response()->json(
                 [
-                    "message" => "У вас нет доступа к этому пациенту.",
+                    'message' => 'У вас нет доступа к этому пациенту.',
                 ],
                 403,
             );
@@ -576,7 +578,7 @@ class PatientController extends Controller
 
         return response()->json(
             [
-                "message" => "Пациент успешно удалён",
+                'message' => 'Пациент успешно удалён',
             ],
             200,
         );
@@ -592,7 +594,7 @@ class PatientController extends Controller
         if ($user->organization_id) {
             $organization = $user->organization;
 
-            if (!$organization) {
+            if (! $organization) {
                 return false;
             }
 
@@ -602,7 +604,7 @@ class PatientController extends Controller
             }
 
             // Владельцы и админы организации имеют доступ ко всем пациентам организации
-            if ($user->hasAnyRole(["owner", "admin", "manager"])) {
+            if ($user->hasAnyRole(['owner', 'admin', 'manager'])) {
                 return true;
             }
 
@@ -612,8 +614,8 @@ class PatientController extends Controller
                     $patient->diary &&
                     $patient->diary
                         ->accessUsers()
-                        ->where("user_id", $user->id)
-                        ->wherePivot("status", "revoked")
+                        ->where('user_id', $user->id)
+                        ->wherePivot('status', 'revoked')
                         ->exists()
                 ) {
                     return false;
@@ -625,14 +627,14 @@ class PatientController extends Controller
             // Агентство: только сотрудники, явно добавленные через admin
             if ($organization->isAgency()) {
                 // Admin и Manager видят всех
-                if ($user->hasAnyRole(["admin", "manager"])) {
+                if ($user->hasAnyRole(['admin', 'manager'])) {
                     return true;
                 }
 
                 // Проверяем назначение через patient_user
                 $isAssigned = $patient
                     ->assignedUsers()
-                    ->where("user_id", $user->id)
+                    ->where('user_id', $user->id)
                     ->exists();
                 if ($isAssigned) {
                     return true;
@@ -650,11 +652,11 @@ class PatientController extends Controller
 
         // Приоритет ролям над типом пользователя
         // Пользователь с ролью сиделки/врача (независимо от type)
-        if ($user->hasAnyRole(["caregiver", "doctor"])) {
+        if ($user->hasAnyRole(['caregiver', 'doctor'])) {
             // Проверяем, назначен ли к пациенту
             $isAssigned = $patient
                 ->assignedUsers()
-                ->where("user_id", $user->id)
+                ->where('user_id', $user->id)
                 ->exists();
             if ($isAssigned) {
                 return true;
