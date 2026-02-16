@@ -72,6 +72,7 @@ class TaskService
                                 'template_id' => $template->id,
                                 'assigned_to' => $timeRange['assigned_to'] ?? $template->assigned_to,
                                 'title' => $template->title,
+                                'type' => $template->type,
                                 'start_at' => $startTime,
                                 'end_at' => $endTime,
                                 'status' => Task::STATUS_PENDING,

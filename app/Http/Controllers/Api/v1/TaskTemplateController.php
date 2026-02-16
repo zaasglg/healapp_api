@@ -139,6 +139,7 @@ class TaskTemplateController extends Controller
      *
      *             @OA\Property(property="patient_id", type="integer", example=1, description="Patient ID"),
      *             @OA\Property(property="title", type="string", example="Give medicine", description="Task name"),
+     *             @OA\Property(property="type", type="string", nullable=true, enum={"custom"}, example="custom", description="Task type. Use 'custom' for user-defined tasks with Cyrillic title. If null or not provided, works as before."),
      *             @OA\Property(property="days_of_week", type="array", nullable=true, @OA\Items(type="integer"), example={1, 3, 5}, description="Array of day numbers (0=Sunday, 6=Saturday). Null = every day"),
      *             @OA\Property(property="time_ranges", type="array", @OA\Items(
      *                 @OA\Property(property="start", type="string", example="09:00", description="Start time in H:i format"),
@@ -160,6 +161,7 @@ class TaskTemplateController extends Controller
      *             @OA\Property(property="patient_id", type="integer", example=1),
      *             @OA\Property(property="creator_id", type="integer", example=1),
      *             @OA\Property(property="title", type="string", example="Give medicine"),
+     *             @OA\Property(property="type", type="string", nullable=true, enum={"custom"}, example="custom"),
      *             @OA\Property(property="days_of_week", type="array", nullable=true, @OA\Items(type="integer"), example={1, 3, 5}),
      *             @OA\Property(property="time_ranges", type="array", @OA\Items(type="object"), example={{"start": "09:00", "end": "09:30"}}),
      *             @OA\Property(property="start_date", type="string", format="date", example="2024-01-01"),

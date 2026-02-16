@@ -24,6 +24,7 @@ class StoreTaskTemplateRequest extends FormRequest
         return [
             'patient_id' => ['required', 'integer', 'exists:patients,id'],
             'title' => ['required', 'string', 'max:255'],
+            'type' => ['nullable', 'string', 'in:custom'],
             'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
             'days_of_week' => ['nullable', 'array'],
             'days_of_week.*' => ['integer', 'min:0', 'max:6'],

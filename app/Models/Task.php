@@ -32,6 +32,7 @@ class Task extends Model
         'template_id',
         'assigned_to',
         'title',
+        'type',
         'start_at',
         'end_at',
         'original_start_at',

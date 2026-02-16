@@ -21,6 +21,7 @@ class TaskTemplate extends Model
         'creator_id',
         'assigned_to',
         'title',
+        'type',
         'days_of_week',
         'time_ranges',
         'start_date',
